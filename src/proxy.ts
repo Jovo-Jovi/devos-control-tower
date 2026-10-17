@@ -42,7 +42,7 @@ function isSessionExempt(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === "/api/ingest") {
+  if (request.nextUrl.pathname === "/api/ingest" || request.nextUrl.pathname === "/api/github/webhook") {
     return NextResponse.next();
   }
 

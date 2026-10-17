@@ -83,6 +83,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"observations": {
+                  Row: {
+                    "actor_login": string | null,"at": string,"context": string | null,"id": number,"kind": string,"payload_ref": string,"project_id": string,"received_at": string,"sha": string,"state": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "actor_login"?: string | null,"at": string,"context"?: string | null,"id"?: never,"kind": string,"payload_ref": string,"project_id": string,"received_at"?: string,"sha": string,"state": string
+                  }
+                  Update: {
+                    "actor_login"?: string | null,"at"?: string,"context"?: string | null,"id"?: never,"kind"?: string,"payload_ref"?: string,"project_id"?: string,"received_at"?: string,"sha"?: string,"state"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "observations_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"owner_allowlist": {
                   Row: {
                     "github_id": string
@@ -130,6 +150,20 @@ isOneToOne: false
       referencedRelation: "projects"
       referencedColumns: ["id"]
     }
+                  ]
+                },"webhook_deliveries": {
+                  Row: {
+                    "delivery_id": string,"event_name": string,"received_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "delivery_id": string,"event_name": string,"received_at"?: string
+                  }
+                  Update: {
+                    "delivery_id"?: string,"event_name"?: string,"received_at"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 }
           }

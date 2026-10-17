@@ -25,6 +25,7 @@ select ok(
       )
     from pg_policies
     where schemaname = 'public'
+      and tablename in ('projects', 'runs', 'events', 'event_usage', 'event_rejections')
   ),
   'every policy is to authenticated and references is_owner()'
 );

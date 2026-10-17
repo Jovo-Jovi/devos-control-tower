@@ -105,3 +105,11 @@ captures, per state and width, a settled screenshot in normal motion, a five-fra
 CDP screencast, a reduced-motion screenshot and the layout-shift value, and writes
 `.devos/screens/motion.json`. The evidence pack and the reviewer prompt summarise it. Precedent
 PR-35. Awaiting the verdict and G-Method-6.
+
+## 2026-10-17 — T03 GitHub App webhook receiver (builder, attempt 1)
+
+`POST /api/github/webhook` checks the production host, verifies `X-Hub-Signature-256` with HMAC-SHA256
+on the raw body, and stores one `webhook_deliveries` row and one `observations` row for a registered
+repository. Unknown events, unregistered repositories and redeliveries answer 202 and store nothing.
+The conclusion is folded into `state` (DATA_MODEL §2.8). Carry-forwards CF-008…CF-011 landed from
+T02's review. Awaiting the verdict and G-Tower-Observe.
