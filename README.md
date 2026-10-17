@@ -99,6 +99,10 @@ is the pilot itself. The brief is [`docs/PRODUCT_BRIEF.md`](docs/PRODUCT_BRIEF.m
 Before you merge a gate PR, check its three statuses: **`devos/checks`**, **`devos/verdict`** and
 **`devos/gate`**. A `ci` result that appears after the merge belongs to `main`, not to the PR.
 
+**New here? Start with [`docs/HOW_TO_USE_DEVOS_AND_WORKFLOWS.md`](docs/HOW_TO_USE_DEVOS_AND_WORKFLOWS.md)**:
+the owner's guide in plain words, with sorted topics (daily routine, requests, gates, progress,
+the supervisor, commands, settings, limits, deploys, troubleshooting, every workflow and script).
+
 **Everything the machine does** is in the operating manual,
 [`docs/method/AUTOMATION.md`](docs/method/AUTOMATION.md). It covers:
 
@@ -176,6 +180,7 @@ planner there. For the next project the steps are the pilot's:
 | Path | What |
 |---|---|
 | [`docs/method/DEV_OS_V2_REVIEWER.md`](docs/method/DEV_OS_V2_REVIEWER.md) | The method: pillars, journey J0–J11, documents, governance, gates, templates |
+| [`docs/HOW_TO_USE_DEVOS_AND_WORKFLOWS.md`](docs/HOW_TO_USE_DEVOS_AND_WORKFLOWS.md) | How to use Dev OS and its workflows: the owner's guide, by topic |
 | [`docs/method/AUTOMATION.md`](docs/method/AUTOMATION.md) | The operating manual of the automated cycle |
 | [`docs/method/PRECEDENTS.md`](docs/method/PRECEDENTS.md) | Binding rules PR-01…PR-34, each with the incident or request it came from |
 | [`docs/method/FULLSTACK_MODULE.md`](docs/method/FULLSTACK_MODULE.md) | Database, storage and Firestore modules: local copies, checks, deploy order (the Tower uses the database module only) |

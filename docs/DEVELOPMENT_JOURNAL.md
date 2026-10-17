@@ -188,3 +188,13 @@ captures are full page. `syntheticPortfolio` is produced by `aggregatePortfolio`
 the human: the 30 s poll reads every event, run and usage row. Playwright's Chromium was installed
 once in this environment so `pnpm e2e` could launch. Awaiting the verdict, then the owner's gate
 G-Design-v3.
+## 2026-10-17 — Runner: the Dev OS supervisor (owner request)
+
+The owner asked for the workflow to repair itself and only ask for approvals. `devos-supervisor.yml`
+runs after every Dev OS workflow, every 30 minutes and on `/devos approve|reject <id>`;
+`scripts/devos/supervisor.mjs` finds stopped or stalled work, explains it with fixed rules (Claude
+Opus, read-only, only when none fits), fixes what is safe on its own within a per-cause limit, and
+turns everything else into something the owner approves (a method-fix issue, a change request, a
+proposed revision, or setup steps). Reports go to the "Dev OS: supervisor" issue. On today's
+incidents, the rules read T04 a1 (hung builder) and T05 a2 (push conflict) as "re-dispatch", which
+is what was done by hand. `scripts/devos/rescue.sh` recovers a rescue branch onto its task branch.
