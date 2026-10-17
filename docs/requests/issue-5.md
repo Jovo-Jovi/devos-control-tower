@@ -69,3 +69,10 @@ The owner's answers in the issue thread:
 
 
 **Renumbered 2026-10-17 (owner session):** the method fix for issue #6 took id T08 first, so this plan's task is **T09** (row, fence, OD-07, SCOPE A-4, SECURITY_MODEL). Quoted comments keep their original wording.
+
+**Completed 2026-10-17 (intake run resumed after the limit):** the partial files were checked against `main` @
+`69c9e42` (paths, scripts, tokens in `DESIGN_SYSTEM.md` §1, `deep_paths`, `probe.mjs`/`guard-surfaces.mjs`
+usage; `node scripts/guards/run-all.mjs --only phases` → `PASS (9 tasks, 1 PASS)`). No task was added (no
+T10). The T09 fence's rehearsal line now cites `69c9e42`, its environment line carries T01's Node 22 note,
+and it gains a `- Screens:` line in the format T08 (issue #6) defines, so the runner's motion capture covers
+the three page states once T08 lands; the builder's own spec still covers all five states (OD-07 §5).
