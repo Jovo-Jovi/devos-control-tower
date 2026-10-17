@@ -16,7 +16,7 @@ The runner reads the table below, and `guard:phases` checks it.
 |---|---|---|---|---|---|---|---|
 | T01 | P01 | J4 | Skeleton: Next.js app, Supabase module, owner-only GitHub sign-in, header baseline, Tower ADRs | 3 | G-Tower-Auth | [x] | PASS a3 — docs/reviews/T01-a3.md |
 | T02 | P01 | J4 | Schema and OIDC-verified ingestion route with idempotency and usage storage | 3 | G-Tower-Ingest | [x] | PASS a2 — docs/reviews/T02-a2.md |
-| T03 | P01 | J4 | GitHub App webhook receiver: deliveries and observations (observed origin) | 3 | G-Tower-Observe | [ ] | — |
+| T03 | P01 | J4 | GitHub App webhook receiver: deliveries and observations (observed origin) | 3 | G-Tower-Observe | [x] | PASS a1 — docs/reviews/T03-a1.md |
 | T04 | P02 | J5 | Portfolio, register project, Tower-health banner | 2 | — | [ ] | — |
 | T05 | P02 | J5 | Usage view: totals, by phase/task/attempt/agent/model/alias, coverage, failed attempts separate | 2 | — | [ ] | — |
 | T06 | P02 | J5 | Project page: phases, run timeline by seq, origin labels and age, evidence links, verification | 2 | — | [ ] | — |
