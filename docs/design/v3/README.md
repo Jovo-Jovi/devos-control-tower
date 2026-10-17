@@ -296,10 +296,7 @@ ms; reduced-motion screenshots in both themes; layout shift 0; contrast of §1 r
 One change request ("Design v3: tower map, light and dark themes, scene"), planned by intake:
 - `DESIGN_SYSTEM.md` v3 from this folder (§1 tokens for both themes, §2–§7, the §8 amendments) and a new
   OD signed by the owner;
-- **one new product task right after T04** (risk 2, deep review of `package.json` and `src/lib/supabase/**`,
-  a UI gate for the owner's look): the theme layer, the scene and planet, the shell, the tower map and its
-  panels, the aggregation additions of §6, the evidence of §10. Planet images are copied from
-  `docs/design/v3/assets/` to `public/scene/`;
+- **T04 rewritten as the v3 foundation** (T04 attempt 1 produced nothing): tokens for both themes, theme switch, fonts, `motion`, the scene and planet (images copied from `docs/design/v3/assets/` to `public/scene/`), the app shell, the not-found page and the sign-in on the new tokens; then **a new T05** for the overview as the tower map with the §6 aggregation, its panels, the list, the phone layout, the register page and the Tower-health banner (a UI gate for the owner's look). Each fits the builder's 72-minute budget;
 - the open UI rows after it (usage view, project page, import, sign-in retrofit) are written against v3; the
   sign-in retrofit uses the scene and planet as its atmosphere.
 
