@@ -265,14 +265,31 @@ jobs:
           DEVOS_BUILDER_MODEL: ${{ steps.bm.outputs.model }}
           DEVOS_BUILDER_EFFORT: ${{ steps.bm.outputs.effort }}
           DEVOS_BUILDER_FAST: ${{ steps.bm.outputs.fast }}
+          # Live progress on the devos:notices issue (scripts/devos/progress.sh). The watchdog strips this
+          # token from the agent's environment, so Cursor never sees it.
+          DEVOS_PROGRESS_TOKEN: ${{ secrets.DEVOS_PAT || github.token }}
+          DEVOS_WATCHDOG_REPORT: bash scripts/devos/progress.sh
         run: |
           . scripts/devos/accounts.sh
           accounts=$(devos_accounts cursor)
+          # Long tasks run in time slices of 72 minutes: a slice that ends while the builder is still
+          # changing files is committed and the same attempt continues in a fresh run, up to
+          # builder.max_time_slices. The slice number is read back from this attempt's last builder commit.
+          export DEVOS_MAX_SLICES=$(node -e 'console.log(require("./devos.config.json").builder.max_time_slices ?? 4)')
+          export DEVOS_IDLE_STOP=$(node -e 'console.log(require("./devos.config.json").builder.idle_stop_minutes ?? 30)')
+          prev=$(git log -20 --format=%s | grep -m1 "^$TASK a$ATTEMPT: builder " || true)
+          DEVOS_SLICE=1
+          case "$prev" in *"(time slice "*) DEVOS_SLICE=$(( $(printf '%s' "$prev" | sed -n 's/.*(time slice \([0-9]*\)).*/\1/p') + 1 ));; esac
+          export DEVOS_SLICE; echo "slice=$DEVOS_SLICE" >> "$GITHUB_OUTPUT"; echo "max_slices=$DEVOS_MAX_SLICES" >> "$GITHUB_OUTPUT"
+          echo "time slice $DEVOS_SLICE of $DEVOS_MAX_SLICES"
           [ -n "$accounts" ] || { echo "::error::no Cursor key: set secret CURSOR_API_KEY (and optionally CURSOR_API_KEY_2)"; exit 1; }
           # Every active module's local names and throwaway keys (PR-17, PR-26).
           for f in .devos/*.env; do [ -f "$f" ] && { set -a; . "$f"; set +a; }; done
           echo "builder: $MODEL (effort ${DEVOS_BUILDER_EFFORT}, fast ${DEVOS_BUILDER_FAST}, from ${{ steps.bm.outputs.source }}) ${{ steps.bm.outputs.note }} · Cursor accounts in order: $accounts"
           node scripts/devos/render-prompt.mjs builder "$TASK" "$ATTEMPT" --out .devos/builder-prompt.md
+          if [ "$DEVOS_SLICE" -gt 1 ]; then
+            printf '\n\n**This is time slice %s of this attempt.** The earlier slice ran out of time while working; everything it did is committed on this branch (`git diff --stat origin/main...HEAD`, `git log`). Read it, verify it against the fence, and finish only what is still missing or failing. Do not start over, redo or duplicate anything.\n' "$DEVOS_SLICE" >> .devos/builder-prompt.md
+          fi
           set +e
           # Heartbeat: Cursor's output goes to a file, so print progress every minute.
           ( t0=$(date +%s); while sleep 60; do
@@ -292,10 +309,10 @@ jobs:
               bash scripts/devos/agent-watchdog.sh "$left" 10 .devos/builder.json .devos/builder.err -- \
                 agent -p --force --trust --approve-mcps --model "$MODEL" --output-format json "$(cat .devos/builder-prompt.md)"
               code=$?
-              if [ "$code" = "125" ] && [ -z "$restarted" ] && [ $(( 72 - ($(date +%s) - T0) / 60 )) -ge 25 ]; then
+              if { [ "$code" = "125" ] || [ "$code" = "126" ]; } && [ -z "$restarted" ] && [ $(( 72 - ($(date +%s) - T0) / 60 )) -ge 25 ]; then
                 restarted=1; mkdir -p .devos/logs; cp .devos/builder.err .devos/logs/builder-stalled.err
-                devos_note "Builder: the Cursor CLI lost its connection and stopped making progress; restarted once."
-                printf '\n\n**An earlier run of this attempt lost its connection to Cursor.** Its partial changes are already in the working tree (`git status`). Verify them against the fence and continue from them; do not redo or duplicate them.\n' >> .devos/builder-prompt.md
+                devos_note "Builder: the Cursor CLI stopped making progress (exit $code: 125 lost connection, 126 stuck); restarted once."
+                printf '\n\n**An earlier run of this attempt stopped making progress (lost connection or stuck).** Its partial changes are already in the working tree (`git status`). Verify them against the fence and continue from them; do not redo or duplicate them.\n' >> .devos/builder-prompt.md
                 continue
               fi
               break
@@ -311,6 +328,7 @@ jobs:
           kill "$hb" 2>/dev/null
           [ "$used" != "${accounts%% *}" ] && devos_note "Builder: switched to Cursor account $used."
           echo "exit=$code" >> "$GITHUB_OUTPUT"
+          echo "changed=$(git status --porcelain | wc -l | tr -d ' ')" >> "$GITHUB_OUTPUT"
           echo "account=$used" >> "$GITHUB_OUTPUT"
           echo "builder exit code: $code (Cursor account $used)"
           tail -c 2000 .devos/builder.err || true
@@ -341,7 +359,8 @@ jobs:
           REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
           if [ "$REVIEW_ONLY" != "true" ]; then
             git add -A
-            git commit --allow-empty -m "$TASK a$ATTEMPT: builder (${{ steps.bm.outputs.model }}, effort ${{ steps.bm.outputs.effort }}, fast ${{ steps.bm.outputs.fast }})"
+            slice_tag=""; [ "${{ steps.builder.outputs.exit }}" = "124" ] && slice_tag=" (time slice ${{ steps.builder.outputs.slice }})"
+            git commit --allow-empty -m "$TASK a$ATTEMPT: builder (${{ steps.bm.outputs.model }}, effort ${{ steps.bm.outputs.effort }}, fast ${{ steps.bm.outputs.fast }})$slice_tag"
             bash scripts/devos/sync-main.sh "$REMOTE"
             if ! git push "$REMOTE" "HEAD:refs/heads/$BR" 2> .devos/push.err; then
               cat .devos/push.err
@@ -401,9 +420,9 @@ jobs:
 
       - name: Builder outcome (PR-12)
         id: bs
-        run: node scripts/devos/builder-status.mjs --task "$TASK" --attempt "$ATTEMPT" --exit "${{ steps.builder.outputs.exit }}" --review-only "$REVIEW_ONLY"
+        run: node scripts/devos/builder-status.mjs --task "$TASK" --attempt "$ATTEMPT" --exit "${{ steps.builder.outputs.exit }}" --review-only "$REVIEW_ONLY" --slice "${{ steps.builder.outputs.slice || 1 }}" --max-slices "${{ steps.builder.outputs.max_slices || 4 }}" --changed "${{ steps.builder.outputs.changed || 0 }}"
 
-      - name: Park (usage limit) or halt (builder error) without spending a review
+      - name: Continue (next time slice), park (usage limit) or halt (builder error) without spending a review
         if: steps.bs.outputs.state != 'ok'
         env:
           GH_TOKEN: ${{ secrets.DEVOS_PAT || github.token }}
@@ -412,7 +431,10 @@ jobs:
           if [ -f .devos/accounts.md ]; then printf '\n\n**Accounts (PR-29)**\n%s\n' "$(cat .devos/accounts.md)" >> .devos/builder-summary.md; fi
           gh pr comment "$PRN" --repo "$REPO" --body-file .devos/builder-summary.md
           cat .devos/builder-summary.md >> "$GITHUB_STEP_SUMMARY"
-          if [ "$STATE" = "quota" ]; then
+          if [ "$STATE" = "continue" ]; then
+            gh workflow run devos-cycle.yml --repo "$REPO" --ref main -f task="$TASK" -f attempt="$ATTEMPT" -f revision="${{ inputs.revision || false }}"
+            echo "::notice title=Dev OS::$TASK attempt $ATTEMPT: time slice used up while working; the next slice is queued and continues from the branch."
+          elif [ "$STATE" = "quota" ]; then
             gh pr edit "$PRN" --repo "$REPO" --add-label "devos:quota-wait"
             echo "::warning title=Dev OS::$TASK parked (Cursor usage limit or lost connection); it resumes on its own. See the PR comment."
           else

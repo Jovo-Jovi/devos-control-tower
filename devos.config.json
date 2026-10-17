@@ -16,7 +16,10 @@
       "3": "high"
     },
     "effort_note": "The reviewer sets 'Effort: low|medium|high|xhigh' and 'Fast: yes|no' in each fence header; scripts/devos/builder-model.mjs turns that into a Cursor model id (grok-4.7-<effort>[-fast]) and checks it against `agent models`, falling back to `model`.",
-    "model_note": "Cursor documents only the family id grok-4.7 (default effort high, Fast the default speed on Pro). The effort/fast ids the CLI accepts come from `agent models` on your account; each run records the Grok ids it offered in the PR's runner evidence."
+    "model_note": "Cursor documents only the family id grok-4.7 (default effort high, Fast the default speed on Pro). The effort/fast ids the CLI accepts come from `agent models` on your account; each run records the Grok ids it offered in the PR's runner evidence.",
+    "max_time_slices": 4,
+    "idle_stop_minutes": 30,
+    "slices_note": "agent-watchdog.sh: a build runs in 72-minute time slices; a slice that ends while files are still changing is committed and the same attempt continues in a fresh run, up to max_time_slices. Nothing changing for idle_stop_minutes = stuck (restarted once, then halted). Live progress: scripts/devos/progress.sh on the devos:notices issue."
   },
   "reviewer": {
     "cli": "claude",
@@ -90,7 +93,13 @@
       "/sign-in",
       "/"
     ],
-    "filmstrip_ms": [0, 80, 160, 320, 640],
+    "filmstrip_ms": [
+      0,
+      80,
+      160,
+      320,
+      640
+    ],
     "settle_max_ms": 3000
   },
   "surfaces": {

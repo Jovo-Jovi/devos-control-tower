@@ -4,37 +4,65 @@
 #
 # Usage: agent-watchdog.sh <budget-min> <stall-min> <stdout-file> <stderr-file> -- <command...>
 # Exit:  the command's own exit code, or
-#        124  the time budget ran out (the run is stopped; partial work stays in the tree)
-#        125  the CLI reported a lost connection and the tree, stdout and stderr did not change for
-#             <stall-min> minutes (a "devos-stall:" line is appended to the stderr file)
+#        124  the time slice ran out while the run was still making progress (the work stays in the
+#             tree; the cycle continues it in a fresh slice)
+#        125  the CLI reported a lost connection and nothing changed for <stall-min> minutes
+#             (a "devos-stall:" line is appended to the stderr file)
+#        126  nothing changed at all (tree, stdout, stderr) for DEVOS_IDLE_STOP minutes (default 30):
+#             the run is stuck (a "devos-stuck:" line is appended to the stderr file)
+# Progress: every DEVOS_REPORT_EVERY seconds (default 300) and at the end, DEVOS_WATCHDOG_REPORT (a
+# command) is called with <elapsed-min> <files-changed> <idle-min> [final text].
+# The agent never sees DEVOS_PROGRESS_TOKEN: it is removed from the child's environment.
 set -u
 budget=$1; stall=$2; out=$3; err=$4; shift 4
 tick=${DEVOS_WATCHDOG_TICK:-20}; unit=${DEVOS_WATCHDOG_UNIT:-60}   # tests shrink these
+idle_stop=${DEVOS_IDLE_STOP:-30}; report_every=${DEVOS_REPORT_EVERY:-300}
+report=${DEVOS_WATCHDOG_REPORT:-}
 [ "${1:-}" = "--" ] && shift
 
-setsid "$@" > "$out" 2> "$err" &
+env -u DEVOS_PROGRESS_TOKEN -u GH_TOKEN -u GITHUB_TOKEN setsid "$@" > "$out" 2> "$err" &
 pid=$!
-start=$(date +%s); last_change=$start; last_sig=""
+start=$(date +%s); last_change=$start; last_sig=""; last_report=$start
 
 stop() { kill -TERM -- "-$pid" 2>/dev/null; sleep 5; kill -KILL -- "-$pid" 2>/dev/null; wait "$pid" 2>/dev/null; }
+files() { git status --porcelain 2>/dev/null | wc -l | tr -d ' '; }
+say() {  # elapsed files idle [final]
+  [ -n "$report" ] || return 0
+  timeout 30 $report "$@" >/dev/null 2>&1 || true
+}
+finish() {  # code final-text
+  local now; now=$(date +%s)
+  say $(( (now - start) / unit )) "$(files)" $(( (now - last_change) / unit )) "$2"
+  exit "$1"
+}
 
+say 0 "$(files)" 0
 while kill -0 "$pid" 2>/dev/null; do
   sleep "$tick"
   now=$(date +%s)
   sig="$(git status --porcelain 2>/dev/null | md5sum)|$(git diff 2>/dev/null | md5sum)|$(stat -c %s "$out" "$err" 2>/dev/null | tr '\n' ' ')"
   if [ "$sig" != "$last_sig" ]; then last_sig=$sig; last_change=$now; fi
+  idle=$(( (now - last_change) / unit ))
 
+  if [ $(( now - last_report )) -ge "$report_every" ]; then
+    say $(( (now - start) / unit )) "$(files)" "$idle"; last_report=$now
+  fi
   if [ $(( now - start )) -ge $(( budget * unit )) ]; then
     echo "devos-watchdog: stopped after the ${budget}-minute builder budget" >> "$err"
-    stop; exit 124
+    stop; finish 124 "⏱️ **time slice used up while working** — the work is saved on the branch; the next slice continues it"
   fi
-  # Only a lost connection that is still the CLI's last word counts as a stall: a run that
-  # reconnected and went on working writes or changes something.
+  # A lost connection that is still the CLI's last word, with nothing changing: restartable.
   last_line=$(grep -v '^[[:space:]]*$' "$err" 2>/dev/null | tail -n 1)
   if printf '%s' "$last_line" | grep -qiE 'connection lost|reconnecting|retry attempt' \
      && [ $(( now - last_change )) -ge $(( stall * unit )) ]; then
     echo "devos-stall: the CLI lost its connection and made no progress for ${stall} minutes" >> "$err"
-    stop; exit 125
+    stop; finish 125 "🔌 **lost its connection to Cursor** — stopped after ${stall} quiet minutes"
+  fi
+  # Nothing at all changed for a long time: stuck, whatever the reason.
+  if [ $(( now - last_change )) -ge $(( idle_stop * unit )) ]; then
+    echo "devos-stuck: nothing changed in the tree or the CLI output for ${idle_stop} minutes" >> "$err"
+    stop; finish 126 "🔴 **stuck** — nothing changed for ${idle_stop} min; the run was stopped"
   fi
 done
-wait "$pid"
+wait "$pid"; code=$?
+finish "$code" "✅ **builder finished** (exit $code) — next: checks and review"
