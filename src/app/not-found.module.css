@@ -1,0 +1,49 @@
+.page {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 100vh;
+  padding: var(--space-4);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  inline-size: 100%;
+  max-inline-size: 28rem;
+  padding: var(--space-6);
+  border-radius: var(--radius-3);
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur-glass)) saturate(1.6);
+  box-shadow: var(--edge), var(--lift);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-5);
+  font-weight: 700;
+  letter-spacing: var(--tracking-title);
+  line-height: var(--leading-tight);
+}
+
+.body {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--space-7);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .card {
+    background: var(--color-surface);
+  }
+}

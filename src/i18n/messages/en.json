@@ -15,12 +15,31 @@
   "header": {
     "signOut": "Sign out"
   },
-  "home": {
-    "signedInAs": "Signed in as {login}"
-  },
   "state": {
     "loading": "Loading the record.",
     "empty": "Nothing is recorded yet.",
     "error": "This could not be shown."
+  },
+  "shell": {
+    "productWord": "DEV_OS",
+    "title": "Control Tower",
+    "nav": "Sections",
+    "overview": "Overview"
+  },
+  "theme": {
+    "label": "Theme",
+    "auto": "Auto",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "overview": {
+    "eyebrow": "Discover · Monitor · Trace · Verify",
+    "title": "Overview",
+    "lead": "Every registered project, what it reported, what was observed, and how fresh it is."
+  },
+  "notFound": {
+    "title": "Not found",
+    "body": "Nothing is at this address.",
+    "back": "Back to overview"
   }
 }

@@ -1,0 +1,88 @@
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  align-self: start;
+  inline-size: var(--sidebar-inline-size);
+  padding-block: var(--space-3);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-3);
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur-glass)) saturate(1.6);
+  box-shadow: var(--edge), var(--lift);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-block: var(--space-2) var(--space-3);
+  padding-inline: var(--space-3);
+}
+
+.word {
+  font-weight: 700;
+  letter-spacing: var(--tracking-eyebrow);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link,
+.current {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-block-size: var(--space-7);
+  padding-block: var(--space-2);
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-2);
+  color: var(--color-ink-muted);
+  font-size: var(--text-2);
+  text-decoration: none;
+}
+
+.current {
+  background: var(--color-energy-wash);
+  color: var(--color-ink);
+}
+
+.current::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: var(--space-2);
+  inline-size: var(--nav-bar);
+  border-radius: var(--nav-bar);
+  background: var(--color-energy);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .nav {
+    background: var(--color-surface);
+  }
+}
+
+@media (max-width: 61.25rem) {
+  .nav {
+    inline-size: auto;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    padding: var(--space-2);
+  }
+
+  .brand {
+    padding-block: var(--space-2);
+  }
+
+  .list {
+    flex-direction: row;
+  }
+}

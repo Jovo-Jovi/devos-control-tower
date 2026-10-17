@@ -134,3 +134,11 @@ T07, the history import T07 → T10 with G-Tower-v1, after the T09 sign-in retro
 SCOPE, DATA_MODEL, CONTENT_MODEL, the event contract, README and SETUP follow the new ids; signed
 decisions, requests, reviews and earlier fences keep their wording (history). `docs/fences/T04.md` is the
 old scope's v1 fence until intake reissues it; nothing dispatches T04 before then.
+
+## 2026-10-17 — T04 design v3 foundation (builder, attempt 1)
+
+Light and dark themes from `DESIGN_SYSTEM.md` §1, a theme switch that only sets `data-theme` on `<html>`,
+the scene and planet behind the app shell, a styled not-found page, and sign-in on the v3 tokens.
+Catalogue grew from 14 keys to 27. `motion` 14.3.0 is installed and not imported. Scene images stay the
+baseline art (722875 bytes); generation was outside the time box. Carry-forwards CF-012…CF-015 landed
+from T03's review; CF-005, CF-013, CF-014 and CF-015 are closed. Awaiting the verdict.

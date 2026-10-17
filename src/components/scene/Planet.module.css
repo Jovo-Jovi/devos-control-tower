@@ -1,0 +1,153 @@
+.slot {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: var(--planet-inset-block-start);
+  inset-inline-end: var(--planet-inset-inline-end);
+  inline-size: var(--planet-size);
+  block-size: var(--planet-size);
+  pointer-events: none;
+}
+
+.glowDay,
+.glowNight {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  transition: opacity var(--dur-scene) var(--ease-in-out);
+}
+
+.glowDay {
+  box-shadow: var(--planet-glow-day);
+  opacity: var(--scene-light);
+}
+
+.glowNight {
+  box-shadow: var(--planet-glow-night);
+  opacity: var(--scene-dark);
+}
+
+.disc {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+}
+
+.filter {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+}
+
+.globe {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  filter: url(#sphere);
+}
+
+.spin {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  block-size: 100%;
+  inline-size: calc(var(--planet-tile-inline) * 6);
+  animation: spin var(--dur-planet-land) linear infinite;
+}
+
+.spinClouds {
+  animation-duration: var(--dur-planet-clouds);
+}
+
+.turn {
+  position: absolute;
+  inset: 0;
+  transform: translateX(var(--planet-turn-x));
+  transition: transform var(--dur-scene) var(--ease-in-out);
+}
+
+.strip {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat-x;
+  background-size: var(--planet-tile-inline) var(--planet-tile-block);
+}
+
+.cloudStrip {
+  opacity: 0.95;
+}
+
+.night {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: var(--planet-night);
+  transform: translateX(var(--planet-night-x)) scale(var(--planet-night-scale));
+  transition: transform var(--dur-scene) var(--ease-in-out);
+}
+
+.lightsMask {
+  position: absolute;
+  inset: 0;
+  opacity: var(--scene-dark);
+  mask-image: var(--mask-planet-lights);
+  mask-size: var(--planet-lights-mask-size);
+  mask-repeat: no-repeat;
+  mask-position: var(--planet-lights-mask-position);
+  transition-property: opacity, mask-position;
+  transition-duration: var(--dur-planet-lights), var(--dur-scene);
+  transition-timing-function: var(--ease-in-out), var(--ease-in-out);
+  transition-delay: var(--planet-lights-delay), var(--planet-lights-delay);
+}
+
+.rim {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: var(--planet-rim);
+  mix-blend-mode: screen;
+  opacity: var(--scene-dark);
+  transition: opacity var(--dur-planet-rim) var(--ease-in-out);
+  transition-delay: var(--delay-planet-rim);
+}
+
+.shade {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: var(--planet-shade);
+}
+
+.atmo {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-pill);
+  background: var(--planet-atmo);
+  opacity: var(--planet-atmo-opacity);
+  transition: opacity var(--dur-scene) var(--ease-in-out);
+}
+
+@keyframes spin {
+  to {
+    transform: translateX(calc(var(--planet-tile-inline) * -1));
+  }
+}
+
+:global(:root[data-scene-ready]) .land {
+  background-image: url("./assets/planet-land.webp");
+}
+
+:global(:root[data-scene-ready]) .cloudStrip {
+  background-image: url("./assets/planet-clouds.webp");
+}
+
+:global(:root[data-scene-ready]) .lights {
+  background-image: url("./assets/planet-lights.webp");
+}
+
+@media (max-width: 47.5rem) {
+  .slot {
+    transform: scale(var(--planet-phone-scale));
+    transform-origin: 100% 0;
+  }
+}

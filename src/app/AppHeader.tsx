@@ -1,20 +1,32 @@
 import { Bidi } from "@/components/Bidi";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
 import styles from "./AppHeader.module.css";
 
 export function AppHeader({
-  productName,
+  title,
   login,
   avatarUrl,
   signOutLabel,
+  themeLabel,
+  themeAuto,
+  themeLight,
+  themeDark,
 }: {
-  productName: string;
+  title: string;
   login: string;
   avatarUrl: string | null;
   signOutLabel: string;
+  themeLabel: string;
+  themeAuto: string;
+  themeLight: string;
+  themeDark: string;
 }) {
   return (
     <header className={styles.header}>
-      <p className={styles.product}>{productName}</p>
+      <div className={styles.lead}>
+        <p className={styles.title}>{title}</p>
+        <ThemeSwitch label={themeLabel} auto={themeAuto} light={themeLight} dark={themeDark} />
+      </div>
       <div className={styles.owner}>
         {avatarUrl ? (
           // Native img: the fence names <img alt={login}>, and the avatar host stays in the CSP.
