@@ -21,7 +21,16 @@ The runner reads the table below, and `guard:phases` checks it.
 | T05 | P02 | J5 | Usage view: totals, by phase/task/attempt/agent/model/alias, coverage, failed attempts separate | 2 | — | [ ] | — |
 | T06 | P02 | J5 | Project page: phases, run timeline by seq, origin labels and age, evidence links, verification | 2 | — | [ ] | — |
 | T07 | P02 | J5 | Pilot history export and import page; replay of 25 tasks labelled imported | 2 | G-Tower-v1 | [ ] | — |
+| T08 | PM | M | Method fix: motion evidence for design v2 (filmstrips, reduced motion, layout shift) | 3 | G-Method-6 | [ ] | — |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both
 belong to milestone M1 of `devos-plan`; the CK1 checkpoint between T02/PM01 and T03 is an owner gate
 recorded in `docs/DEVELOPMENT_JOURNAL.md`, not a row.
+
+Phase outlines (method track):
+
+- **T08 (PM, issue #6, `docs/requests/issue-6.md`):** `scripts/devos/screens.mjs` captures, per state the
+  fence's `- Screens:` line names and at 1280 and 390, the settled screenshot in normal motion, a five-frame
+  motion filmstrip (0, 80, 160, 320, 640 ms after first paint or the named interaction), a reduced-motion
+  screenshot and the layout-shift value, in `.devos/screens/motion.json`; the evidence pack and the reviewer
+  prompt carry them (`docs/DESIGN_SYSTEM.md` §7). Runs before the open product tasks (PR-28); lands before T04.
