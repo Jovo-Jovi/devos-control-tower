@@ -1,0 +1,185 @@
+.scene {
+  position: absolute;
+  z-index: -1;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: var(--scene-block-size);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.layer {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  transition: opacity var(--dur-scene) var(--ease-in-out);
+}
+
+.dayBackdrop {
+  opacity: var(--scene-light);
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+}
+
+.nightBackdrop {
+  opacity: var(--scene-dark);
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+}
+
+.cloudLayer {
+  overflow: hidden;
+  opacity: var(--scene-light);
+  mask-image: var(--mask-sky-clouds);
+}
+
+.cloudPan {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: calc(var(--scene-cloud-tile-inline) * 2);
+  block-size: var(--scene-cloud-tile-block);
+  background-repeat: repeat-x;
+  background-position: 0 0;
+  background-size: var(--scene-cloud-tile-inline) var(--scene-cloud-tile-block);
+  animation: cloudPan var(--dur-sky-clouds) linear infinite;
+}
+
+.skyline {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.night,
+.day {
+  transition: opacity var(--dur-scene) var(--ease-in-out);
+}
+
+.night {
+  opacity: var(--scene-dark);
+}
+
+.day {
+  opacity: var(--scene-light);
+}
+
+.stars {
+  fill: var(--scene-night-star);
+}
+
+.star1,
+.star2,
+.star3,
+.star4 {
+  animation-timing-function: var(--ease-in-out);
+  animation-iteration-count: infinite;
+  animation-name: twinkle;
+}
+
+.star1 {
+  animation-duration: var(--dur-twinkle-1);
+  animation-delay: var(--delay-twinkle-1);
+}
+
+.star2 {
+  animation-duration: var(--dur-twinkle-2);
+  animation-delay: var(--delay-twinkle-2);
+}
+
+.star3 {
+  animation-duration: var(--dur-twinkle-3);
+  animation-delay: var(--delay-twinkle-3);
+}
+
+.star4 {
+  animation-duration: var(--dur-twinkle-4);
+  animation-delay: var(--delay-twinkle-4);
+}
+
+.nightFar {
+  fill: var(--scene-night-far);
+}
+
+.nightFarRim {
+  fill: none;
+  stroke: var(--scene-night-far-rim);
+  stroke-width: 1;
+}
+
+.nightNear {
+  fill: var(--scene-night-near);
+}
+
+.nightNearRim {
+  fill: none;
+  stroke: var(--scene-night-near-rim);
+  stroke-width: 1;
+}
+
+.windows {
+  fill: var(--scene-night-window);
+}
+
+.nightGround {
+  fill: var(--scene-night-ground);
+}
+
+.dayFar {
+  fill: var(--scene-day-far);
+}
+
+.nearStart {
+  stop-color: var(--scene-day-near-start);
+}
+
+.nearEnd {
+  stop-color: var(--scene-day-near-end);
+}
+
+.dayRim {
+  fill: none;
+  stroke: var(--scene-day-rim);
+  stroke-width: 1.5;
+}
+
+.cloudSea {
+  fill: var(--scene-day-cloud);
+}
+
+.dayGround {
+  fill: var(--scene-day-ground);
+}
+
+@keyframes cloudPan {
+  to {
+    transform: translateX(calc(var(--scene-cloud-tile-inline) * -1));
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: var(--scene-star-dim);
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+:global(:root[data-scene-ready]) .dayBackdrop {
+  background-image: url("./assets/sky-day.jpg");
+}
+
+:global(:root[data-scene-ready]) .nightBackdrop {
+  background-image: url("./assets/sky-night.jpg");
+}
+
+:global(:root[data-scene-ready]) .cloudPan {
+  background-image: url("./assets/sky-clouds.webp");
+}

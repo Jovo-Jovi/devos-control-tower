@@ -1,36 +1,280 @@
 :root {
-  /* surfaces and ink */
-  --color-ink: #1b1f27;
-  --color-ink-muted: #5d6473;
-  --color-paper: #f6f7f9;
-  --color-surface: #ffffff;
-  --color-line: #e1e4ea;
-  --color-line-strong: #c3c8d2;
-  --color-accent: #1f4fd1;        /* links, focus ring, primary action */
+  color-scheme: light;
+
+  /* theme position (0 or 1): the scene's layers follow it */
+  --scene-light: 1;
+  --scene-dark: 0;
+
+  /* surfaces and ink: light */
+  --color-canvas: #eef4fb;        /* page ground under the scene */
+  --color-paper: #eef4fb;         /* v1 name kept: alias of canvas */
+  --color-surface: #f7f9fc;       /* solid fallback for --glass */
+  --color-raised: #ffffff;        /* inputs, popovers, detail panel */
+  --color-badge: #e6edf5;         /* neutral chip fill */
+  --color-line: #d8e2ee;          /* hairlines */
+  --color-line-strong: #66748a;   /* chip and input borders */
+  --color-ink: #13202f;           /* text */
+  --color-ink-muted: #4c5a6a;     /* secondary text */
+  --color-ink-faint: #8693a2;     /* non-text marks only */
+  --color-accent: #0d57bf;        /* links, focus ring */
   --color-accent-ink: #ffffff;
+  --color-accent-wash: #e3edfb;
+  --color-action: #13202f;        /* primary button fill */
+  --color-action-ink: #ffffff;
+  --color-energy: #2f8cff;        /* blade edge, seam, LEDs, glows: never text */
+  --color-energy-core: #ffffff;   /* blade core, particles */
+  --color-energy-wash: rgb(47 140 255 / 0.16);
 
-  /* step status (text on bg; every pair ≥ 4.5:1) */
-  --color-pass: #1a7f4b;     --color-pass-bg: #e6f4ec;
-  --color-fail: #b42318;     --color-fail-bg: #fbeae7;
-  --color-waiting: #9a6700;  --color-waiting-bg: #fff4d6;
-  --color-revise: #6f42c1;   --color-revise-bg: #efe8fb;
-  --color-skipped: #6b7280;  --color-skipped-bg: #eef0f3;
-  --color-started: #0b63b6;  --color-started-bg: #e3f0fb;
-  --color-stale: #7c4a03;    --color-stale-bg: #fdf0e1;
+  /* step status: text on tinted bg */
+  --color-started: #0b5cad;  --color-started-bg: #e3eefb;
+  --color-revise: #6b3fbf;   --color-revise-bg: #eee7fb;
+  --color-pass: #136b41;     --color-pass-bg: #e3f3ea;
+  --color-skipped: #55524c;  --color-skipped-bg: #ecebe7;
+  --color-waiting: #865600;  --color-waiting-bg: #fbf0d2;
+  --color-fail: #b3261e;     --color-fail-bg: #fbe9e6;
+  --color-stale: #7a4806;    --color-stale-bg: #fbeedd;
 
-  /* origin (shape carries the meaning; colour only supports it) */
-  --color-origin-verified: #1b1f27;
-  --color-origin-imported: #9aa1ad;
+  /* origin (shape carries the meaning) */
+  --color-origin-verified: #13202f;
+  --color-origin-imported: #66748a;
 
+  /* glass and elevation */
+  --glass: rgb(255 255 255 / 0.55);
+  --glass-strong: rgb(255 255 255 / 0.82);
+  --edge: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 0 0 1px rgb(30 123 255 / 0.16);
+  --edge-hover: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 0 0 1px rgb(30 123 255 / 0.32);
+  --lift: 0 14px 36px rgb(19 32 47 / 0.12), 0 2px 6px rgb(19 32 47 / 0.06);
+
+  /* tower map: light */
+  --track: rgb(19 32 47 / 0.1);
+  --hatch: rgb(19 32 47 / 0.2);
+  --tower-1: #ffffff;
+  --tower-2: #c3d1e3;
+  --module: rgb(255 255 255 / 0.72);
+  --slot: #d3dde9;
+
+  /* planet position: light */
+  --planet-turn-x: 0px;
+  --planet-night-x: 118%;
+  --planet-lights-mask-position: 316px -85px;
+  --planet-lights-delay: 0ms;
+  --planet-atmo-opacity: 1;
+
+  /* scene colours (not themed) */
+  --scene-day-far: rgb(199 214 232 / 0.85);
+  --scene-day-near-start: #f4f8fc;
+  --scene-day-near-end: #c9d7e8;
+  --scene-day-rim: #ffffff;
+  --scene-day-cloud: #ffffff;
+  --scene-day-ground: rgb(238 244 251 / 0.9);
+  --scene-night-far: #0c0709;
+  --scene-night-near: #050304;
+  --scene-night-far-rim: rgb(255 43 43 / 0.18);
+  --scene-night-near-rim: rgb(255 43 43 / 0.42);
+  --scene-night-window: rgb(255 179 138 / 0.75);
+  --scene-night-star: #ffffff;
+  --scene-night-ground: #050304;
+  --scene-star-dim: 0.25;
+  --mask-sky-clouds: linear-gradient(180deg, #000 0 52%, transparent 72%);
+
+  /* planet layers (not themed) */
+  --planet-night: radial-gradient(circle at 50% 50%, rgb(3 2 6 / 0.95) 0 49%, rgb(30 10 8 / 0.78) 55%, rgb(150 70 40 / 0.28) 61%, rgb(255 160 110 / 0.08) 65%, transparent 69%);
+  --planet-rim: radial-gradient(circle at 8% 50%, rgb(255 43 43 / 0.4), transparent 30%);
+  --planet-shade: radial-gradient(circle at 36% 30%, rgb(255 255 255 / 0.22), transparent 30%), radial-gradient(circle at 50% 50%, transparent 55%, rgb(0 0 0 / 0.28) 76%, rgb(0 0 0 / 0.62) 100%);
+  --planet-atmo: radial-gradient(circle, transparent 64%, rgb(170 210 255 / 0.18) 68%, rgb(190 222 255 / 0.55) 71%);
+  --planet-glow-day: 0 0 0 1px rgb(255 255 255 / 0.35), 0 0 36px rgb(150 195 255 / 0.65), 0 0 110px rgb(150 195 255 / 0.3);
+  --planet-glow-night: 0 0 0 1px rgb(255 90 90 / 0.22), 0 0 36px rgb(255 43 43 / 0.32), 0 0 120px rgb(255 43 43 / 0.16);
+  --mask-planet-lights: radial-gradient(circle, #000 0 44%, transparent 56%);
+
+  /* geometry: scene, planet, shell */
+  --scene-block-size: 1040px;
+  --scene-cloud-tile-inline: 3200px;
+  --scene-cloud-tile-block: 1100px;
+  --planet-size: 340px;
+  --planet-tile-inline: 680px;
+  --planet-tile-block: 340px;
+  --planet-inset-block-start: 34px;
+  --planet-inset-inline-end: 4%;
+  --planet-phone-scale: 0.62;
+  --planet-night-scale: 1.5;
+  --planet-lights-mask-size: 510px;
+  --sidebar-inline-size: 220px;
+  --shell-max: 1500px;
+  --nav-bar: 3px;
+
+  /* geometry: tower map (T05) */
+  --map-inline-size: 1200px;
+  --map-block-size: 660px;
+  --map-scale-1: 0.86;
+  --map-scale-2: 0.74;
+  --map-scale-3: 0.66;
+  --map-card-inline-size: 288px;
+  --tower-inline-size: 172px;
+  --tower-block-size: 444px;
+  --blade-glow: 12px;
+  --blade-glow-blur: 5px;
+  --blade-edge: 3.2px;
+  --blade-core: 1.2px;
+  --blade-off: 1.6px;
+  --blade-draw: 460;
+  --dash-waiting: 3 7;
+  --dash-gate: 12 6;
+  --dash-down: 4 6;
+  --dash-stale: 1 8;
+  --dash-silent: 1 6;
+
+  /* space (8-based, v1 names kept) */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
-  --space-5: 24px; --space-6: 32px; --space-7: 48px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 80px;
 
-  --radius-1: 4px; --radius-2: 8px;
+  --radius-1: 6px;   /* chips */
+  --radius-2: 8px;   /* inputs, buttons */
+  --radius-3: 16px;  /* cards, sidebar, top bar */
+  --radius-pill: 9999px;
+  --blur-glass: 20px;
 
-  --font-body: var(--font-sans), system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
-  --text-0: 0.75rem; --text-1: 0.875rem; --text-2: 1rem; --text-3: 1.25rem; --text-4: 1.5rem; --text-5: 2rem;
-  --leading: 1.5;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --text-0: 0.6875rem; --text-1: 0.8125rem; --text-2: 0.9375rem; --text-3: 1.25rem;
+  --text-4: 1.5rem;    --text-5: 2rem;      --text-6: 3.5rem;
+  --leading: 1.5; --leading-tight: 1.15;
+  --tracking-title: 0.02em;
+  --tracking-eyebrow: 0.08em;
 
   --content-max: 1200px;
+
+  /* motion: see §5. Durations and easings live only here. */
+  --dur-instant: 90ms;    /* press, toggle, focus */
+  --dur-quick: 160ms;     /* hover, chip state change, tooltip, reduced-motion tint */
+  --dur-base: 240ms;      /* enter/exit of a component */
+  --dur-slow: 420ms;      /* page-level choreography, shared element, bars */
+  --dur-ambient: 2400ms;  /* live pulse, skeleton sheen, waiting pulse; loops only */
+  --dur-scene: 1800ms;    /* the theme switch: scene and planet (amendment A) */
+  --stagger: 40ms;        /* per item in a list entrance; total capped at 320ms */
+  --dur-planet-lights: 1000ms;
+  --dur-planet-rim: 1200ms;
+  --delay-planet-rim: 600ms;
+  --dur-planet-land: 160s;
+  --dur-planet-clouds: 105s;
+  --dur-sky-clouds: 420s;
+  --dur-twinkle-1: 3.1s;  --delay-twinkle-1: -0.7s;
+  --dur-twinkle-2: 4.2s;  --delay-twinkle-2: -2.3s;
+  --dur-twinkle-3: 5.4s;  --delay-twinkle-3: -3.9s;
+  --dur-twinkle-4: 6.8s;  --delay-twinkle-4: -5.6s;
+  --dur-ignite: 720ms;
+  --stagger-ignite: 70ms;
+  --dur-particle-active: 1500ms;
+  --dur-particle-steady: 2600ms;
+  --dur-particle-revise: 3400ms;
+  --dur-particle-waiting: 8000ms;
+  --dur-tile-flash: 650ms;
+  --dur-signal: 620ms;
+  --dur-module-flash: 520ms;
+  --delay-module-flash: 560ms;
+  --stagger-signal: 120ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);      /* entrances: fast start, soft landing */
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);       /* exits */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);  /* moves, morphs, the theme switch */
+  --ease-spring: linear(0, 0.36 9%, 0.84 22%, 1.04 33%, 1.01 45%, 1 100%); /* settles with a hint of overshoot */
+  --rise: 8px;            /* entrance travel distance */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --scene-light: 0;
+    --scene-dark: 1;
+    --color-canvas: #050507;
+    --color-paper: #050507;
+    --color-surface: #0e0a0c;
+    --color-raised: #181113;
+    --color-badge: #21171a;
+    --color-line: #2a1c1e;
+    --color-line-strong: #75605f;
+    --color-ink: #f4f1ee;
+    --color-ink-muted: #aaa3a1;
+    --color-ink-faint: #6f6766;
+    --color-accent: #ff6b62;
+    --color-accent-ink: #0e0a0c;
+    --color-accent-wash: #452324;
+    --color-action: #e6e6e6;
+    --color-action-ink: #0e0a0c;
+    --color-energy: #ff2b2b;
+    --color-energy-core: #fff0ee;
+    --color-energy-wash: rgb(255 43 43 / 0.16);
+    --color-started: #63a1ff;  --color-started-bg: #0c1a33;
+    --color-revise: #b69cff;   --color-revise-bg: #1d1631;
+    --color-pass: #59d499;     --color-pass-bg: #0e2419;
+    --color-skipped: #a1a1aa;  --color-skipped-bg: #18181b;
+    --color-waiting: #f5c451;  --color-waiting-bg: #2a2108;
+    --color-fail: #ff7a6e;     --color-fail-bg: #2a1211;
+    --color-stale: #e0a458;    --color-stale-bg: #261a0b;
+    --color-origin-verified: #f4f1ee;
+    --color-origin-imported: #8a8380;
+    --glass: rgb(16 11 13 / 0.58);
+    --glass-strong: rgb(24 16 18 / 0.86);
+    --edge: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px rgb(255 59 59 / 0.22);
+    --edge-hover: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(255 59 59 / 0.4);
+    --lift: 0 18px 44px rgb(0 0 0 / 0.6), 0 0 24px rgb(255 43 43 / 0.06);
+    --track: rgb(255 255 255 / 0.1);
+    --hatch: rgb(255 255 255 / 0.2);
+    --tower-1: #2a1c1e;
+    --tower-2: #050405;
+    --module: rgb(255 255 255 / 0.04);
+    --slot: #2c2022;
+    --planet-turn-x: -340px;
+    --planet-night-x: 20%;
+    --planet-lights-mask-position: -17px -85px;
+    --planet-lights-delay: 500ms;
+    --planet-atmo-opacity: 0.35;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --scene-light: 0;
+  --scene-dark: 1;
+  --color-canvas: #050507;
+  --color-paper: #050507;
+  --color-surface: #0e0a0c;
+  --color-raised: #181113;
+  --color-badge: #21171a;
+  --color-line: #2a1c1e;
+  --color-line-strong: #75605f;
+  --color-ink: #f4f1ee;
+  --color-ink-muted: #aaa3a1;
+  --color-ink-faint: #6f6766;
+  --color-accent: #ff6b62;
+  --color-accent-ink: #0e0a0c;
+  --color-accent-wash: #452324;
+  --color-action: #e6e6e6;
+  --color-action-ink: #0e0a0c;
+  --color-energy: #ff2b2b;
+  --color-energy-core: #fff0ee;
+  --color-energy-wash: rgb(255 43 43 / 0.16);
+  --color-started: #63a1ff;  --color-started-bg: #0c1a33;
+  --color-revise: #b69cff;   --color-revise-bg: #1d1631;
+  --color-pass: #59d499;     --color-pass-bg: #0e2419;
+  --color-skipped: #a1a1aa;  --color-skipped-bg: #18181b;
+  --color-waiting: #f5c451;  --color-waiting-bg: #2a2108;
+  --color-fail: #ff7a6e;     --color-fail-bg: #2a1211;
+  --color-stale: #e0a458;    --color-stale-bg: #261a0b;
+  --color-origin-verified: #f4f1ee;
+  --color-origin-imported: #8a8380;
+  --glass: rgb(16 11 13 / 0.58);
+  --glass-strong: rgb(24 16 18 / 0.86);
+  --edge: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px rgb(255 59 59 / 0.22);
+  --edge-hover: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(255 59 59 / 0.4);
+  --lift: 0 18px 44px rgb(0 0 0 / 0.6), 0 0 24px rgb(255 43 43 / 0.06);
+  --track: rgb(255 255 255 / 0.1);
+  --hatch: rgb(255 255 255 / 0.2);
+  --tower-1: #2a1c1e;
+  --tower-2: #050405;
+  --module: rgb(255 255 255 / 0.04);
+  --slot: #2c2022;
+  --planet-turn-x: -340px;
+  --planet-night-x: 20%;
+  --planet-lights-mask-position: -17px -85px;
+  --planet-lights-delay: 500ms;
+  --planet-atmo-opacity: 0.35;
 }

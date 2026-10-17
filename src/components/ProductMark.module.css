@@ -1,0 +1,13 @@
+.mark {
+  inline-size: var(--space-5);
+  block-size: var(--space-5);
+  flex: none;
+}
+
+.wash {
+  stroke: var(--color-energy-wash);
+}
+
+.edge {
+  stroke: var(--color-energy);
+}

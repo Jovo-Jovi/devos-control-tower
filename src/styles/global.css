@@ -7,7 +7,7 @@
 }
 
 html {
-  background: var(--color-paper);
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-body);
   font-size: var(--text-2);
@@ -15,8 +15,10 @@ html {
 }
 
 body {
+  position: relative;
   margin: 0;
   min-block-size: 100vh;
+  overflow-x: clip;
 }
 
 :focus-visible {
@@ -29,6 +31,12 @@ body {
   *,
   *::before,
   *::after {
-    scroll-behavior: auto;
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
+}
+
+:root[data-scene-paused] * {
+  animation-play-state: paused;
 }

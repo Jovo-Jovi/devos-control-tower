@@ -1,18 +1,20 @@
 .page {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   min-block-size: 100vh;
   padding: var(--space-4);
-  background: var(--color-paper);
 }
 
 .card {
   inline-size: 100%;
   max-inline-size: 28rem;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-2);
+  background: var(--glass);
+  backdrop-filter: blur(var(--blur-glass)) saturate(1.6);
+  box-shadow: var(--edge), var(--lift);
+  border-radius: var(--radius-3);
   padding: var(--space-6);
 }
 
@@ -45,8 +47,8 @@
   padding-inline: var(--space-4);
   border: 0;
   border-radius: var(--radius-1);
-  background: var(--color-accent);
-  color: var(--color-accent-ink);
+  background: var(--color-action);
+  color: var(--color-action-ink);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -55,4 +57,10 @@
 .retry {
   color: var(--color-accent);
   font-weight: 600;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .card {
+    background: var(--color-surface);
+  }
 }

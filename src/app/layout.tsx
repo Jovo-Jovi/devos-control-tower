@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import { connection } from "next/server";
+import { Scene } from "@/components/scene/Scene";
+import { SceneRuntime } from "@/components/scene/SceneRuntime";
 import { defaultLocale, directionOf } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages";
 import "@/styles/global.css";
 
-const sans = IBM_Plex_Sans({
+const sans = Inter({
   subsets: ["latin"],
-  weight: ["400", "600"],
-  variable: "--font-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
 });
 
-const mono = IBM_Plex_Mono({
+const mono = Geist_Mono({
   subsets: ["latin"],
-  weight: "400",
-  variable: "--font-mono",
+  weight: ["400", "500"],
+  variable: "--font-geist-mono",
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -29,7 +31,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   await connection();
   return (
     <html lang={defaultLocale} dir={directionOf(defaultLocale)} className={`${sans.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <Scene />
+        <SceneRuntime />
+        {children}
+      </body>
     </html>
   );
 }
