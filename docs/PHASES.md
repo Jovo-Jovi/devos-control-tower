@@ -46,6 +46,35 @@ Phase outlines (method track):
   import T07 → T10 and keeps G-Tower-v1, so the milestone closes after the sign-in retrofit (T09). The design is
   `docs/design/v3/README.md`; the OD, `DESIGN_SYSTEM.md` v3 and the fences come from intake (#13). Where the
   outlines below say T05–T07, read T06, T07 and T10.
+- **Design v3 (OD-08, issue #13, `docs/requests/issue-13.md`).** OD-08 supersedes, for T04–T07, T09 and T10, the
+  "under design v2" bullets below: every fence from T04 on is written against `docs/DESIGN_SYSTEM.md` v3 and
+  `docs/design/v3/`, with evidence in light **and** dark (§7: screenshots, first-paint and theme-switch filmstrips,
+  reduced motion, layout shift 0, contrast). Until the runner can sign in (M3), each UI task's own Playwright spec
+  captures the owner-only pages through `e2e/support/owner.ts` (created by T04).
+- **T04 — Design v3 foundation (fence v2, `docs/fences/T04.md`).** Tokens §1 byte for byte (both themes); Inter +
+  Geist Mono on `--font-inter`/`--font-geist-mono`; the `motion` dependency; `ThemeSwitch` (Auto · Light · Dark,
+  nothing stored); `Scene` and `Planet` behind every page from the root layout, images bundled from
+  `src/components/scene/assets/` (OD-08 §7); the shell (`AppSidebar` with Overview only, the glass top bar) and the
+  `/` page head; a styled `not-found`; the sign-in card as glass on the scene (CSS only); the token contrast test;
+  `e2e/support/owner.ts`; the realistic-art step with `scripts/scene/art.mjs` (OD-08 §8); the four carry-forwards of
+  `docs/reviews/T03-a1.md` landed (ids from the live maximum: CF-011 + 4). No data, route or header change.
+- **T05 — Overview as the tower map (gate G-Design-v3, risk 2).** README §4–§7 on `/`: the data layer the old T04
+  fence v1 specified (`git show 1792346:docs/fences/T04.md`, S2–S3: pure `src/lib/portfolio/aggregate.ts` with `PortfolioProject`/`Portfolio`,
+  `loadPortfolio()` through the owner's session, paged, `"unavailable"` on error; `requireOwner()` returns
+  `githubId`; `GET /api/projects` → 200 `Portfolio` or 503, `no-store`) plus the README §6 fields (latest task and
+  phase, execution from `runs.source`, tasks and phase passed of seen, link state, recent activity, ingestion
+  health counts); the 30-second poll driving `LiveMark`; the tower, up to eight cards, blades by link state,
+  ignition, live changes, detail panel, filters, the List view, the phone tower card, counts card, Tower panel,
+  System overview, Recent activity, Ingestion health; every §7 state in both themes; `/projects/new` (the old
+  T04 v1 S7 form and `registerProject` action) and the sidebar's Register project link; `HealthBanner` on a 503.
+  The primitives it uses (`LiveMark`, `StatusChip`, `OriginChip`, `AgeText`, `FreshnessLabel`, `Counter`,
+  `StateBlock`, `Toast`, `HealthBanner`). The fence keeps to a specification (PR-22) so the build fits the 72-minute
+  budget. The owner signs G-Design-v3 by merging (OD-08 §9).
+- **T06, T07, T10 against v3.** Their pages (`DESIGN_SYSTEM.md` §4.5) sit in the T04 shell on the scene, in both
+  themes, and add to the sidebar only routes that exist.
+- **T09 against v3 (OD-08 §5).** OD-07 §3–§4 unchanged in substance; the atmosphere is the scene and planet, the
+  card is glass, every state in both themes; the gate test of OD-07 §6 applies to the v3 states. The reviewer who
+  passes T07 reissues `docs/fences/T09.md` (v1 is written against v2 tokens).
 - **T04–T07 under design v2 (OD-07 §1–§2; rows and ids unchanged).** The reviewer who writes each of these
   fences writes it against `docs/DESIGN_SYSTEM.md` v2, not the v1 specifications in `devos-plan`. T04's fence
   adds the v2 foundation to T04's scope: tokens §1 byte for byte in `src/styles/tokens.css` (values swapped

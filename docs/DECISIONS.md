@@ -143,3 +143,67 @@ setting outside the repository (`docs/setup-items.json` not needed).
 **Does not decide:** a light theme; the design of the §7 method fix (its own intake); a guard for
 durations and easings (still a review finding, `DESIGN_SYSTEM.md` preamble); "use another account"
 forcing GitHub's account chooser (the button restarts the same sign-in).
+
+### OD-08 — Design system v3: two themes, the scene and the tower map
+**Status:** DRAFT — signed when the human merges the intake PR
+**Amends:** OD-06 Amendment A1 §1 (the approved direction becomes v3; its "Does not decide: a light theme" is now
+decided) and OD-07 §1–§3 and §6 (what T04 lands, the design the T05–T07 fences follow, the sign-in retrofit's
+design and its gate test)
+**Requested by:** issue #13 (the owner's answers in the issue thread: layout (a), import last)
+**Numbering note:** as OD-07 says, the "OD-07" and "OD-08" cited by the method files copied from the pilot
+(`CLAUDE.md` "Automation v3", workflow and runner comments) are `devos-pilot`'s decisions. This OD-08 is the
+Tower's.
+**1.** `docs/DESIGN_SYSTEM.md` v3 ("Energy-blade control tower") replaces v2 as the approved direction: a light and
+a dark theme with **Auto** (the system setting) as the default and a header switch **Auto · Light · Dark**, the
+tokens of its §1, the scene and planet behind every page, and the overview `/` as the tower map. The approved
+design folder `docs/design/v3/` (README, mockup, assets, screens) ranks with it at precedence 8; where they differ,
+`DESIGN_SYSTEM.md` holds. v2's three rules (truthfulness, never colour alone, motion never lies) are unchanged and
+outrank motion.
+**2.** The motion amendments A–E of `docs/design/v3/README.md` §8 are signed as `DESIGN_SYSTEM.md` §5 states them:
+(A) the theme switch is a 1.8 s transition of the scene and planet (`--dur-scene`); (B) the scene's ambient loops
+are allowed and all stop under reduced motion and while the page is hidden; (C) `stroke-dashoffset`,
+`offset-distance` and `mask-position` join the animated properties, `filter` and `box-shadow` stay static;
+(D) one text accent, one energy colour (never text), gradients only in the scene, tower and planet; (E) reduced
+motion switches the theme instantly and keeps every meaning.
+**3.** The theme lasts for the open document only: the switch sets `data-theme` on `<html>`, and nothing is
+stored (no cookie, browser storage, URL parameter or database value). A reload returns to Auto.
+**4.** The ledger is as the owner renumbered it on `main` (commit `1792346`): **T04** = design v3 foundation
+(tokens for both themes, theme switch, Inter + Geist Mono, the `motion` dependency, scene and planet, the app shell,
+the styled not-found page, the sign-in on the v3 tokens and scene); **T05** = the overview as the tower map with
+`/api/projects`, the §6 values, cards, blades, panels, list, phone layout, the register page and the Tower-health
+banner, gate **G-Design-v3**; **T06** usage view; **T07** project page; **T09** sign-in retrofit; **T10** history
+import with **G-Tower-v1**, last. `docs/fences/T04.md` v2 replaces the v1 fence of the old scope (attempt 1 changed
+no file). The fences of T05, T06, T07, T09 and T10 are written against v3.
+**5.** **T09 is built against v3** (the owner's answer 2): OD-07 §3–§4 stand (the states of v2 §4.1, "Checking your
+access…" on the `/auth/callback` page, the code exchange moved unchanged to `GET /auth/confirm`, risk 3), with the
+scene and planet as the atmosphere instead of v2's gradients. Its row keeps its id, its wording and the gate id
+**G-Design-v2**; OD-07 §6's test applies to the v3 states in both themes. The reviewer who passes T07 reissues
+`docs/fences/T09.md` against v3 (its v1 checks v2 tokens such as `--glow-accent`, which v3 removes).
+**6.** Data: no migration, table, view or function. Every value of the map comes from the existing tables through
+the owner's session (RLS `is_owner()`), as `docs/design/v3/README.md` §6 lists; `aggregatePortfolio` grows the
+latest task and phase, the execution (`runs.source`), tasks and phase passed of seen; nothing is estimated, and a
+value the tables cannot give is `—` with its legend.
+**7.** The scene's images are bundled from `src/components/scene/assets/` (served under `/_next/static/media/`)
+instead of `public/scene/`: the sign-in proxy redirects every other path without a session (`src/proxy.ts`), and
+serving `public/` to `/sign-in` would need a proxy change. `src/proxy.ts`, `next.config.ts`, the CSP and every
+header stay unchanged (`img-src 'self'` already covers the bundled images).
+**8.** Realistic art (`docs/design/v3/README.md` §13, `DESIGN_SYSTEM.md` §10) is part of **T04**, after the
+foundation, time-boxed and never blocking: original prompts committed with the task, a check script, the baseline
+kept when the image tool is not available or an image fails a check; the reviewer looks at every replaced image.
+**9.** Gate **G-Design-v3** (the owner merges T05): on production at 1280 and 390, in light and dark, the map shows
+every registered project with the correct link state and "of seen" counts; the theme switch turns the planet into
+night and back in about 1.8 s; with reduce motion on, the switch is instant and every loop stops with the same
+meaning; the review carries the README §10 evidence (theme-switch filmstrip, reduced-motion screenshots in both
+themes, layout shift 0, the contrast recomputed).
+**10.** The boundary is unchanged: no new form field, cookie, storage, third party or stored data; the theme is
+not persisted (§3); every new file lies inside the `owner` zone or holds no form control or storage, so the
+`devos:boundary` line does not change. No new host (fonts are self-hosted by `next/font` at build). No new
+setting outside the repository (`docs/setup-items.json` not needed), no key, no method change.
+**11.** Two carry-forwards of `docs/reviews/T03-a1.md` are settled by v3: (c) `LiveMark` follows the poll of
+`/api/projects`, never Supabase Realtime (`DESIGN_SYSTEM.md` §3); (d) the font variables are `--font-inter` and
+`--font-geist-mono`, so `--font-mono` no longer refers to itself (§1). T04 lands both rows as closed.
+**Does not decide:** theme persistence (README §11 D1: a preference cookie is a Boundary amendment, a `theme`
+column a schema change); pages that do not exist (D2); instances, lifecycle and ledger totals (D3, an event-contract
+change); observed-only repositories (D4); an in-app "Reduce motion" control (README §8 B names one, §2 places
+none); self-hosted fonts through `next/font/local` (PR-24's permanent fix, its own small change); a guard for
+durations and easings.
