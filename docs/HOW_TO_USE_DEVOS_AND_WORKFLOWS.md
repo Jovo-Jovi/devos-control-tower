@@ -150,6 +150,7 @@ finishes, every 30 minutes (at :11 and :41), and when you approve or reject.
 **What it fixes by itself, at most 2 times per cause:**
 
 - re-runs a run that failed on the environment (network, setup steps);
+- re-runs the `ci` check on `main` when an outside service broke it (network, Google Fonts download). A failed production deploy is only **reported**, never re-run;
 - re-dispatches a stuck, stalled or timed-out run;
 - continues a halted task from its branch when time ran out;
 - recovers work saved on a `rescue/` branch after a push conflict;
@@ -383,7 +384,7 @@ All are in `.github/workflows/`. "Run by hand" means **Actions → the workflow 
 | `devos-intake.yml` | label `devos:request` or `devos:method`, `/devos intake`, `/devos go`, `/devos revise` | plans requests and method fixes; revisions; releases held runs | resume only |
 | `devos-resume.yml` | every 2 hours | resumes parked runs and plans; re-checks the setup issue | yes |
 | `devos-setup.yml` | push to main, `/devos setup` | checks settings by name, keeps the setup issue, resumes waiting work | yes |
-| `devos-supervisor.yml` | any devos run finishing, every 30 min, `/devos approve` / `/devos reject` | the supervisor (section 7) | yes (dry run available) |
+| `devos-supervisor.yml` | any devos run or `ci` finishing, every 30 min, `/devos approve` / `/devos reject` | the supervisor (section 7) | yes (dry run available) |
 | `devos-wait.yml` | dispatched by waiting jobs | sleeps through long usage-limit waits, relaying itself | no |
 
 ## 18. Scripts A–Z

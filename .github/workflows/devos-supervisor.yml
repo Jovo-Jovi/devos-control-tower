@@ -16,7 +16,7 @@ name: devos-supervisor
 
 on:
   workflow_run:
-    workflows: [devos-cycle, devos-intake, devos-deploy, devos-resume, devos-wait, devos-advance]
+    workflows: [devos-cycle, devos-intake, devos-deploy, devos-resume, devos-wait, devos-advance, ci]
     types: [completed]
   schedule:
     - cron: "11,41 * * * *"
