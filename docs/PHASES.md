@@ -56,8 +56,8 @@ Phase outlines (method track):
   nothing stored); `Scene` and `Planet` behind every page from the root layout, images bundled from
   `src/components/scene/assets/` (OD-08 §7); the shell (`AppSidebar` with Overview only, the glass top bar) and the
   `/` page head; a styled `not-found`; the sign-in card as glass on the scene (CSS only); the token contrast test;
-  `e2e/support/owner.ts`; the realistic-art step with `scripts/scene/art.mjs` (OD-08 §8); carry-forwards CF-012…CF-015
-  landed from `docs/reviews/T03-a1.md`. No data, route or header change.
+  `e2e/support/owner.ts`; the realistic-art step with `scripts/scene/art.mjs` (OD-08 §8); the four carry-forwards of
+  `docs/reviews/T03-a1.md` landed (ids from the live maximum: CF-011 + 4). No data, route or header change.
 - **T05 — Overview as the tower map (gate G-Design-v3, risk 2).** README §4–§7 on `/`: the data layer the old T04
   fence v1 specified (`git show 1792346:docs/fences/T04.md`, S2–S3: pure `src/lib/portfolio/aggregate.ts` with `PortfolioProject`/`Portfolio`,
   `loadPortfolio()` through the owner's session, paged, `"unavailable"` on error; `requireOwner()` returns
