@@ -30,9 +30,13 @@ const S = {
 const CYCLE = "devos-cycle.yml";
 
 // ---------- GitHub helpers ----------
-function gh(args, { input, allowFail = false } = {}) {
+// Reports go out with REPORT_TOKEN (the workflow's built-in token): its comments start no workflow, so
+// the supervisor can never wake itself up through its own issue. Only a `/devos revise` it posts on
+// purpose uses GH_TOKEN (the owner's token), because that comment must start the revision.
+function gh(args, { input, allowFail = false, report = false } = {}) {
+  const env = report && process.env.REPORT_TOKEN ? { ...process.env, GH_TOKEN: process.env.REPORT_TOKEN } : process.env;
   try {
-    return execFileSync("gh", args, { encoding: "utf8", input, stdio: ["pipe", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
+    return execFileSync("gh", args, { encoding: "utf8", input, env, stdio: ["pipe", "pipe", "pipe"], maxBuffer: 64 * 1024 * 1024 });
   } catch (e) {
     if (allowFail) return "";
     throw new Error(`gh ${args.join(" ")} failed: ${String(e.stderr || e.message).slice(0, 400)}`);
@@ -90,6 +94,11 @@ function lastBotComment(pr) {
   const cs = api(`repos/${REPO}/issues/${pr}/comments?per_page=100`) || [];
   return (Array.isArray(cs) ? cs : []).filter((c) => /^### Dev OS |Dev OS runner stopped/.test(c.body || "")).pop() || null;
 }
+// The owner (or an approved proposal) already answered this stop: a revision was asked for after it.
+function answeredAfter(pr, since) {
+  const cs = api(`repos/${REPO}/issues/${pr}/comments?per_page=100`) || [];
+  return (Array.isArray(cs) ? cs : []).some((c) => c.created_at > since && /^(\/devos revise|Dev OS: revising)/.test(c.body || ""));
+}
 
 const taskOf = (s) => (String(s).match(/\bT\d\d\b/) || [""])[0];
 const attemptOf = (s) => Number((String(s).match(/attempt (\d+)/) || [0, 0])[1]) || 0;
@@ -133,6 +142,7 @@ function detect(facts) {
     const task = pr.head.slice(5);
     if (pr.labels.includes("devos:halted")) {
       const c = lastBotComment(pr.number);
+      if (c && answeredAfter(pr.number, c.created_at)) continue;
       const body = c?.body || "";
       const attempt = attemptOf(body);
       const base = { kind: "halted", task, attempt, pr: pr.number, evidence: body.slice(0, 4000) };
@@ -192,7 +202,7 @@ function supervisorIssue() {
   if (DRY) return 0;
   gh(["api", `repos/${REPO}/labels`, "-f", `name=${S.issue_label}`, "-f", "color=5319e7", "-f", "description=Dev OS supervisor reports"], { allowFail: true });
   const body = "The Dev OS supervisor reports here: one comment per incident, with what happened, what it did, and what needs you.\n\nApprove a proposal by replying `/devos approve <id>`, or decline it with `/devos reject <id>`. Turn the supervisor off with the repository variable `DEVOS_SUPERVISOR=off`.";
-  const created = JSON.parse(gh(["api", `repos/${REPO}/issues`, "-f", `title=${S.issue_title}`, "-f", `body=${body}`, "-f", `labels[]=${S.issue_label}`]));
+  const created = JSON.parse(gh(["api", `repos/${REPO}/issues`, "-f", `title=${S.issue_title}`, "-f", `body=${body}`, "-f", `labels[]=${S.issue_label}`], { report: true }));
   return created.number;
 }
 function history(issue) {
@@ -265,16 +275,21 @@ function report(issue, i, outcome) {
   ].filter((l) => l !== "");
   const body = lines.join("\n");
   if (DRY || !issue) { console.log(`\n--- report (dry-run) ---\n${body}`); return; }
-  gh(["api", `repos/${REPO}/issues/${issue}/comments`, "-f", `body=${body}`]);
+  gh(["api", `repos/${REPO}/issues/${issue}/comments`, "-f", `body=${body}`], { report: true });
 }
+// Keys already reported and not acted on (a proposal, an escalation, a diagnosis, setup steps): never
+// reported again. Keys whose fix ran (done) stay open, so a fix that did not work is retried up to
+// max_auto_per_key times and then escalated once.
+const reportedKeys = (hist) => new Set(hist.filter((h) => h.key && !h.done).map((h) => h.key));
 
 // ---------- commands ----------
 if (cmd === "scan") {
   const facts = collect();
-  const incidents = detect(facts);
-  writeFileSync(`${DIR}/incidents.json`, JSON.stringify(incidents, null, 2));
   const issue = supervisorIssue();
   const hist = history(issue);
+  const old = reportedKeys(hist);
+  const incidents = detect(facts).filter((i) => !old.has(i.key));
+  writeFileSync(`${DIR}/incidents.json`, JSON.stringify(incidents, null, 2));
   const aiToday = hist.filter((h) => h.ai && h.day === today()).length;
   const needAi = incidents.some((i) => i.action === "ask-claude") && aiToday < S.max_ai_per_day;
   console.log(`supervisor: ${incidents.length} incident(s); active cycle runs: ${facts.active.length}; AI today: ${aiToday}/${S.max_ai_per_day}`);
@@ -287,7 +302,10 @@ if (cmd === "scan") {
   const ai = cl?.structured_output?.incidents || cl?.incidents || [];
   const issue = supervisorIssue();
   const hist = history(issue);
+  const old = reportedKeys(hist);
   for (const i of incidents) {
+    if (old.has(i.key)) { console.log(`already reported: ${i.key}`); continue; }
+    old.add(i.key);
     if (!i.pr && i.task) i.pr = (facts.task_prs || []).find((p) => p.head === `task/${i.task}`)?.number;
     if (i.action === "ask-claude") {
       const d = ai.find((a) => a.id === i.id);
@@ -342,10 +360,10 @@ if (cmd === "scan") {
   const issue = supervisorIssue();
   const hist = history(issue);
   const target = hist.find((h) => h.id === m[2] && h.pending && !hist.some((x) => x.decided === m[2]));
-  if (!target) { gh(["api", `repos/${REPO}/issues/${issue}/comments`, "-f", `body=Dev OS supervisor: no pending proposal with id \`${m[2]}\`.`]); process.exit(0); }
+  if (!target) { gh(["api", `repos/${REPO}/issues/${issue}/comments`, "-f", `body=Dev OS supervisor: no pending proposal with id \`${m[2]}\`.`], { report: true }); process.exit(0); }
   const decided = `\n\n<!-- devos-supervisor ${JSON.stringify({ decided: m[2], key: target.key, day: today() })} -->`;
-  if (m[1] === "reject") { gh(["api", `repos/${REPO}/issues/${issue}/comments`, "-f", `body=Dev OS supervisor: \`${m[2]}\` rejected; nothing done.${decided}`]); process.exit(0); }
+  if (m[1] === "reject") { gh(["api", `repos/${REPO}/issues/${issue}/comments`, "-f", `body=Dev OS supervisor: \`${m[2]}\` rejected; nothing done.${decided}`], { report: true }); process.exit(0); }
   const p = target.pending;
   gh(["api", `repos/${REPO}/issues/${p.pr}/comments`, "-f", `body=/devos revise ${p.note} (Approved by the owner from the Dev OS supervisor, ${m[2]}.)`]);
-  gh(["api", `repos/${REPO}/issues/${issue}/comments`, "-f", `body=Dev OS supervisor: \`${m[2]}\` approved; the revision is posted on PR #${p.pr}.${decided}`]);
+  gh(["api", `repos/${REPO}/issues/${issue}/comments`, "-f", `body=Dev OS supervisor: \`${m[2]}\` approved; the revision is posted on PR #${p.pr}.${decided}`], { report: true });
 }
