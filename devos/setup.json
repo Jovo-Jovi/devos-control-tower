@@ -38,7 +38,7 @@
       "blocks": "cycle",
       "steps": [
         "GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → Generate a NEW token (never reuse the pilot's).",
-        "Repository access: only devos-control-tower. Permissions (Read and write): Contents, Pull requests, Workflows. Expiry ≤ 90 days (pilot ADR-006 conditions).",
+        "Repository access: only devos-control-tower. Permissions (Read and write): Contents, Pull requests, Workflows, Issues, Actions, Commit statuses. Expiry ≤ 90 days. Once set, the runner uses it for every gh call (dispatch, comments, statuses, merges), not only for workflow pushes.",
         "Add it as the repository secret `DEVOS_PAT`. Needed only when a method fix (TM01) changes a workflow file."
       ]
     },
