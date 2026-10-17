@@ -14,7 +14,12 @@ export function Bar({ passed, seen, dash }: { passed: number; seen: number; dash
   const scale = empty ? 0 : Math.max(0, Math.min(100, Math.round((passed / seen) * 100)));
   return (
     <span className={styles.row}>
-      <span className={styles.track} data-empty={empty ? "" : undefined} data-move={move ? "" : undefined}>
+      <span
+        className={styles.track}
+        data-bar-track=""
+        data-empty={empty ? "" : undefined}
+        data-move={move ? "" : undefined}
+      >
         {empty ? null : (
           <svg className={styles.meter} viewBox="0 0 100 1" preserveAspectRatio="none" aria-hidden="true">
             <line

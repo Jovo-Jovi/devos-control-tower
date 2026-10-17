@@ -91,6 +91,11 @@
   min-inline-size: 0;
 }
 
+.metricLabel {
+  flex: none;
+  white-space: nowrap;
+}
+
 .events {
   display: flex;
   flex-direction: column;

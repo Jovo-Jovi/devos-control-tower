@@ -198,3 +198,10 @@ turns everything else into something the owner approves (a method-fix issue, a c
 proposed revision, or setup steps). Reports go to the "Dev OS: supervisor" issue. On today's
 incidents, the rules read T04 a1 (hung builder) and T05 a2 (push conflict) as "re-dispatch", which
 is what was done by hand. `scripts/devos/rescue.sh` recovers a rescue branch onto its task branch.
+
+## 2026-10-17 — T05 Overview as the tower map (attempt 4)
+
+Attempt 4 kept the attempt-3 tree and changed only what `docs/reviews/T05-a3.md` failed. The bar's
+SVG sits absolutely in its track, so it no longer forces the labels onto two lines, and each map
+card stays inside its slot. BRAVO's fixture carries a half fill (1 of 2). The attempt-3 layout-shift
+paste now includes the three keys it lacked. Awaiting the verdict, then the owner's gate G-Design-v3.

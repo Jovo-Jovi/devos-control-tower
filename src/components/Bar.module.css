@@ -7,7 +7,9 @@
 }
 
 .track {
-  flex: 1 1 auto;
+  position: relative;
+  flex: 1 1 0;
+  min-inline-size: 0;
   block-size: var(--space-1);
   overflow: hidden;
   border-radius: var(--radius-pill);
@@ -23,9 +25,8 @@
 }
 
 .meter {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
+  position: absolute;
+  inset: 0;
 }
 
 .stroke {

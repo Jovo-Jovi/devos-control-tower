@@ -140,6 +140,11 @@
   font-size: var(--text-0);
 }
 
+.metricLabel {
+  flex: none;
+  white-space: nowrap;
+}
+
 .fact {
   font-size: var(--text-0);
 }

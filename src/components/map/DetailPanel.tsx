@@ -57,11 +57,11 @@ export function DetailPanel({
         <dt>{copy.tasks}</dt>
         <dd>
           <Bar passed={project.tasks.passed} seen={project.tasks.seen} dash={copy.unknown} />
-          <span>{copy.ofSeen}</span>
+          <span className={styles.metricLabel} data-metric-label="">{copy.ofSeen}</span>
         </dd>
         <dt>{copy.phase}</dt>
         <dd>
-          <span>{project.phase?.id ?? copy.unknown}</span>
+          <span className={styles.metricLabel} data-metric-label="">{project.phase?.id ?? copy.unknown}</span>
           <Bar passed={project.phase?.passed ?? 0} seen={project.phase?.seen ?? 0} dash={copy.unknown} />
         </dd>
         <dt>{copy.latest}</dt>

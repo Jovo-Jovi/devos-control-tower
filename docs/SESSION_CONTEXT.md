@@ -12,8 +12,8 @@
 | T08 | Method fix: motion evidence for design v2 (filmstrip, reduced motion, layout shift) | PASS a2 |
 | T03 | GitHub App webhook receiver: deliveries and observations (observed origin) | PASS a1 |
 | T04 | Design v3 foundation: light and dark themes, theme switch, scene and planet, app shell, not-found page, sign-in on the v3 tokens | PASS a1 |
-| T05 | Overview as the tower map: projects and link states, panels, list and phone views, register project, Tower-health banner | built a3 — awaiting verdict |
+| T05 | Overview as the tower map: projects and link states, panels, list and phone views, register project, Tower-health banner | built a4 — awaiting verdict |
 
 ## Next action
 
-Review of T05 attempt 3, then the owner's gate G-Design-v3.
+Review of T05 attempt 4, then the owner's gate G-Design-v3.

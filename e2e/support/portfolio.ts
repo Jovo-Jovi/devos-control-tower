@@ -46,6 +46,24 @@ export function syntheticPortfolio(now: Date, count: number): Portfolio {
       received_at: received,
     });
   }
+  if (count >= 2) {
+    const at = new Date(now.getTime() - 90 * 60_000).toISOString();
+    const runId = "run-BRAVO-fill";
+    runRows.push({ id: runId, source: "ci" });
+    stepEventRows.push({
+      id: 100,
+      project_id: "fixture-BRAVO",
+      run_id: runId,
+      seq: 1,
+      phase: "P01",
+      task: "T01",
+      step: "verdict",
+      status: "pass",
+      origin: "reported",
+      at,
+      received_at: at,
+    });
+  }
   return aggregatePortfolio(
     {
       projectRows,

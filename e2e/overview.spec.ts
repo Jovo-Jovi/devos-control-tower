@@ -75,6 +75,62 @@ function boxesIntersect(
   return left.x < right.x + right.width && left.x + left.width > right.x && left.y < right.y + right.height && left.y + left.height > right.y;
 }
 
+async function assertMapCardsFit(page: Page) {
+  const fit = await page.locator("[data-map-card]").evaluateAll((elements) => {
+    const boxes = elements.map((element) => element.getBoundingClientRect());
+    const overlaps: string[] = [];
+    for (let left = 0; left < boxes.length; left += 1) {
+      for (let right = left + 1; right < boxes.length; right += 1) {
+        const a = boxes[left];
+        const b = boxes[right];
+        const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (overlapX > 0.5 && overlapY > 0.5) overlaps.push(`${left}:${right}`);
+      }
+    }
+    const clipped = elements.filter((element) => element.scrollHeight > element.clientHeight).length;
+    const factsOutside = elements.filter((element) => {
+      const fact = element.querySelector("[data-card-fact]");
+      if (!fact) return true;
+      const card = element.getBoundingClientRect();
+      const box = fact.getBoundingClientRect();
+      return (
+        box.top < card.top - 0.5 ||
+        box.bottom > card.bottom + 0.5 ||
+        box.left < card.left - 0.5 ||
+        box.right > card.right + 0.5
+      );
+    }).length;
+    return { cards: elements.length, pairs: (elements.length * (elements.length - 1)) / 2, overlaps, clipped, factsOutside };
+  });
+  expect(fit.cards).toBe(8);
+  expect(fit.pairs).toBe(28);
+  expect(fit.overlaps).toEqual([]);
+  expect(fit.clipped).toBe(0);
+  expect(fit.factsOutside).toBe(0);
+}
+
+async function assertLabelsOnOneLine(page: Page, root: string, count: number) {
+  const labels = await page.locator(`${root} [data-metric-label]`).evaluateAll((elements) =>
+    elements.map((element) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const tops = new Set(Array.from(range.getClientRects(), (rect) => Math.round(rect.top)));
+      return { nowrap: getComputedStyle(element).whiteSpace === "nowrap", lines: tops.size };
+    }),
+  );
+  expect(labels).toHaveLength(count);
+  expect(labels.every((label) => label.nowrap && label.lines === 1)).toBe(true);
+}
+
+async function assertBarTracksWide(page: Page) {
+  const widths = await page.locator("[data-map-card] [data-bar-track]").evaluateAll((elements) =>
+    elements.map((element) => element.getBoundingClientRect().width),
+  );
+  expect(widths).toHaveLength(16);
+  expect(widths.every((width) => width >= 16)).toBe(true);
+}
+
 async function seek(page: Page, time: number) {
   await page.evaluate((ms) => {
     for (const animation of document.getAnimations()) {
@@ -245,6 +301,21 @@ test("Link states and overflow", async ({ browser }) => {
     const slot = await card.getAttribute("data-slot");
     await expect(page.locator(`g[data-slot="${slot}"]`)).toHaveAttribute("data-link-state", state);
   }
+  await assertMapCardsFit(page);
+  await assertLabelsOnOneLine(page, "[data-map-card]", 32);
+  await assertBarTracksWide(page);
+  const bravo = page.locator('[data-map-card][data-project="BRAVO"]');
+  await expect(bravo.getByText("1 / 2", { exact: true })).toHaveCount(2);
+  await expect(bravo.locator("line").first()).toHaveAttribute("stroke-dashoffset", "50");
+  await expect(page.locator('[data-map-card][data-project="ALPHA"] line').first()).toHaveAttribute("stroke-dashoffset", "100");
+  await page.setViewportSize({ width: 800, height: 900 });
+  await assertMapCardsFit(page);
+  await assertLabelsOnOneLine(page, "[data-map-card]", 32);
+  await assertBarTracksWide(page);
+  await expect(bravo.getByText("1 / 2", { exact: true })).toHaveCount(2);
+  await expect(bravo.locator("line").first()).toHaveAttribute("stroke-dashoffset", "50");
+  await expect(page.locator('[data-map-card][data-project="ALPHA"] line').first()).toHaveAttribute("stroke-dashoffset", "100");
+  await page.setViewportSize({ width: 1280, height: 900 });
   await expect(page.getByRole("button", { name: "All 8" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Active 3" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Waiting 1" })).toBeVisible();
@@ -262,6 +333,7 @@ test("Link states and overflow", async ({ browser }) => {
   await expect(page.getByRole("button", { name: "+3 more · List" })).toBeVisible();
   await page.getByRole("button", { name: "List", exact: true }).click();
   await expect(page.locator("[data-list-card]")).toHaveCount(10);
+  await assertLabelsOnOneLine(page, "[data-list-card]", 40);
   expect(csp).toEqual([]);
   await context.close();
 });
@@ -291,6 +363,7 @@ test("Selected", async ({ browser }) => {
   expect(dialogTop).toBeGreaterThanOrEqual(bannerBottom);
   expect(await page.getByRole("group", { name: "Filter" }).evaluate((element) => getComputedStyle(element).backdropFilter)).not.toBe("none");
   await expect(page.locator("[data-map-card][data-dimmed='panel']")).toHaveCount(7);
+  await assertLabelsOnOneLine(page, "[role='dialog']", 2);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(card).toBeFocused();

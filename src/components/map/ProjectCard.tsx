@@ -78,19 +78,19 @@ export function ProjectCard({
       </span>
       <span className={styles.execution}>{execution}</span>
       <span className={styles.metric}>
-        <span>{copy.tasks}</span>
+        <span className={styles.metricLabel} data-metric-label="">{copy.tasks}</span>
         <Bar passed={project.tasks.passed} seen={project.tasks.seen} dash={copy.unknown} />
-        <span>{copy.ofSeen}</span>
+        <span className={styles.metricLabel} data-metric-label="">{copy.ofSeen}</span>
       </span>
       <span className={styles.metric}>
-        <span>
+        <span className={styles.metricLabel} data-metric-label="">
           {copy.phase}
           {project.phase ? ` ${project.phase.id}` : ""}
         </span>
         <Bar passed={project.phase?.passed ?? 0} seen={project.phase?.seen ?? 0} dash={copy.unknown} />
-        <span>{copy.ofSeen}</span>
+        <span className={styles.metricLabel} data-metric-label="">{copy.ofSeen}</span>
       </span>
-      <span className={styles.fact}>
+      <span className={styles.fact} data-card-fact="">
         <span>
           {latest
             ? `${latest.task ? `${latest.task} · ` : ""}${latest.step} · ${latest.status}`
