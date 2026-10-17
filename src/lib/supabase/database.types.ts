@@ -23,7 +23,67 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "owner_allowlist": {
+            "event_rejections": {
+                  Row: {
+                    "reason": string,"received_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "reason": string,"received_at"?: string
+                  }
+                  Update: {
+                    "reason"?: string,"received_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"event_usage": {
+                  Row: {
+                    "account_alias": string,"agent": string,"cache_read": number | null,"cache_write": number | null,"event_id": number,"id": number,"input": number | null,"model": string,"output": number | null,"source": string,"tool": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "account_alias": string,"agent": string,"cache_read"?: number | null,"cache_write"?: number | null,"event_id": number,"id"?: never,"input"?: number | null,"model": string,"output"?: number | null,"source": string,"tool": string
+                  }
+                  Update: {
+                    "account_alias"?: string,"agent"?: string,"cache_read"?: number | null,"cache_write"?: number | null,"event_id"?: number,"id"?: never,"input"?: number | null,"model"?: string,"output"?: number | null,"source"?: string,"tool"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "event_usage_event_id_fkey"
+      columns: ["event_id"]
+isOneToOne: false
+      referencedRelation: "events"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"events": {
+                  Row: {
+                    "at": string,"body_hash": string,"evidence": string | null,"id": number,"origin": string,"phase": string | null,"project_id": string,"received_at": string,"run_id": string,"seq": number,"source": string,"status": string,"step": string,"task": string | null,"v": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "at": string,"body_hash": string,"evidence"?: string | null,"id"?: never,"origin": string,"phase"?: string | null,"project_id": string,"received_at"?: string,"run_id": string,"seq": number,"source": string,"status": string,"step": string,"task"?: string | null,"v": number
+                  }
+                  Update: {
+                    "at"?: string,"body_hash"?: string,"evidence"?: string | null,"id"?: never,"origin"?: string,"phase"?: string | null,"project_id"?: string,"received_at"?: string,"run_id"?: string,"seq"?: number,"source"?: string,"status"?: string,"step"?: string,"task"?: string | null,"v"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "events_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "events_run_id_fkey"
+      columns: ["run_id"]
+isOneToOne: false
+      referencedRelation: "runs"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"owner_allowlist": {
                   Row: {
                     "github_id": string
                   }
@@ -37,13 +97,50 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"projects": {
+                  Row: {
+                    "created_at": string,"id": string,"key": string,"owner_github_id": string,"repo": string,"stale_after_minutes": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"key": string,"owner_github_id": string,"repo": string,"stale_after_minutes"?: number
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"key"?: string,"owner_github_id"?: string,"repo"?: string,"stale_after_minutes"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"runs": {
+                  Row: {
+                    "created_at": string,"id": string,"project_id": string,"run_key": string,"source": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id": string,"project_id": string,"run_key": string,"source": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"project_id"?: string,"run_key"?: string,"source"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "runs_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "is_owner":
+            "ingest_event":
+{ Args: { "payload": Json,"src": string }; Returns: Json
+                           },
+"is_owner":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            }
           }
