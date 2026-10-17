@@ -172,6 +172,7 @@ read-only diagnosis, at most 6 times a day. Then it:
 
 The `<id>` is printed in the proposal. **Editing an old comment does nothing**: post a new one.
 
+Each incident is reported **once**. If you already answered a halt with `/devos revise`, it stays quiet.
 After 2 automatic tries on the same cause, it stops trying and labels the PR `devos:needs-you`.
 It never merges, never pushes to `main` and never sees a secret value.
 **Turn it off:** set the repository variable `DEVOS_SUPERVISOR` to `off`. The cycle keeps running.

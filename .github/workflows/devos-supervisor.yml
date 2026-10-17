@@ -36,13 +36,14 @@ concurrency:
 permissions:
   contents: read
   actions: read
-  issues: read
+  issues: write
   pull-requests: read
 
 jobs:
   supervise:
     if: >-
-      vars.DEVOS_SUPERVISOR != 'off' && vars.DEVOS_PAUSED != 'true' && (
+      vars.DEVOS_SUPERVISOR != 'off' && vars.DEVOS_PAUSED != 'true' &&
+      (github.event_name != 'workflow_run' || !contains(fromJSON('["skipped","cancelled"]'), github.event.workflow_run.conclusion)) && (
         github.event_name != 'issue_comment' || (
           !github.event.issue.pull_request &&
           contains(github.event.issue.labels.*.name, 'devos:supervisor') &&
@@ -57,6 +58,8 @@ jobs:
       # The owner's runner token: its comments count as the owner's (so `/devos revise` runs) and it may
       # dispatch the cycle. Never written anywhere; Claude's step does not receive it.
       GH_TOKEN: ${{ secrets.DEVOS_PAT || github.token }}
+      # Its own reports use the built-in token, whose comments start no workflow: no self-trigger loop.
+      REPORT_TOKEN: ${{ github.token }}
       EVENT_NAME: ${{ github.event_name }}
       WF_NAME: ${{ github.event.workflow_run.name }}
       WF_RUN_ID: ${{ github.event.workflow_run.id }}
