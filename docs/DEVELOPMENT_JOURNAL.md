@@ -142,3 +142,19 @@ the scene and planet behind the app shell, a styled not-found page, and sign-in 
 Catalogue grew from 14 keys to 27. `motion` 14.3.0 is installed and not imported. Scene images stay the
 baseline art (722875 bytes); generation was outside the time box. Carry-forwards CF-012…CF-015 landed
 from T03's review; CF-005, CF-013, CF-014 and CF-015 are closed. Awaiting the verdict.
+
+## 2026-10-17 — Runner: long builds continue in time slices; live progress; stuck detection (owner request)
+
+T05 attempt 1 used the whole 72-minute budget while still writing files and halted, which needed a
+manual `/devos revise`. The owner asked for long sessions to keep going without a halt while still
+proving they are not stuck. Now:
+- **Time slices.** A slice that ends while the builder is still changing files is committed with
+  "(time slice k)" and the same attempt continues in a fresh run from the branch (`builder-status.mjs`
+  → `continue`, the park step dispatches it), up to `builder.max_time_slices` (4, about 4 h 48 min). A
+  slice that changed nothing, or the last slice, halts with the reason and the `/devos revise` path.
+- **Stuck detection.** Nothing changing at all (tree, CLI output) for `builder.idle_stop_minutes` (30)
+  is "stuck" (`devos-stuck:`, exit 126): restarted once, then halted. The lost-connection stall
+  (exit 125) keeps its restart-then-park path.
+- **Live progress.** `scripts/devos/progress.sh` keeps one comment per run on the "Dev OS: run notices"
+  issue up to date every 5 minutes: working / quiet / finished / slice used / stuck, minutes, files
+  changed, a link to the run. Its token is removed from the agent's environment by the watchdog.

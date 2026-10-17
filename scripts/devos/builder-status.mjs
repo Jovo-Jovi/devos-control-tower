@@ -32,27 +32,43 @@ let state = "ok";
 // PR-29: with a second Cursor account, both were tried; resume when the first one resets.
 const waitUntil = earliestNotBefore("cursor", `${out}\n${err}`, config().resume?.default_wait_minutes ?? 60);
 let reason = "builder finished";
-// agent-watchdog.sh: a CLI that lost its connection and stalled twice is transient, not a defect:
-// park the same attempt for a short wait (no review spent) instead of halting it.
+// agent-watchdog.sh outcomes:
+// - devos-stall (lost connection, no progress, after one restart): transient → park for a short wait;
+// - devos-watchdog (time slice used up): if the slice changed files and slices remain → "continue"
+//   (the same attempt runs again from the branch); otherwise halt with the reason;
+// - devos-stuck (nothing changed for idle_stop_minutes, after one restart): halt, a person looks.
 const stalled = /devos-stall:/.test(err);
 const budgetSpent = /devos-watchdog: stopped after/.test(err);
+const stuck = /devos-stuck:/.test(err);
+const slice = Number(arg("slice", "1")) || 1;
+const maxSlices = Number(arg("max-slices", String(config().builder?.max_time_slices ?? 4))) || 4;
+const changed = Number(arg("changed", "0")) || 0;
+const sliceMin = 72;
 const stallWait = new Date(Date.now() + (config().resume?.stall_wait_minutes ?? 10) * 60000).toISOString().replace(/\.\d{3}Z$/, "Z");
 if (failed) {
-  state = stalled || looksLikeLimit(out, err) ? "quota" : "error";
+  state = stalled || looksLikeLimit(out, err) ? "quota" : budgetSpent && changed > 0 && slice < maxSlices ? "continue" : "error";
   reason = `builder exit ${Number.isNaN(exit) ? "unknown" : exit}${detail ? `: ${detail}` : ""}`;
 }
 const resumeAt = stalled ? stallWait : waitUntil;
 
 if (state !== "ok") {
-  const head = state === "quota"
+  const head = state === "continue"
+    ? `### Dev OS ${task} · attempt ${attempt} · **time slice ${slice} of ${maxSlices} used, still working** → \`continue\``
+    : state === "quota"
     ? `### Dev OS ${task} · attempt ${attempt} · **${stalled ? "Cursor connection lost" : "waiting for Cursor usage"}** → \`quota_wait\``
-    : `### Dev OS ${task} · attempt ${attempt} · **${budgetSpent ? "time budget used up" : "builder error"}** → \`halt\``;
-  const body = state === "quota" && stalled
+    : `### Dev OS ${task} · attempt ${attempt} · **${stuck ? "builder stuck" : budgetSpent ? "time budget used up" : "builder error"}** → \`halt\``;
+  const body = state === "continue"
+    ? `The builder was still changing files when its ${sliceMin}-minute slice ended (${changed} file(s) changed in this slice). Everything is committed on this branch, no review was spent, and slice ${slice + 1} of ${maxSlices} is queued: it continues from the branch on its own. Live progress is on the "Dev OS: run notices" issue.`
+    : state === "quota" && stalled
     ? `The Cursor CLI lost its connection and stopped making progress. Whatever it finished is committed on this branch. No review was spent and the attempt was not used up. The runner resumes it after **${resumeAt}** (UTC); remove the \`devos:quota-wait\` label to cancel that.`
     : state === "quota"
     ? `Cursor stopped on a plan/usage or rate limit. Whatever it finished is committed on this branch. No review was spent and the attempt was not used up. The runner resumes it after **${waitUntil}** (UTC); remove the \`devos:quota-wait\` label to cancel that.`
+    : stuck
+    ? `The builder stopped changing anything for ${config().builder?.idle_stop_minutes ?? 30} minutes, was restarted once, and stopped again. Whatever it finished is committed on this branch. No review was spent. Look at the run log; to go on, comment \`/devos revise continue from the work on this branch; <anything to change>\` on this PR.`
+    : budgetSpent && slice >= maxSlices
+    ? `The builder used all ${maxSlices} time slices (${maxSlices * sliceMin} minutes) on this attempt. Everything is committed on this branch. No review was spent. The task is probably too big for one attempt: comment \`/devos revise continue from the work on this branch; <what is left>\` on this PR, or split the task.`
     : budgetSpent
-    ? `The builder used its whole time budget (agent-watchdog.sh) before finishing. Whatever it finished is committed on this branch. No review was spent. To continue from this work, comment \`/devos revise continue from the work on this branch; <anything to change>\` on this PR: the reviewer reissues the fence for the next attempt with only what is left, and the builder picks up from the branch.`
+    ? `The time slice ended without a single file changed in it, so it was not continued automatically. Everything earlier is committed on this branch. No review was spent. Look at the run log; to go on, comment \`/devos revise continue from the work on this branch; <anything to change>\` on this PR.`
     : `The Cursor CLI failed before finishing, for a reason that does not look like a usage limit. Whatever it finished is committed on this branch. No review was spent. Fix the cause (key, model id, install), then re-run devos-cycle with task=${task} attempt=${attempt}.`;
   writeFileSync(P(".devos/builder-summary.md"), [head, "", body, "", "```", reason, "```", "",
     state === "quota" ? resumeMarker(task, attempt, false, resumeAt) : ""].join("\n"));
