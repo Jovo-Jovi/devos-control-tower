@@ -83,7 +83,10 @@ function failingStep(runId) {
     const step = (j.steps || []).find((s) => s.conclusion === "failure" || s.conclusion === "timed_out" || s.conclusion === "cancelled");
     if (j.conclusion === "failure" || step) {
       const log = gh(["api", `repos/${REPO}/actions/jobs/${j.id}/logs`], { allowFail: true });
-      const tail = log.split("\n").slice(-160).join("\n").replace(/\x1b\[[0-9;]*m/g, "");
+      const lines = log.replace(/\x1b\[[0-9;]*m/g, "").split("\n");
+      // The last lines, plus any earlier line that names an outside failure (a retry loop can push it up).
+      const hits = lines.slice(0, -160).filter((l) => ENV_RE.test(l) || FONTS_RE.test(l)).slice(-10);
+      const tail = [...hits, ...lines.slice(-160)].join("\n");
       return { job: j.name, step: step?.name || "", tail };
     }
   }
@@ -106,6 +109,8 @@ const attemptOf = (s) => Number((String(s).match(/attempt (\d+)/) || [0, 0])[1])
 // ---------- incident rules (cheap first; Claude only for what no rule explains) ----------
 const ENV_RE = /ECONNRESET|ETIMEDOUT|EAI_AGAIN|Could not resolve host|50[234] (Bad Gateway|Service Unavailable|Gateway Timeout)|rate limit exceeded|toomanyrequests|failed to pull|registry\.npmjs\.org.*(timeout|ECONN)|The operation was canceled|runner has received a shutdown signal|lost communication with the server/i;
 
+const FONTS_RE = /Google Fonts download failed|fonts\.(googleapis|gstatic)\.com|Failed to fetch .*Google Fonts/i;
+
 function detect(facts) {
   const inc = [];
   const add = (o) => inc.push({ id: `${o.kind}-${o.task || "x"}-${Date.now().toString(36)}-${inc.length}`, ...o });
@@ -117,6 +122,19 @@ function detect(facts) {
     const r = facts.runs.find((x) => String(x.id) === String(facts.event.run));
     if (r) failedRuns.push(r);
   }
+  // 1b. The checks (ci) or the production deploy failed on main. An outside failure of ci (network,
+  // Google Fonts) is re-run; a deploy is never re-run by the supervisor, only reported.
+  if (["ci", "devos-deploy"].includes(facts.event.workflow) && facts.event.conclusion === "failure" && facts.event.run) {
+    const run = Number(facts.event.run), f = failingStep(run);
+    const outside = ENV_RE.test(f.tail) || FONTS_RE.test(f.tail);
+    const base = { kind: "main-failure", task: "", attempt: 0, run, url: `https://github.com/${REPO}/actions/runs/${run}`, step: f.step, evidence: f.tail.slice(-6000) };
+    if (facts.event.workflow === "ci") {
+      add({ ...base, key: `main:ci:${run}`, cause: outside ? `the checks on main failed on an outside service (${FONTS_RE.test(f.tail) ? "the Google Fonts download" : "the network"}), not on the code` : "", action: outside ? "rerun-failed" : "ask-claude" });
+    } else {
+      add({ ...base, key: `main:deploy:${run}`, cause: `the production deploy failed at "${f.step || f.job || "?"}"${outside ? " on an outside service" : ""}`, action: "report" });
+    }
+  }
+
   for (const r of failedRuns) {
     const task = taskOf(r.title), attempt = attemptOf(r.title);
     const later = facts.runs.find((x) => taskOf(x.title) === task && new Date(x.created) > new Date(r.created));
@@ -313,6 +331,14 @@ if (cmd === "scan") {
       Object.assign(i, { ai: true, cause: d.cause, explanation: d.explanation, owner_steps: d.owner_steps || "", action: d.action, note: d.note || "", issue_title: d.issue_title, issue_body: d.issue_body });
     }
     const seen = hist.filter((h) => h.key === i.key && h.done).length;
+    if (i.action === "report") {
+      report(issue, i, { done: false, escalate: true, note: "I never re-run a production deploy; the deploy doctor's comment and the run log say what failed. Re-run devos-deploy (production) once it is fixed" });
+      continue;
+    }
+    if (i.action === "rerun-failed" && i.kind === "main-failure" && /:deploy:/.test(i.key)) {
+      report(issue, i, { done: false, escalate: true, note: "a deploy is never re-run by the supervisor" });
+      continue;
+    }
     if (i.action === "setup" || i.action === "none") {
       report(issue, i, { done: false, note: i.action === "setup" ? "nothing I can change: a secret, variable or permission is missing (see the \"Dev OS: setup needed\" issue)" : "no action needed" });
       continue;
