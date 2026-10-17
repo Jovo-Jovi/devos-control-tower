@@ -70,3 +70,23 @@ S3 halts. `forbidden()` before streaming, including a static page whose only cal
 ## 2026-10-17 — T01 skeleton (builder, attempt 3)
 
 Reissue after `docs/reviews/T01-a2.md`. The 403 stays on Next's error shell. `signIn.denied` is now the design-system sentence. The request test checks that sentence on the 403 body, and checks `lang="en" dir="ltr"` in the server HTML of `/sign-in` and `/sign-in?reason=auth_error`. The browser test checks `lang="en"` and `dir="ltr"` on all three states. The scaffold, the proxy, sign-out, the root layout and the Supabase module are unchanged. Awaiting the verdict and G-Tower-Auth.
+
+## 2026-10-17 — Pilot leftovers removed (owner request)
+
+Method files copied at B0 still pointed at the pilot's product. Fixed on `main` by the owner's
+session (no behaviour of the method changed beyond these targets):
+
+- `devos-deploy.yml` smoke test probes `vars.TOWER_URL` at `/` (generated URLs sit behind Vercel
+  Authentication; no bypass secret, ADR-004). Repository variable `TOWER_URL` is the owner's to set.
+- `scripts/devos/screens.mjs` takes default pages from `devos.config.json` `screens.pages`
+  (`/sign-in`, `/`) instead of the pilot's `/ar /en /ar/notices /en/notices`.
+- `scripts/devos/doctor.mjs` probes `/` and reports a preview behind the Vercel login as expected
+  (info), no longer asking for a bypass secret; `render-prompt.mjs` preview hint likewise.
+- `scripts/guards/naming.mjs`: the pilot's `notices` route exception removed.
+- Builder rule `10-security-data` and skill `devos-compose-ui`: the pilot's library/content and
+  bilingual-state wording replaced by the Tower's (no contact data; states loading, empty, error,
+  stale, offline). `CLAUDE.md`: preview probe and data-integrity lines.
+
+Kept on purpose: the inactive R2 and Firebase module code and rules (they switch on only when their
+files exist; the engine stays byte-close to the pilot for M4 `upgrade`), and the method handbook's
+NEL history. `pnpm guards` after the change: all PASS.

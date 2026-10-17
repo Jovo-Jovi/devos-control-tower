@@ -271,14 +271,13 @@ async function diagnoseVercel(f, add) {
   // Ready: can the runner (and you, signed out) open it?
   const headers = process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {};
   let status = 0, loc = "";
-  try { const r = await fetch(`${url}/ar`, { redirect: "manual", headers, signal: AbortSignal.timeout(20000) }); status = r.status; loc = r.headers.get("location") ?? ""; } catch (e) { loc = e.message; }
+  try { const r = await fetch(`${url}/`, { redirect: "manual", headers, signal: AbortSignal.timeout(20000) }); status = r.status; loc = r.headers.get("location") ?? ""; } catch (e) { loc = e.message; }
   const behindLogin = status === 401 || (status >= 300 && status < 400 && /vercel\.com\/(sso|login)/.test(loc));
   if (behindLogin) {
-    const has = Boolean(process.env.VERCEL_AUTOMATION_BYPASS_SECRET);
-    add({ key: "vercel", label: "Vercel preview", level: "warn", state: has ? "login page even with the bypass secret" : "behind the Vercel login", link: url,
-      todo: [{ who: "you", text: has
-        ? "The bypass secret in GitHub does not match Vercel. Vercel → project → Settings → Deployment Protection → Protection Bypass for Automation: copy the secret again into the GitHub secret `VERCEL_AUTOMATION_BYPASS_SECRET`."
-        : "Vercel → project **devos-pilot** → Settings → Deployment Protection → **Protection Bypass for Automation** → Add secret → copy it. GitHub → Settings → Secrets and variables → Actions → New secret `VERCEL_AUTOMATION_BYPASS_SECRET`. Until then the runner takes its screenshots from a local build (PR-15). You can open the preview yourself while signed in to Vercel." }] });
+    // Tower ADR-004: no Protection Bypass for Automation by design. A preview behind the Vercel login is
+    // expected; the runner takes its screenshots from the local build (PR-15).
+    add({ key: "vercel", label: "Vercel preview", level: "info", state: "behind the Vercel login (expected, ADR-004)", link: url,
+      todo: [{ who: "you", text: "Open the preview yourself while signed in to Vercel. No bypass secret is added (Tower ADR-004); screenshots come from the local build." }] });
     return;
   }
   add({ key: "vercel", label: "Vercel preview", level: status === 200 ? "ok" : "warn", state: status === 200 ? "ready" : `answers ${status}`, link: url, todo: [] });

@@ -19,13 +19,13 @@ improve it. A gap or a contradiction is reported, never improvised.
    `insetInlineStart` and `inlineSize` as percentages).
 4. **Typography is part of the design.** Use the faces, weights, sizes and line heights in the type
    table; load fonts only through `next/font/google` (self-hosted). Sentence case; no all-caps.
-5. **RTL is free if you stay logical.** Never branch on direction in CSS or JS for layout. Numbers,
-   times and phone numbers go through `<Bidi>` (renders `<bdi dir="ltr">`, no wrapping).
-6. **States are designed:** pending, empty, closed, today. Render each one the way the design system
-   says; never placeholder text.
+5. **Stay logical.** Never branch on direction in CSS or JS for layout. Repository names, logins,
+   hashes and evidence paths go through `<bdi>` (docs/I18N_MODEL.md).
+6. **States are designed:** loading, empty, error, stale, offline (docs/DESIGN_SYSTEM.md). Render each
+   one the way the design system says; never placeholder text.
 7. **Quality floor:** visible focus ring, AA contrast from the tokens, no horizontal scroll at 390px,
    tap targets ≥ 44px, `aria-hidden` on purely visual marks with a text equivalent beside them.
-8. **Check yourself before you report.** Build, start the app, and compare `/ar` and `/en` at 1280px and
-   390px with the mockup. In the IDE use the Playwright MCP to take screenshots; in automated runs
+8. **Check yourself before you report.** Build, start the app, and compare every page the fence names at 1280px
+   and 390px with docs/DESIGN_SYSTEM.md. In the IDE use the Playwright MCP to take screenshots; in automated runs
    `node scripts/devos/screens.mjs` writes them to `.devos/screens/`. List every visible difference
    you could not remove in the report under "Notes for the reviewer".

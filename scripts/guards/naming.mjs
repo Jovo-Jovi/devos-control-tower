@@ -2,7 +2,7 @@
 import { read, exists, hasSrc, srcFiles, walk, result } from "./lib.mjs";
 
 // Route segments that are user-facing URL copy, permitted by GLOSSARY §3.
-const ALLOW_ROUTES = new Set(["notices"]);
+const ALLOW_ROUTES = new Set([]); // the pilot's "notices" exception does not apply to the Tower
 
 export function forbiddenNouns() {
   const g = read("docs/GLOSSARY.md");

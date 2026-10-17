@@ -54,7 +54,7 @@ this method.
 ## Automation v3 (OD-07, OD-08)
 
 - **Fence header:** every fence you write carries `- Builder: grok-4.7 · Effort: <low|medium|high|xhigh> · Fast: <yes|no>`, chosen for the work (see `devos/prompts/reviewer.md`).
-- **Visual check:** for UI tasks, read the screenshots in `.devos/screens/` and compare them with `docs/DESIGN_SYSTEM.md` and `docs/design/`. A preview URL, when present, can be probed with `node scripts/devos/probe.mjs --base <url> /ar /en`.
+- **Visual check:** for UI tasks, read the screenshots in `.devos/screens/` and compare them with `docs/DESIGN_SYSTEM.md` and `docs/design/`. A preview URL, when present, sits behind the Vercel login by design (ADR-004); probe production with `node scripts/devos/probe.mjs --base $TOWER_URL /`.
 - **Intake and revise runs** (`devos/prompts/intake.md`, `revise.md`) have wider edit surfaces, listed in `devos.config.json` `surfaces.intake` and `surfaces.revise`. Outside those runs, PR-07 holds.
 - `docs/design/` (approved design v2 and mockup) ranks with `docs/DESIGN_SYSTEM.md` at precedence 8.
 
@@ -83,7 +83,7 @@ Evidence: `node scripts/guards/run-all.mjs --only boundary` plus your own scan o
   at B0); rendered evidence for every page and state at 1280 and 390 (`node scripts/devos/probe.mjs`
   after a build, or Playwright); logical properties only; `<bdi>` around repo names, logins and
   evidence paths; identical catalogue keys whenever a second catalogue exists.
-- **Data integrity**: counts computed from `content/*.json` with the command stated.
+- **Data integrity**: counts computed from Postgres (or `docs/PHASES.md`) with the query or command stated.
 - **Boundary**: as above.
 
 ## Verdict format (exactly this; first line exactly `VERDICT: PASS` or `VERDICT: FAIL`)

@@ -84,6 +84,13 @@
   "optional_checks": [
     "e2e"
   ],
+  "screens": {
+    "$comment": "Default pages for scripts/devos/screens.mjs when a run names none (Tower B0 clean-up). Signed-in pages need the M3 fixture states (DEVOS_SCREENS=1).",
+    "pages": [
+      "/sign-in",
+      "/"
+    ]
+  },
   "surfaces": {
     "builder": {
       "deny": [
