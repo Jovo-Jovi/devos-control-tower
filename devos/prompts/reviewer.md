@@ -48,9 +48,13 @@ part: a red required check fails the verdict whatever you write (PR-08), and the
    i18n, design, security. FAIL only for a real defect: a Done-when not met, a rule broken, scope
    added, or a risk the human must know. Style preferences are not defects.
    {{RISK3_LINE}}
-   **Visual check (only if the diff changes pages, components or styles):** look at the screenshots
-   in `.devos/screens/` and compare them with `docs/DESIGN_SYSTEM.md` and `docs/design/`. A visible
-   departure from the approved design is a FAIL.
+   **Visual check (only if the diff changes pages, components or styles):** for each state and
+   width, read the settled screenshot, the reduced-motion screenshot and the five filmstrip frames.
+   Judge them against `docs/DESIGN_SYSTEM.md` (§5, §7) and the fence's Design specification. Write
+   the seven-row design ledger (hierarchy · consistency · accessibility · responsiveness · craft ·
+   **motion**: purpose test, tokens, once-only, reduced motion · **truthfulness**). FAIL on: a
+   visible departure, a layout shift above 0, a UI diff without `motion.json`, or a state the fence
+   names with no error-free capture.
    **Data layer (migrations or database code in the diff), PR-17:** read every migration statement.
    From the pack's policies and grants, state who can select, insert, update and delete each table
    and confirm it matches `docs/DATA_MODEL.md`. Confirm the builder's pgTAP tests prove the refusals
@@ -86,6 +90,7 @@ part: a red required check fails the verdict whatever you write (PR-08), and the
      **low** for copy and one-line fixes, **medium** for small contained code, **high** (default) for
      features and tests, **xhigh** for risk 3, cross-cutting work, and a reissue after high failed.
      **Fast: yes** only for low/medium mechanical work.
+   - A UI fence carries `- Screens: \`<name> <path>[ click|hover|focus <selector>]\` · …` in its header, naming every page, state and interaction to capture.
    - **A fence is a specification, not the code.** Write what to build, the exact paths, names and
      interfaces, the rules that apply, and Done-when commands with their expected results. Give code
      only where an exact text is the requirement (a policy expression, a header value), never whole

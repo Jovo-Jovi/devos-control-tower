@@ -11,6 +11,7 @@ import { join } from "node:path";
 import { P, config, parsePhases } from "./lib.mjs";
 import { reviewPlan, branchChanges } from "./review-mode.mjs";
 import { isActive, readEnvFile } from "./supabase.mjs";
+import { motionSummary } from "./screens.mjs";
 import * as r2 from "./r2.mjs";
 import * as fb from "./firebase.mjs";
 
@@ -114,11 +115,24 @@ const SECRET_NAMES = /SUPABASE_SECRET_KEY|service_role|sb_secret_|SUPABASE_DB_UR
 const walk = (d) => { for (const n of readdirSync(d)) { const f = join(d, n); statSync(f).isDirectory() ? walk(f) : /\.(js|html|json|map)$/.test(n) && SECRET_NAMES.test(readFileSync(f, "utf8")) && hits.push(f.slice(P().length + 1)); } };
 if (existsSync(P(".next/static"))) { walk(P(".next/static")); out.push("## Browser bundle", "", hits.length ? `**Secret names found in .next/static:** ${hits.join(", ")}` : "No secret key names in `.next/static` (searched the Supabase, R2 and Firebase key names and private_key).", ""); }
 
-// Screens
+// Screens and motion (PR-35)
 if (existsSync(P(".devos/screens"))) {
   const shots = readdirSync(P(".devos/screens")).filter((f) => f.endsWith(".png"));
   const src = existsSync(P(".devos/screens/SOURCE.txt")) ? readFileSync(P(".devos/screens/SOURCE.txt"), "utf8").trim() : "";
-  out.push("## Screenshots", "", `${shots.length} in \`.devos/screens/\`. ${src}`, "");
+  const manifestPath = P(".devos/screens/motion.json");
+  if (existsSync(manifestPath)) {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    out.push("## Screenshots and motion", "",
+      `- Source: ${manifest.source}`,
+      `- States from: \`${manifest.states_from}\``,
+      "",
+      ...motionSummary(manifest),
+      "");
+  } else {
+    out.push("## Screenshots and motion", "",
+      `${shots.length} in \`.devos/screens/\`. ${src}`,
+      "No motion manifest: motion is unproven.", "");
+  }
 }
 
 writeFileSync(P(".devos/evidence.md"), out.join("\n") + "\n");

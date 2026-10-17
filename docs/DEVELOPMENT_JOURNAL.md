@@ -97,3 +97,11 @@ Reissue after `docs/reviews/T02-a1.md`. The a1 migration, down file and seed are
 types, the contract parser, OIDC verification (`jose@6.2.12`), `POST /api/ingest`, the `/api/ingest`
 proxy exemption, pgTAP, unit and e2e tests, and carry-forwards CF-001…CF-007. Awaiting the verdict
 and G-Tower-Ingest.
+
+## 2026-10-17 — T08 motion evidence (builder, attempt 2)
+
+Reissue after `docs/reviews/T08-a1.md` (fence defect: Node 22 was not first on PATH). `screens.mjs`
+captures, per state and width, a settled screenshot in normal motion, a five-frame filmstrip from a
+CDP screencast, a reduced-motion screenshot and the layout-shift value, and writes
+`.devos/screens/motion.json`. The evidence pack and the reviewer prompt summarise it. Precedent
+PR-35. Awaiting the verdict and G-Method-6.
