@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Control Tower — energy blade</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+.th-light,.th-auto{--bg:#eef4fb;--bg2:#f7f9fc;--ink:#13202f;--muted:#4c5a6a;--faint:#8693a2;--line:#d8e2ee;--line-strong:#7d8a99;--glass:rgb(255 255 255 / .55);--glass-strong:rgb(255 255 255 / .82);--edge:inset 0 1px 0 rgb(255 255 255 / .95),0 0 0 1px rgb(30 123 255 / .16);--lift:0 14px 36px rgb(19 32 47 / .12),0 2px 6px rgb(19 32 47 / .06);--accent:#1060d0;--energy:#2f8cff;--energy-core:#ffffff;--energy-soft:rgb(47 140 255 / .16);--track:rgb(19 32 47 / .1);--hatch:rgb(19 32 47 / .2);--tower1:#ffffff;--tower2:#c3d1e3;--module:rgb(255 255 255 / .72);--slot:#d3dde9;--scene-dark:0;--scene-light:1;
+--st-building:#0b5cad;--st-building-bg:#e3eefb;--st-revise:#6b3fbf;--st-revise-bg:#eee7fb;--st-pass:#17784a;--st-pass-bg:#e3f3ea;--st-idle:#55524c;--st-idle-bg:#ecebe7;--st-waiting:#865600;--st-waiting-bg:#fbf0d2;--st-failed:#b3261e;--st-failed-bg:#fbe9e6;--st-stale:#7a4806;--st-stale-bg:#fbeedd;--st-unv:#5a5852;--st-unv-bg:#ecebe7;--org-fill:#13202f;--org-ink:#f7f9fc;--org-imp:#7d8a99}
+.th-dark{--bg:#050507;--bg2:#0a0709;--ink:#f4f1ee;--muted:#aaa3a1;--faint:#6f6766;--line:#2a1c1e;--line-strong:#75605f;--glass:rgb(16 11 13 / .58);--glass-strong:rgb(24 16 18 / .86);--edge:inset 0 1px 0 rgb(255 255 255 / .06),0 0 0 1px rgb(255 59 59 / .22);--lift:0 18px 44px rgb(0 0 0 / .6),0 0 24px rgb(255 43 43 / .06);--accent:#ff6b62;--energy:#ff2b2b;--energy-core:#fff0ee;--energy-soft:rgb(255 43 43 / .16);--track:rgb(255 255 255 / .1);--hatch:rgb(255 255 255 / .2);--tower1:#2a1c1e;--tower2:#050405;--module:rgb(255 255 255 / .04);--slot:#2c2022;--scene-dark:1;--scene-light:0;
+--st-building:#7cb1ff;--st-building-bg:#132339;--st-revise:#c0a8ff;--st-revise-bg:#231b38;--st-pass:#62d6a0;--st-pass-bg:#11281d;--st-idle:#b4b1aa;--st-idle-bg:#232326;--st-waiting:#f2c25a;--st-waiting-bg:#2d240c;--st-failed:#ff8a7e;--st-failed-bg:#301513;--st-stale:#e6aa64;--st-stale-bg:#2b1e0e;--st-unv:#a6a39c;--st-unv-bg:#232326;--org-fill:#f4f1ee;--org-ink:#0a0709;--org-imp:#8a8380}
+@media (prefers-color-scheme:dark){.th-auto{--bg:#050507;--bg2:#0a0709;--ink:#f4f1ee;--muted:#aaa3a1;--faint:#6f6766;--line:#2a1c1e;--line-strong:#75605f;--glass:rgb(16 11 13 / .58);--glass-strong:rgb(24 16 18 / .86);--edge:inset 0 1px 0 rgb(255 255 255 / .06),0 0 0 1px rgb(255 59 59 / .22);--lift:0 18px 44px rgb(0 0 0 / .6),0 0 24px rgb(255 43 43 / .06);--accent:#ff6b62;--energy:#ff2b2b;--energy-core:#fff0ee;--energy-soft:rgb(255 43 43 / .16);--track:rgb(255 255 255 / .1);--hatch:rgb(255 255 255 / .2);--tower1:#2a1c1e;--tower2:#050405;--module:rgb(255 255 255 / .04);--slot:#2c2022;--scene-dark:1;--scene-light:0;
+--st-building:#7cb1ff;--st-building-bg:#132339;--st-revise:#c0a8ff;--st-revise-bg:#231b38;--st-pass:#62d6a0;--st-pass-bg:#11281d;--st-idle:#b4b1aa;--st-idle-bg:#232326;--st-waiting:#f2c25a;--st-waiting-bg:#2d240c;--st-failed:#ff8a7e;--st-failed-bg:#301513;--st-stale:#e6aa64;--st-stale-bg:#2b1e0e;--st-unv:#a6a39c;--st-unv-bg:#232326;--org-fill:#f4f1ee;--org-ink:#0a0709;--org-imp:#8a8380}}
+a{color:var(--accent)}a:hover{opacity:.8}
+.app{position:relative;overflow:hidden;min-height:100vh;color:var(--ink);background:linear-gradient(180deg,var(--bg),var(--bg2));font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;font-size:15px;line-height:1.5;transition:background 1.2s cubic-bezier(.65,0,.35,1),color 600ms}
+.scene{position:absolute;inset-inline:0;top:0;width:100%;height:1040px;pointer-events:none;z-index:0}
+.sky{position:absolute;inset-inline:0;top:0;height:1040px;pointer-events:none;z-index:0;transition:opacity 1.8s cubic-bezier(.65,0,.35,1)}
+.sky-day{background:url("../assets/sky-day.jpg") center top/cover no-repeat;opacity:var(--scene-light)}
+.sky-night{background:url("../assets/sky-night.jpg") center top/cover no-repeat;opacity:var(--scene-dark)}
+.sky-clouds{overflow:hidden;opacity:var(--scene-light);-webkit-mask-image:linear-gradient(180deg,#000 0 52%,transparent 72%);mask-image:linear-gradient(180deg,#000 0 52%,transparent 72%)}
+.cloudpan{position:absolute;top:0;left:0;width:6400px;height:1100px;background:url("../assets/sky-clouds.webp") 0 0/3200px 1100px repeat-x;animation:cloudpan 420s linear infinite}
+@keyframes cloudpan{to{transform:translateX(-3200px)}}
+@media (prefers-reduced-motion:reduce){.cloudpan{animation:none}.sky{transition:none}}
+.rm .cloudpan{animation:none}
+.rm .sky{transition:none}
+.scene g{transition:opacity 1.6s cubic-bezier(.65,0,.35,1)}
+.planet{position:absolute;z-index:0;top:34px;inset-inline-end:4%;width:340px;height:340px;border-radius:50%;overflow:hidden;pointer-events:none;box-shadow:0 0 0 1px rgb(255 255 255 / .35),0 0 36px rgb(150 195 255 / .65),0 0 110px rgb(150 195 255 / .3);transition:box-shadow 1.8s cubic-bezier(.65,0,.35,1)}
+.th-dark .planet{box-shadow:0 0 0 1px rgb(255 90 90 / .22),0 0 36px rgb(255 43 43 / .32),0 0 120px rgb(255 43 43 / .16)}
+@media (prefers-color-scheme:dark){.th-auto .planet{box-shadow:0 0 0 1px rgb(255 90 90 / .22),0 0 36px rgb(255 43 43 / .32),0 0 120px rgb(255 43 43 / .16)}}
+.pl-globe{position:absolute;inset:0;overflow:hidden}
+.pl-spin{position:absolute;top:0;left:0;height:100%;width:4080px;animation:spin 160s linear infinite}
+.pl-spin.cl{animation-duration:105s}
+.pl-turn{position:absolute;inset:0;transition:transform 1.8s cubic-bezier(.65,0,.35,1)}
+.th-dark .pl-turn{transform:translateX(-340px)}
+@media (prefers-color-scheme:dark){.th-auto .pl-turn{transform:translateX(-340px)}}
+.pl-land{position:absolute;inset:0;background-image:url("../assets/planet-land.webp");background-size:680px 340px;background-repeat:repeat-x}
+.pl-clouds{position:absolute;inset:0;background-image:url("../assets/planet-clouds.webp");background-size:680px 340px;background-repeat:repeat-x;opacity:.95}
+.pl-lights{position:absolute;inset:0;background-image:url("../assets/planet-lights.webp");background-size:680px 340px;background-repeat:repeat-x}
+.pl-lightsmask{position:absolute;inset:0;opacity:0;-webkit-mask-image:radial-gradient(circle,#000 0 44%,transparent 56%);mask-image:radial-gradient(circle,#000 0 44%,transparent 56%);-webkit-mask-size:510px 510px;mask-size:510px 510px;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:316px -85px;mask-position:316px -85px;transition:opacity 1s cubic-bezier(.65,0,.35,1),-webkit-mask-position 1.8s cubic-bezier(.65,0,.35,1),mask-position 1.8s cubic-bezier(.65,0,.35,1)}
+.th-dark .pl-lightsmask{opacity:1;-webkit-mask-position:-17px -85px;mask-position:-17px -85px;transition-delay:.5s,0s,0s}
+@media (prefers-color-scheme:dark){.th-auto .pl-lightsmask{opacity:1;-webkit-mask-position:-17px -85px;mask-position:-17px -85px;transition-delay:.5s,0s,0s}}
+.pl-night{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 50%,rgb(3 2 6 / .95) 0 49%,rgb(30 10 8 / .78) 55%,rgb(150 70 40 / .28) 61%,rgb(255 160 110 / .08) 65%,transparent 69%);transform:translateX(118%) scale(1.5);transition:transform 1.8s cubic-bezier(.65,0,.35,1)}
+.th-dark .pl-night{transform:translateX(20%) scale(1.5)}
+@media (prefers-color-scheme:dark){.th-auto .pl-night{transform:translateX(20%) scale(1.5)}}
+.pl-rim{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 8% 50%,rgb(255 43 43 / .4),transparent 30%);mix-blend-mode:screen;opacity:0;transition:opacity 1.2s .6s}
+.th-dark .pl-rim{opacity:1}
+@media (prefers-color-scheme:dark){.th-auto .pl-rim{opacity:1}}
+.pl-shade{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 36% 30%,rgb(255 255 255 / .22),transparent 30%),radial-gradient(circle at 50% 50%,transparent 55%,rgb(0 0 0 / .28) 76%,rgb(0 0 0 / .62) 100%)}
+.pl-atmo{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,transparent 64%,rgb(170 210 255 / .18) 68%,rgb(190 222 255 / .55) 71%);transition:opacity 1.8s}
+.th-dark .pl-atmo{opacity:.35}
+@media (prefers-color-scheme:dark){.th-auto .pl-atmo{opacity:.35}}
+@keyframes spin{to{transform:translateX(-680px)}}
+@media (max-width:760px){.planet{transform:scale(.62);transform-origin:top right;top:80px;inset-inline-end:-40px}}
+@media (prefers-reduced-motion:reduce){.pl-spin{animation:none}.pl-turn,.pl-night,.pl-lightsmask,.pl-rim,.planet,.pl-atmo{transition:none !important}}
+.rm .pl-spin{animation:none}
+.rm .pl-turn,.rm .pl-night,.rm .pl-lightsmask,.rm .pl-rim,.rm .planet,.rm .pl-atmo{transition:none !important}
+.twinkle{animation:twinkle 5s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.25}50%{opacity:1}}
+.drift{animation:drift 70s ease-in-out infinite alternate}
+.drift.slow{animation-duration:110s}
+@keyframes drift{from{transform:translateX(-60px)}to{transform:translateX(60px)}}
+@media (prefers-reduced-motion:reduce){.twinkle,.drift{animation:none}}
+.rm .twinkle,.rm .drift{animation:none}
+
+.mono{font-family:'Geist Mono',ui-monospace,monospace}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);box-shadow:var(--edge),var(--lift)}
+.shell{position:relative;z-index:1;display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;max-width:1500px;margin:0 auto;padding:16px 20px 24px;box-sizing:border-box}
+.side{border-radius:20px;padding:14px 10px;display:flex;flex-direction:column;gap:4px;align-self:start}
+.navi{position:relative;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px}
+.navi:hover{background:var(--energy-soft);color:var(--ink);opacity:1}
+.navi.on{background:var(--energy-soft);color:var(--ink);box-shadow:inset 0 0 0 1px var(--energy-soft),0 0 22px var(--energy-soft)}
+.navi.on::before{content:"";position:absolute;inset-inline-start:0;top:9px;bottom:9px;width:3px;border-radius:3px;background:var(--energy-core);box-shadow:0 0 4px var(--energy),0 0 10px var(--energy),0 0 18px var(--energy)}
+@media (max-width:980px){.shell{grid-template-columns:minmax(0,1fr)}.side{flex-direction:row;overflow-x:auto;padding:8px}.side .lbl-head{display:none}.navi.on::before{display:none}}
+.stage-wrap{position:relative;width:100%;overflow:hidden}
+.stage{position:relative;width:1200px;height:660px;margin:0 auto}
+@media (max-width:1460px){.stage{zoom:.86}}
+@media (max-width:1240px){.stage{zoom:.74}}
+@media (max-width:1060px){.stage{zoom:.66}}
+@media (max-width:760px){.map-only{display:none !important}.list-only{display:grid !important}.mobile-only{display:flex !important}}
+.mobile-only{display:none}
+.node{position:absolute;width:288px;box-sizing:border-box;padding:13px 14px;display:flex;flex-direction:column;gap:7px;text-align:start;color:var(--ink);border:0;border-radius:16px;font:inherit;cursor:pointer;overflow:hidden;transition:opacity 160ms cubic-bezier(.16,1,.3,1),transform 160ms cubic-bezier(.16,1,.3,1);animation:rise 420ms cubic-bezier(.16,1,.3,1) both}
+.node:hover{transform:translateY(-2px)}
+.node:focus-visible,.btn:focus-visible,.navi:focus-visible,.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.node.sel{box-shadow:var(--edge),var(--lift),0 0 0 1.5px var(--energy),0 0 26px var(--energy-soft)}
+.node.dim{opacity:.3}
+.node.quiet{opacity:.55}
+.flash{position:absolute;inset:0;pointer-events:none;border-radius:16px;opacity:0}
+.tile{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:0 0 auto;background:var(--glass-strong);box-shadow:var(--edge)}
+.row{display:flex;align-items:center;gap:9px;min-width:0}
+.nm{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{font-size:11px;line-height:1;padding:5px 8px;border-radius:9999px;white-space:nowrap;font-weight:500}
+.sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{display:grid;grid-template-columns:86px 1fr 46px;align-items:center;gap:8px;font-size:11px;color:var(--muted)}
+.track{height:4px;border-radius:9999px;background:var(--track);overflow:visible}
+.track.unknown{background:repeating-linear-gradient(135deg,var(--track) 0 4px,var(--hatch) 4px 8px)}
+.fill{display:block;height:100%;border-radius:9999px;box-shadow:0 0 6px currentColor,0 0 14px currentColor;transition:width 420ms cubic-bezier(.65,0,.35,1)}
+.val{text-align:end;color:var(--ink);font-variant-numeric:tabular-nums}
+.cur{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);min-width:0}
+.cur .t{flex:1 1 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.org{font-size:10px;padding:3px 7px;border-radius:9999px;white-space:nowrap;color:var(--ink)}
+.org.reported{box-shadow:inset 0 0 0 1px var(--line-strong)}
+.org.observed{outline:1px dotted var(--line-strong);outline-offset:-1px}
+.org.verified{background:var(--org-fill);color:var(--org-ink)}
+.org.imported{background:var(--org-imp);color:var(--org-ink)}
+.age{font-size:10px;color:var(--muted);white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:9999px;flex:0 0 auto}
+.seam{background:var(--energy-core);box-shadow:0 0 4px var(--energy),0 0 12px var(--energy),0 0 30px var(--energy),0 0 70px var(--energy)}
+.module{position:absolute;height:30px;border-radius:6px;background:var(--module);box-shadow:inset 0 1px 0 rgb(255 255 255 / .07),0 0 0 1px var(--line);display:flex;align-items:center;gap:6px;padding:0 8px;box-sizing:border-box;overflow:hidden}
+.slotline{flex:1 1 auto;height:2px;border-radius:2px;background:var(--slot)}
+.led{width:4px;height:4px;border-radius:9999px;background:var(--energy-core);box-shadow:0 0 3px var(--energy),0 0 7px var(--energy);animation:led 3.2s ease-in-out infinite}
+.mflash{position:absolute;inset:0;opacity:0;pointer-events:none}
+.ring{position:absolute;border-radius:50%;box-shadow:0 0 0 1.5px var(--energy),0 0 14px var(--energy),inset 0 0 14px var(--energy-soft)}
+.particle{offset-rotate:0deg}
+.hum{animation:hum 2.8s steps(1,end) infinite}
+.cable-pulse{animation:pulseWait 2.4s ease-in-out infinite}
+.btn{font:inherit;font-size:13px;color:var(--ink);background:var(--glass-strong);border:0;border-radius:10px;padding:8px 12px;box-shadow:var(--edge);cursor:pointer;min-height:36px;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn[aria-pressed="true"]{background:var(--energy-soft);box-shadow:inset 0 0 0 1px var(--energy),0 0 14px var(--energy-soft)}
+.seg{display:inline-flex;padding:3px;border-radius:12px;gap:2px;background:var(--glass);box-shadow:var(--edge);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.seg button{font:inherit;font-size:12px;border:0;border-radius:9px;padding:6px 10px;background:transparent;color:var(--muted);cursor:pointer;min-height:30px}
+.seg button[aria-pressed="true"]{background:var(--glass-strong);color:var(--ink);box-shadow:var(--edge),0 0 12px var(--energy-soft)}
+.panel{border-radius:20px;padding:18px 20px;min-width:0}
+.h2{font-size:17px;font-weight:600;letter-spacing:.01em}
+.eyebrow{font-family:'Geist Mono',ui-monospace,monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.live{position:relative;width:7px;height:7px;border-radius:9999px;background:var(--energy);box-shadow:0 0 6px var(--energy)}
+.live::after{content:"";position:absolute;inset:0;border-radius:9999px;background:var(--energy);animation:livePulse 2.4s ease-out infinite}
+.list-only{display:none}
+.list-show{display:grid}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ignite{from{stroke-dashoffset:460}to{stroke-dashoffset:0}}
+@keyframes flow{0%{offset-distance:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes sigA{0%{offset-distance:0%;opacity:0}10%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes sigB{0%{offset-distance:0%;opacity:0}10%{opacity:1}100%{offset-distance:100%;opacity:0}}
+@keyframes growA{from{stroke-dashoffset:460;opacity:1}85%{opacity:1}to{stroke-dashoffset:0;opacity:0}}
+@keyframes growB{from{stroke-dashoffset:460;opacity:1}85%{opacity:1}to{stroke-dashoffset:0;opacity:0}}
+@keyframes flashA{0%{opacity:.3}100%{opacity:0}}
+@keyframes flashB{0%{opacity:.3}100%{opacity:0}}
+@keyframes modA{0%{opacity:.8}100%{opacity:0}}
+@keyframes modB{0%{opacity:.8}100%{opacity:0}}
+@keyframes hum{0%{opacity:1}31%{opacity:.86}33%{opacity:1}62%{opacity:.9}64%{opacity:1}88%{opacity:.84}90%{opacity:1}}
+@keyframes beam{0%,100%{opacity:.85}50%{opacity:1}}
+@keyframes pulseWait{0%,100%{opacity:.25}50%{opacity:.8}}
+@keyframes led{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes livePulse{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.6);opacity:0}}
+@media (prefers-reduced-motion:reduce){.node,.led,.hum,.beam,.live::after,.cable-pulse,.flash,.mflash,.ign{animation:none !important}.particle{display:none !important}.fill{transition:none}}
+.rm .node,.rm .led,.rm .hum,.rm .beam,.rm .live::after,.rm .cable-pulse,.rm .flash,.rm .mflash,.rm .ign{animation:none !important}
+.rm .particle{display:none !important}
+.rm .fill{transition:none}
+</style>
+</helmet>
+<div class="{{rootCls}}">
+
+<div class="sky sky-day" aria-hidden="true"></div>
+<div class="sky sky-night" aria-hidden="true"></div>
+<div class="sky sky-clouds" aria-hidden="true"><div class="cloudpan"></div></div>
+<svg class="scene" viewBox="0 0 1440 1040" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+<defs>
+<linearGradient id="skyD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050507"></stop><stop offset=".42" stop-color="#0d0507"></stop><stop offset=".6" stop-color="#3d070a"></stop><stop offset=".66" stop-color="#160405"></stop><stop offset="1" stop-color="#050507"></stop></linearGradient>
+<radialGradient id="planetD" cx=".32" cy=".3" r=".8"><stop offset="0" stop-color="#5a1214"></stop><stop offset=".55" stop-color="#1e0507"></stop><stop offset="1" stop-color="#070203"></stop></radialGradient>
+<radialGradient id="horizonD" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff2b2b" stop-opacity=".55"></stop><stop offset="1" stop-color="#ff2b2b" stop-opacity="0"></stop></radialGradient>
+<linearGradient id="skyL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a7c7ee"></stop><stop offset=".38" stop-color="#d7e7f8"></stop><stop offset=".6" stop-color="#f8f2e6"></stop><stop offset=".7" stop-color="#e6eef7"></stop><stop offset="1" stop-color="#eef4fb"></stop></linearGradient>
+<radialGradient id="sunL" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0"></stop></radialGradient>
+<linearGradient id="spireL" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f4f8fc"></stop><stop offset="1" stop-color="#c9d7e8"></stop></linearGradient>
+<filter id="cloud" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="16"></feGaussianBlur></filter><filter id="puff" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter>
+</defs>
+<g style="opacity: var(--scene-dark);">
+<g fill="#ffffff">
+<circle cx="466" cy="91" r="0.8" class="twinkle" style="opacity: 0.39; animation-delay: -3.2s; animation-duration: 4.5s;"></circle>
+<circle cx="84" cy="304" r="0.8" class="twinkle" style="opacity: 0.4; animation-delay: -2.5s; animation-duration: 4.0s;"></circle>
+<circle cx="794" cy="35" r="0.9" class="twinkle" style="opacity: 0.92; animation-delay: -3.8s; animation-duration: 5.3s;"></circle>
+<circle cx="89" cy="351" r="0.8" class="twinkle" style="opacity: 0.94; animation-delay: -0.3s; animation-duration: 6.4s;"></circle>
+<circle cx="417" cy="87" r="0.9" class="twinkle" style="opacity: 0.69; animation-delay: -3.4s; animation-duration: 5.7s;"></circle>
+<circle cx="148" cy="343" r="1.1" class="twinkle" style="opacity: 0.57; animation-delay: -3.3s; animation-duration: 3.3s;"></circle>
+<circle cx="86" cy="124" r="1.9" class="twinkle" style="opacity: 0.61; animation-delay: -1.9s; animation-duration: 5.3s;"></circle>
+<circle cx="653" cy="180" r="1.0" class="twinkle" style="opacity: 0.77; animation-delay: -1.5s; animation-duration: 5.3s;"></circle>
+<circle cx="756" cy="525" r="1.6" class="twinkle" style="opacity: 0.52; animation-delay: -5.9s; animation-duration: 3.5s;"></circle>
+<circle cx="602" cy="454" r="1.0" class="twinkle" style="opacity: 0.91; animation-delay: -2.5s; animation-duration: 6.8s;"></circle>
+<circle cx="112" cy="335" r="1.3" class="twinkle" style="opacity: 0.55; animation-delay: -2.1s; animation-duration: 5.0s;"></circle>
+<circle cx="1148" cy="41" r="0.9" class="twinkle" style="opacity: 0.92; animation-delay: -2.8s; animation-duration: 5.7s;"></circle>
+<circle cx="87" cy="421" r="1.6" class="twinkle" style="opacity: 0.52; animation-delay: -2.3s; animation-duration: 5.7s;"></circle>
+<circle cx="32" cy="277" r="1.0" class="twinkle" style="opacity: 0.72; animation-delay: -3.0s; animation-duration: 3.9s;"></circle>
+<circle cx="414" cy="443" r="1.4" class="twinkle" style="opacity: 0.58; animation-delay: -5.2s; animation-duration: 3.3s;"></circle>
+<circle cx="647" cy="330" r="1.0" class="twinkle" style="opacity: 0.84; animation-delay: -5.2s; animation-duration: 4.1s;"></circle>
+<circle cx="598" cy="215" r="1.4" class="twinkle" style="opacity: 0.92; animation-delay: -0.9s; animation-duration: 3.7s;"></circle>
+<circle cx="334" cy="140" r="1.6" class="twinkle" style="opacity: 0.85; animation-delay: -1.1s; animation-duration: 4.1s;"></circle>
+<circle cx="210" cy="321" r="1.3" class="twinkle" style="opacity: 0.92; animation-delay: -4.1s; animation-duration: 5.1s;"></circle>
+<circle cx="889" cy="406" r="0.8" class="twinkle" style="opacity: 0.62; animation-delay: -5.2s; animation-duration: 6.8s;"></circle>
+<circle cx="980" cy="336" r="1.4" class="twinkle" style="opacity: 0.59; animation-delay: -0.6s; animation-duration: 5.5s;"></circle>
+<circle cx="90" cy="40" r="1.1" class="twinkle" style="opacity: 0.61; animation-delay: -0.7s; animation-duration: 5.4s;"></circle>
+<circle cx="147" cy="340" r="1.9" class="twinkle" style="opacity: 0.41; animation-delay: -2.2s; animation-duration: 3.1s;"></circle>
+<circle cx="1259" cy="368" r="1.0" class="twinkle" style="opacity: 0.73; animation-delay: -5.7s; animation-duration: 5.4s;"></circle>
+<circle cx="683" cy="69" r="1.6" class="twinkle" style="opacity: 0.95; animation-delay: -2.8s; animation-duration: 4.9s;"></circle>
+<circle cx="124" cy="61" r="1.3" class="twinkle" style="opacity: 0.79; animation-delay: -2.9s; animation-duration: 5.8s;"></circle>
+<circle cx="744" cy="123" r="1.9" class="twinkle" style="opacity: 0.57; animation-delay: -4.1s; animation-duration: 6.7s;"></circle>
+<circle cx="1092" cy="179" r="0.9" class="twinkle" style="opacity: 0.77; animation-delay: -1.6s; animation-duration: 4.5s;"></circle>
+</g>
+<polygon points="0,1040 0,690 0,594 6,594 6,586 20,586 20,594 26,594 26,536 56,536 56,612 82,612 82,570 96,570 96,592 106,592 106,583 128,583 128,582 130,582 130,574 136,574 136,582 138,582 138,565 152,565 152,578 159,526 166,578 166,620 177,581 188,620 188,585 202,585 202,583 208,583 208,565 210,565 210,583 216,583 216,604 230,604 230,625 244,625 244,588 258,588 258,645 262,645 262,637 272,637 272,645 276,645 276,635 280,635 280,627 286,627 286,635 290,635 290,617 308,581 326,617 326,650 330,650 330,642 340,642 340,650 344,650 344,638 348,638 348,630 358,630 358,638 362,638 362,633 372,633 372,615 374,615 374,633 384,633 384,621 393,585 402,621 402,642 438,642 438,647 460,647 460,648 470,648 470,640 482,640 482,622 484,622 484,640 496,640 496,658 532,658 532,668 538,668 538,660 548,660 548,668 554,668 554,664 580,664 580,676 606,676 606,683 608,683 608,675 614,675 614,683 616,683 616,683 622,683 622,675 636,675 636,683 642,683 642,687 650,687 650,679 664,679 664,687 672,687 672,677 686,677 686,688 690,688 690,680 700,680 700,688 704,688 704,687 710,687 710,679 724,679 724,687 730,687 730,680 756,680 756,683 760,683 760,675 766,675 766,683 770,683 770,680 792,680 792,677 818,677 818,687 820,687 820,679 826,679 826,687 828,687 828,678 850,678 850,665 886,665 886,663 892,663 892,655 902,655 902,663 908,663 908,666 912,666 912,658 922,658 922,666 926,666 926,660 940,660 940,641 966,641 966,638 976,638 976,620 978,620 978,638 988,638 988,649 1010,649 1010,638 1026,638 1026,620 1030,620 1030,638 1046,638 1046,624 1082,624 1082,652 1090,652 1090,644 1104,644 1104,652 1112,652 1112,614 1124,614 1124,596 1126,596 1126,614 1138,614 1138,629 1160,629 1160,623 1190,623 1190,625 1220,625 1220,601 1230,601 1230,583 1232,583 1232,601 1242,601 1242,612 1256,612 1256,594 1258,594 1258,612 1272,612 1272,584 1298,584 1298,612 1302,612 1302,604 1312,604 1312,612 1316,612 1316,590 1352,590 1352,552 1366,552 1366,541 1384,541 1384,534 1396,534 1396,516 1398,516 1398,534 1410,534 1410,531 1428,531 1428,599 1458,599 1440,690 1440,1040" fill="#0c0709"></polygon>
+<polyline points="0,690 0,594 6,594 6,586 20,586 20,594 26,594 26,536 56,536 56,612 82,612 82,570 96,570 96,592 106,592 106,583 128,583 128,582 130,582 130,574 136,574 136,582 138,582 138,565 152,565 152,578 159,526 166,578 166,620 177,581 188,620 188,585 202,585 202,583 208,583 208,565 210,565 210,583 216,583 216,604 230,604 230,625 244,625 244,588 258,588 258,645 262,645 262,637 272,637 272,645 276,645 276,635 280,635 280,627 286,627 286,635 290,635 290,617 308,581 326,617 326,650 330,650 330,642 340,642 340,650 344,650 344,638 348,638 348,630 358,630 358,638 362,638 362,633 372,633 372,615 374,615 374,633 384,633 384,621 393,585 402,621 402,642 438,642 438,647 460,647 460,648 470,648 470,640 482,640 482,622 484,622 484,640 496,640 496,658 532,658 532,668 538,668 538,660 548,660 548,668 554,668 554,664 580,664 580,676 606,676 606,683 608,683 608,675 614,675 614,683 616,683 616,683 622,683 622,675 636,675 636,683 642,683 642,687 650,687 650,679 664,679 664,687 672,687 672,677 686,677 686,688 690,688 690,680 700,680 700,688 704,688 704,687 710,687 710,679 724,679 724,687 730,687 730,680 756,680 756,683 760,683 760,675 766,675 766,683 770,683 770,680 792,680 792,677 818,677 818,687 820,687 820,679 826,679 826,687 828,687 828,678 850,678 850,665 886,665 886,663 892,663 892,655 902,655 902,663 908,663 908,666 912,666 912,658 922,658 922,666 926,666 926,660 940,660 940,641 966,641 966,638 976,638 976,620 978,620 978,638 988,638 988,649 1010,649 1010,638 1026,638 1026,620 1030,620 1030,638 1046,638 1046,624 1082,624 1082,652 1090,652 1090,644 1104,644 1104,652 1112,652 1112,614 1124,614 1124,596 1126,596 1126,614 1138,614 1138,629 1160,629 1160,623 1190,623 1190,625 1220,625 1220,601 1230,601 1230,583 1232,583 1232,601 1242,601 1242,612 1256,612 1256,594 1258,594 1258,612 1272,612 1272,584 1298,584 1298,612 1302,612 1302,604 1312,604 1312,612 1316,612 1316,590 1352,590 1352,552 1366,552 1366,541 1384,541 1384,534 1396,534 1396,516 1398,516 1398,534 1410,534 1410,531 1428,531 1428,599 1458,599 1440,690" fill="none" stroke="#ff2b2b" stroke-opacity=".18" stroke-width="1"></polyline>
+<polygon points="0,1040 0,720 0,467 14,467 14,449 17,449 17,467 31,467 31,440 41,320 50,440 50,575 87,575 87,502 123,502 123,517 143,517 143,566 164,524 185,566 185,569 204,569 204,624 241,624 241,578 266,529 291,578 291,636 333,636 333,609 347,609 347,647 378,647 378,632 388,597 398,632 398,635 413,607 428,635 428,647 449,613 470,647 470,661 477,661 477,643 478,643 478,661 484,661 484,693 497,693 497,685 522,685 522,693 535,693 535,692 549,692 549,712 585,712 585,713 616,713 616,713 658,713 658,711 672,711 672,710 692,710 692,710 706,710 706,711 725,711 725,711 776,711 776,713 790,713 790,712 815,712 815,712 851,712 851,713 865,713 865,720 872,720 872,712 884,712 884,720 890,720 890,677 907,677 907,659 910,659 910,677 927,677 927,670 977,670 977,654 989,654 989,636 991,636 991,654 1002,654 1002,671 1044,671 1044,627 1048,627 1048,619 1055,619 1055,627 1058,627 1058,611 1084,611 1084,619 1093,563 1103,619 1103,653 1128,653 1128,633 1179,633 1179,585 1186,548 1193,585 1193,561 1202,561 1202,543 1204,543 1204,561 1212,561 1212,543 1216,543 1216,535 1223,535 1223,543 1226,543 1226,576 1235,576 1235,558 1237,558 1237,576 1246,576 1246,540 1252,540 1252,522 1254,522 1254,540 1260,540 1260,610 1274,610 1274,541 1316,541 1316,477 1334,356 1352,477 1352,495 1403,495 1403,557 1415,486 1428,557 1428,427 1448,427 1440,720 1440,1040" fill="#050304"></polygon>
+<polyline points="0,720 0,467 14,467 14,449 17,449 17,467 31,467 31,440 41,320 50,440 50,575 87,575 87,502 123,502 123,517 143,517 143,566 164,524 185,566 185,569 204,569 204,624 241,624 241,578 266,529 291,578 291,636 333,636 333,609 347,609 347,647 378,647 378,632 388,597 398,632 398,635 413,607 428,635 428,647 449,613 470,647 470,661 477,661 477,643 478,643 478,661 484,661 484,693 497,693 497,685 522,685 522,693 535,693 535,692 549,692 549,712 585,712 585,713 616,713 616,713 658,713 658,711 672,711 672,710 692,710 692,710 706,710 706,711 725,711 725,711 776,711 776,713 790,713 790,712 815,712 815,712 851,712 851,713 865,713 865,720 872,720 872,712 884,712 884,720 890,720 890,677 907,677 907,659 910,659 910,677 927,677 927,670 977,670 977,654 989,654 989,636 991,636 991,654 1002,654 1002,671 1044,671 1044,627 1048,627 1048,619 1055,619 1055,627 1058,627 1058,611 1084,611 1084,619 1093,563 1103,619 1103,653 1128,653 1128,633 1179,633 1179,585 1186,548 1193,585 1193,561 1202,561 1202,543 1204,543 1204,561 1212,561 1212,543 1216,543 1216,535 1223,535 1223,543 1226,543 1226,576 1235,576 1235,558 1237,558 1237,576 1246,576 1246,540 1252,540 1252,522 1254,522 1254,540 1260,540 1260,610 1274,610 1274,541 1316,541 1316,477 1334,356 1352,477 1352,495 1403,495 1403,557 1415,486 1428,557 1428,427 1448,427 1440,720" fill="none" stroke="#ff2b2b" stroke-opacity=".42" stroke-width="1"></polyline>
+<g fill="#ffb38a" opacity=".75"><rect x="17" y="547" width="2" height="2"></rect><rect x="42" y="481" width="2" height="2"></rect><rect x="37" y="520" width="2" height="2"></rect><rect x="40" y="529" width="2" height="2"></rect><rect x="36" y="477" width="2" height="2"></rect><rect x="35" y="487" width="2" height="2"></rect><rect x="37" y="463" width="2" height="2"></rect><rect x="39" y="574" width="2" height="2"></rect><rect x="40" y="657" width="2" height="2"></rect><rect x="35" y="576" width="2" height="2"></rect><rect x="54" y="654" width="2" height="2"></rect><rect x="74" y="644" width="2" height="2"></rect><rect x="117" y="608" width="2" height="2"></rect><rect x="101" y="674" width="2" height="2"></rect><rect x="110" y="557" width="2" height="2"></rect><rect x="126" y="702" width="2" height="2"></rect><rect x="137" y="679" width="2" height="2"></rect><rect x="135" y="568" width="2" height="2"></rect><rect x="174" y="576" width="2" height="2"></rect><rect x="175" y="660" width="2" height="2"></rect><rect x="150" y="620" width="2" height="2"></rect><rect x="163" y="637" width="2" height="2"></rect><rect x="149" y="602" width="2" height="2"></rect><rect x="149" y="632" width="2" height="2"></rect><rect x="197" y="652" width="2" height="2"></rect><rect x="195" y="609" width="2" height="2"></rect><rect x="189" y="623" width="2" height="2"></rect><rect x="188" y="639" width="2" height="2"></rect><rect x="191" y="676" width="2" height="2"></rect><rect x="226" y="710" width="2" height="2"></rect><rect x="230" y="636" width="2" height="2"></rect><rect x="260" y="698" width="2" height="2"></rect><rect x="270" y="610" width="2" height="2"></rect><rect x="327" y="700" width="2" height="2"></rect><rect x="300" y="659" width="2" height="2"></rect><rect x="337" y="654" width="2" height="2"></rect><rect x="337" y="630" width="2" height="2"></rect><rect x="371" y="686" width="2" height="2"></rect><rect x="361" y="685" width="2" height="2"></rect><rect x="387" y="680" width="2" height="2"></rect><rect x="386" y="708" width="2" height="2"></rect><rect x="421" y="700" width="2" height="2"></rect><rect x="411" y="701" width="2" height="2"></rect><rect x="443" y="662" width="2" height="2"></rect><rect x="442" y="687" width="2" height="2"></rect><rect x="986" y="677" width="2" height="2"></rect><rect x="994" y="709" width="2" height="2"></rect><rect x="1052" y="633" width="2" height="2"></rect><rect x="1049" y="706" width="2" height="2"></rect><rect x="1050" y="658" width="2" height="2"></rect><rect x="1049" y="633" width="2" height="2"></rect><rect x="1066" y="713" width="2" height="2"></rect><rect x="1069" y="651" width="2" height="2"></rect><rect x="1078" y="687" width="2" height="2"></rect><rect x="1089" y="697" width="2" height="2"></rect><rect x="1090" y="652" width="2" height="2"></rect><rect x="1118" y="683" width="2" height="2"></rect><rect x="1117" y="676" width="2" height="2"></rect><rect x="1184" y="707" width="2" height="2"></rect><rect x="1206" y="676" width="2" height="2"></rect><rect x="1204" y="641" width="2" height="2"></rect><rect x="1203" y="698" width="2" height="2"></rect><rect x="1217" y="567" width="2" height="2"></rect><rect x="1219" y="685" width="2" height="2"></rect><rect x="1220" y="551" width="2" height="2"></rect><rect x="1219" y="673" width="2" height="2"></rect><rect x="1220" y="605" width="2" height="2"></rect><rect x="1219" y="543" width="2" height="2"></rect><rect x="1218" y="655" width="2" height="2"></rect><rect x="1231" y="640" width="2" height="2"></rect><rect x="1232" y="599" width="2" height="2"></rect><rect x="1252" y="552" width="2" height="2"></rect><rect x="1252" y="561" width="2" height="2"></rect><rect x="1254" y="604" width="2" height="2"></rect><rect x="1267" y="629" width="2" height="2"></rect><rect x="1265" y="638" width="2" height="2"></rect><rect x="1267" y="648" width="2" height="2"></rect><rect x="1268" y="709" width="2" height="2"></rect><rect x="1267" y="626" width="2" height="2"></rect><rect x="1307" y="645" width="2" height="2"></rect><rect x="1291" y="579" width="2" height="2"></rect><rect x="1308" y="696" width="2" height="2"></rect><rect x="1344" y="677" width="2" height="2"></rect><rect x="1325" y="662" width="2" height="2"></rect><rect x="1328" y="705" width="2" height="2"></rect><rect x="1347" y="516" width="2" height="2"></rect><rect x="1344" y="595" width="2" height="2"></rect><rect x="1386" y="539" width="2" height="2"></rect><rect x="1361" y="685" width="2" height="2"></rect><rect x="1375" y="667" width="2" height="2"></rect><rect x="1373" y="658" width="2" height="2"></rect><rect x="1418" y="699" width="2" height="2"></rect><rect x="1422" y="670" width="2" height="2"></rect><rect x="1406" y="699" width="2" height="2"></rect><rect x="1406" y="578" width="2" height="2"></rect><rect x="1410" y="690" width="2" height="2"></rect><rect x="1442" y="512" width="2" height="2"></rect><rect x="1435" y="464" width="2" height="2"></rect><rect x="1440" y="541" width="2" height="2"></rect><rect x="1440" y="640" width="2" height="2"></rect><rect x="1442" y="702" width="2" height="2"></rect><rect x="1440" y="697" width="2" height="2"></rect></g>
+<rect y="718" width="1440" height="322" fill="#050304"></rect>
+</g>
+<g style="opacity: var(--scene-light);">
+<polygon points="0,1040 0,690 0,594 6,594 6,586 20,586 20,594 26,594 26,536 56,536 56,612 82,612 82,570 96,570 96,592 106,592 106,583 128,583 128,582 130,582 130,574 136,574 136,582 138,582 138,565 152,565 152,578 159,526 166,578 166,620 177,581 188,620 188,585 202,585 202,583 208,583 208,565 210,565 210,583 216,583 216,604 230,604 230,625 244,625 244,588 258,588 258,645 262,645 262,637 272,637 272,645 276,645 276,635 280,635 280,627 286,627 286,635 290,635 290,617 308,581 326,617 326,650 330,650 330,642 340,642 340,650 344,650 344,638 348,638 348,630 358,630 358,638 362,638 362,633 372,633 372,615 374,615 374,633 384,633 384,621 393,585 402,621 402,642 438,642 438,647 460,647 460,648 470,648 470,640 482,640 482,622 484,622 484,640 496,640 496,658 532,658 532,668 538,668 538,660 548,660 548,668 554,668 554,664 580,664 580,676 606,676 606,683 608,683 608,675 614,675 614,683 616,683 616,683 622,683 622,675 636,675 636,683 642,683 642,687 650,687 650,679 664,679 664,687 672,687 672,677 686,677 686,688 690,688 690,680 700,680 700,688 704,688 704,687 710,687 710,679 724,679 724,687 730,687 730,680 756,680 756,683 760,683 760,675 766,675 766,683 770,683 770,680 792,680 792,677 818,677 818,687 820,687 820,679 826,679 826,687 828,687 828,678 850,678 850,665 886,665 886,663 892,663 892,655 902,655 902,663 908,663 908,666 912,666 912,658 922,658 922,666 926,666 926,660 940,660 940,641 966,641 966,638 976,638 976,620 978,620 978,638 988,638 988,649 1010,649 1010,638 1026,638 1026,620 1030,620 1030,638 1046,638 1046,624 1082,624 1082,652 1090,652 1090,644 1104,644 1104,652 1112,652 1112,614 1124,614 1124,596 1126,596 1126,614 1138,614 1138,629 1160,629 1160,623 1190,623 1190,625 1220,625 1220,601 1230,601 1230,583 1232,583 1232,601 1242,601 1242,612 1256,612 1256,594 1258,594 1258,612 1272,612 1272,584 1298,584 1298,612 1302,612 1302,604 1312,604 1312,612 1316,612 1316,590 1352,590 1352,552 1366,552 1366,541 1384,541 1384,534 1396,534 1396,516 1398,516 1398,534 1410,534 1410,531 1428,531 1428,599 1458,599 1440,690 1440,1040" fill="#c7d6e8" opacity=".85"></polygon>
+<polygon points="0,1040 0,720 0,467 14,467 14,449 17,449 17,467 31,467 31,440 41,320 50,440 50,575 87,575 87,502 123,502 123,517 143,517 143,566 164,524 185,566 185,569 204,569 204,624 241,624 241,578 266,529 291,578 291,636 333,636 333,609 347,609 347,647 378,647 378,632 388,597 398,632 398,635 413,607 428,635 428,647 449,613 470,647 470,661 477,661 477,643 478,643 478,661 484,661 484,693 497,693 497,685 522,685 522,693 535,693 535,692 549,692 549,712 585,712 585,713 616,713 616,713 658,713 658,711 672,711 672,710 692,710 692,710 706,710 706,711 725,711 725,711 776,711 776,713 790,713 790,712 815,712 815,712 851,712 851,713 865,713 865,720 872,720 872,712 884,712 884,720 890,720 890,677 907,677 907,659 910,659 910,677 927,677 927,670 977,670 977,654 989,654 989,636 991,636 991,654 1002,654 1002,671 1044,671 1044,627 1048,627 1048,619 1055,619 1055,627 1058,627 1058,611 1084,611 1084,619 1093,563 1103,619 1103,653 1128,653 1128,633 1179,633 1179,585 1186,548 1193,585 1193,561 1202,561 1202,543 1204,543 1204,561 1212,561 1212,543 1216,543 1216,535 1223,535 1223,543 1226,543 1226,576 1235,576 1235,558 1237,558 1237,576 1246,576 1246,540 1252,540 1252,522 1254,522 1254,540 1260,540 1260,610 1274,610 1274,541 1316,541 1316,477 1334,356 1352,477 1352,495 1403,495 1403,557 1415,486 1428,557 1428,427 1448,427 1440,720 1440,1040" fill="url(#spireL)"></polygon>
+<polyline points="0,720 0,467 14,467 14,449 17,449 17,467 31,467 31,440 41,320 50,440 50,575 87,575 87,502 123,502 123,517 143,517 143,566 164,524 185,566 185,569 204,569 204,624 241,624 241,578 266,529 291,578 291,636 333,636 333,609 347,609 347,647 378,647 378,632 388,597 398,632 398,635 413,607 428,635 428,647 449,613 470,647 470,661 477,661 477,643 478,643 478,661 484,661 484,693 497,693 497,685 522,685 522,693 535,693 535,692 549,692 549,712 585,712 585,713 616,713 616,713 658,713 658,711 672,711 672,710 692,710 692,710 706,710 706,711 725,711 725,711 776,711 776,713 790,713 790,712 815,712 815,712 851,712 851,713 865,713 865,720 872,720 872,712 884,712 884,720 890,720 890,677 907,677 907,659 910,659 910,677 927,677 927,670 977,670 977,654 989,654 989,636 991,636 991,654 1002,654 1002,671 1044,671 1044,627 1048,627 1048,619 1055,619 1055,627 1058,627 1058,611 1084,611 1084,619 1093,563 1103,619 1103,653 1128,653 1128,633 1179,633 1179,585 1186,548 1193,585 1193,561 1202,561 1202,543 1204,543 1204,561 1212,561 1212,543 1216,543 1216,535 1223,535 1223,543 1226,543 1226,576 1235,576 1235,558 1237,558 1237,576 1246,576 1246,540 1252,540 1252,522 1254,522 1254,540 1260,540 1260,610 1274,610 1274,541 1316,541 1316,477 1334,356 1352,477 1352,495 1403,495 1403,557 1415,486 1428,557 1428,427 1448,427 1440,720" fill="none" stroke="#ffffff" stroke-width="1.5"></polyline>
+<g filter="url(#cloud)" fill="#ffffff"><ellipse cx="300" cy="690" rx="380" ry="46" opacity=".95"></ellipse><ellipse cx="1140" cy="690" rx="380" ry="46" opacity=".95"></ellipse><ellipse cx="720" cy="720" rx="520" ry="40" opacity=".9"></ellipse></g>
+<rect y="720" width="1440" height="320" fill="#eef4fb" opacity=".9"></rect>
+</g>
+</svg>
+
+<svg width="0" height="0" aria-hidden="true" style="position: absolute;"><filter id="sphere" x="0" y="0" width="340" height="340" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB"><feImage href="../assets/planet-sphere-map.png" x="0" y="0" width="340" height="340" preserveAspectRatio="none" result="map"></feImage><feDisplacementMap in="SourceGraphic" in2="map" scale="200" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap></filter></svg>
+<div class="planet" aria-hidden="true">
+<div class="pl-globe" style="filter: url(#sphere);"><div class="pl-spin"><div class="pl-turn"><div class="pl-land"></div></div></div><div class="pl-spin cl"><div class="pl-turn"><div class="pl-clouds"></div></div></div></div>
+<div class="pl-night"></div>
+<div class="pl-lightsmask"><div class="pl-globe" style="filter: url(#sphere);"><div class="pl-spin"><div class="pl-turn"><div class="pl-lights"></div></div></div></div></div>
+<div class="pl-rim"></div>
+<div class="pl-shade"></div>
+<div class="pl-atmo"></div>
+</div>
+
+<div class="shell">
+
+<nav class="side glass" aria-label="Main">
+<div class="lbl-head" style="display: flex; align-items: center; gap: 8px; padding: 6px 12px 14px;">
+<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" style="filter: drop-shadow(0 0 4px var(--energy));"><path d="M6 4 L20 12 L6 20 Z" fill="none" stroke="var(--energy-core)" stroke-width="2" stroke-linejoin="round"></path><path d="M6 4 L20 12 L6 20 Z" fill="none" stroke="var(--energy)" stroke-width="1" stroke-linejoin="round"></path></svg>
+<span style="font-weight: 700; letter-spacing: .06em;">DEV_OS</span>
+</div>
+<a class="navi on" href="#" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>Overview</a>
+<a class="navi" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 9h8M8 13h8M8 17h5"></path></svg>Projects</a>
+<a class="navi" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 3v12M18 9v12"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle><path d="M6 15a9 9 0 0 0 9-9"></path></svg>Repositories</a>
+<a class="navi" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5"></rect><rect x="3" y="14" width="18" height="6" rx="1.5"></rect><path d="M7 7h.01M7 17h.01"></path></svg>Instances</a>
+<a class="navi" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg>Events</a>
+<a class="navi" href="#"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7 7 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"></path></svg>Settings</a>
+</nav>
+
+<main style="display: flex; flex-direction: column; gap: 16px; min-width: 0;">
+
+<header class="glass" style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 10px 16px; border-radius: 16px;">
+<span style="font-size: 15px; font-weight: 600;">Control Tower</span>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted);"><span class="live"></span>Live system view</span>
+<div style="flex: 1 1 auto;"></div>
+<span class="mono" style="font-size: 12px; color: var(--muted);">Oct 17, 2026 · 15:40</span>
+<div class="seg" role="group" aria-label="Appearance">
+<button aria-pressed="{{thAuto}}" onClick="{{setAuto}}">Auto</button>
+<button aria-pressed="{{thLight}}" onClick="{{setLight}}">Light</button>
+<button aria-pressed="{{thDark}}" onClick="{{setDark}}">Dark</button>
+</div>
+<span style="width: 30px; height: 30px; border-radius: 9999px; background: var(--glass-strong); box-shadow: var(--edge); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600;" aria-label="Signed in as Jovo-Jovi">JJ</span>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 24px;">
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 320px;">
+<span class="eyebrow">Discover · Monitor · Trace · Verify</span>
+<h1 style="margin: 0; font-size: 36px; line-height: 1.1; font-weight: 700; letter-spacing: .02em;">Overview</h1>
+<span style="color: var(--muted); font-size: 14px;">Your DEV_OS instances, their repositories and projects, with the origin and age of every fact.</span>
+</div>
+<div class="glass" style="display: flex; border-radius: 16px; overflow: hidden;">
+<div style="padding: 10px 18px; display: flex; flex-direction: column;"><span class="mono" style="font-size: 22px;">{{instCount}}</span><span style="font-size: 12px; color: var(--muted);">Instances</span></div>
+<div style="width: 1px; background: var(--line);"></div>
+<div style="padding: 10px 18px; display: flex; flex-direction: column;"><span class="mono" style="font-size: 22px;">{{repoCount}}</span><span style="font-size: 12px; color: var(--muted);">Repositories</span></div>
+<div style="width: 1px; background: var(--line);"></div>
+<div style="padding: 10px 18px; display: flex; flex-direction: column;"><span class="mono" style="font-size: 22px;">{{connCount}}</span><span style="font-size: 12px; color: var(--muted);">Connected</span></div>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
+<div class="seg" role="group" aria-label="View">
+<button aria-pressed="{{viewMap}}" onClick="{{showMap}}">Tower map</button>
+<button aria-pressed="{{viewList}}" onClick="{{showList}}">List</button>
+</div>
+<div class="seg" role="group" aria-label="Filter by state" style="flex-wrap: wrap;">
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="6">
+<button aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}} <span class="mono">{{f.count}}</span></button>
+</sc-for>
+</div>
+<div style="flex: 1 1 auto;"></div>
+<button class="btn" aria-pressed="{{rmOn}}" onClick="{{toggleRm}}">Reduce motion</button>
+</div>
+
+<section class="mobile-only glass" aria-label="Tower status" style="flex-direction: column; gap: 12px; padding: 16px; border-radius: 20px;">
+<div style="display: flex; align-items: center; gap: 14px;">
+<div aria-hidden="true" style="position: relative; width: 46px; height: 70px; border-radius: 10px 10px 4px 4px; background: linear-gradient(90deg, var(--tower2), var(--tower1) 50%, var(--tower2)); box-shadow: var(--edge);"><span class="seam" style="position: absolute; left: 21px; top: 6px; width: 4px; height: 58px; border-radius: 2px;"></span></div>
+<div style="display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0;"><span style="font-weight: 700; letter-spacing: .05em;">DEV_OS · Control Tower</span><span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--st-pass);"><span class="dot" style="background: var(--st-pass);"></span>{{towerState}}</span></div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 11px;">
+<div style="border-radius: 12px; padding: 8px 10px; background: var(--glass-strong); box-shadow: var(--edge); display: flex; flex-direction: column;"><span class="mono" style="font-size: 16px;">{{instCount}}</span><span style="color: var(--muted);">Instances</span></div>
+<div style="border-radius: 12px; padding: 8px 10px; background: var(--glass-strong); box-shadow: var(--edge); display: flex; flex-direction: column;"><span class="mono" style="font-size: 16px;">{{repoCount}}</span><span style="color: var(--muted);">Repositories</span></div>
+<div style="border-radius: 12px; padding: 8px 10px; background: var(--glass-strong); box-shadow: var(--edge); display: flex; flex-direction: column;"><span class="mono" style="font-size: 16px;">{{lastEvent}}</span><span style="color: var(--muted);">Last event</span></div>
+</div>
+</section>
+
+<sc-if value="{{viewIsMap}}" hint-placeholder-val="{{true}}">
+<div class="stage-wrap map-only">
+<div class="stage" aria-label="Tower map: every project and its connection to the Tower">
+
+<div class="beam seam" aria-hidden="true" style="position: absolute; left: 598px; top: 0; width: 4px; height: 52px; border-radius: 2px; animation: beam 3s ease-in-out infinite;"></div>
+
+<svg width="1200" height="660" viewBox="0 0 1200 660" aria-hidden="true" style="position: absolute; inset: 0; overflow: visible;">
+<defs><filter id="blade" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter></defs>
+<g style="{{c0.gs}}"><g style="{{c0.glowG}}"><path d="{{c0.d}}" fill="none" stroke-width="12" stroke-linecap="round" filter="url(#blade)" class="{{c0.glowCls}}" style="{{c0.glow}}"></path></g><path d="{{c0.d}}" fill="none" stroke-linecap="round" stroke-dasharray="{{c0.dash}}" class="ign" style="{{c0.mid}}"></path><path d="{{c0.d}}" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="460" class="ign" style="{{c0.core}}"></path><path d="{{c0.d}}" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="460" style="{{c0.grow}}"></path><circle r="2.3" class="particle" style="{{c0.p1}}"></circle><circle r="2.3" class="particle" style="{{c0.p2}}"></circle><circle r="2.3" class="particle" style="{{c0.p3}}"></circle><circle r="4.4" class="particle" style="{{c0.sig}}"></circle><circle cx="{{c0.px}}" cy="{{c0.py}}" r="3.6" style="{{c0.port}}"></circle></g>
+<g style="{{c1.gs}}"><g style="{{c1.glowG}}"><path d="{{c1.d}}" fill="none" stroke-width="12" stroke-linecap="round" filter="url(#blade)" class="{{c1.glowCls}}" style="{{c1.glow}}"></path></g><path d="{{c1.d}}" fill="none" stroke-linecap="round" stroke-dasharray="{{c1.dash}}" class="ign" style="{{c1.mid}}"></path><path d="{{c1.d}}" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="460" class="ign" style="{{c1.core}}"></path><path d="{{c1.d}}" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="460" style="{{c1.grow}}"></path><circle r="2.3" class="particle" style="{{c1.p1}}"></circle><circle r="2.3" class="particle" style="{{c1.p2}}"></circle><circle r="2.3" class="particle" style="{{c1.p3}}"></circle><circle r="4.4" class="particle" style="{{c1.sig}}"></circle><circle cx="{{c1.px}}" cy="{{c1.py}}" r="3.6" style="{{c1.port}}"></circle></g>
+<g style="{{c2.gs}}"><g style="{{c2.glowG}}"><path d="{{c2.d}}" fill="none" stroke-width="12" stroke-linecap="round" filter="url(#blade)" class="{{c2.glowCls}}" style="{{c2.glow}}"></path></g><path d="{{c2.d}}" fill="none" stroke-linecap="round" stroke-dasharray="{{c2.dash}}" class="ign" style="{{c2.mid}}"></path><path d="{{c2.d}}" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="460" class="ign" style="{{c2.core}}"></path><path d="{{c2.d}}" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="460" style="{{c2.grow}}"></path><circle r="2.3" class="particle" style="{{c2.p1}}"></circle><circle r="2.3" class="particle" style="{{c2.p2}}"></circle><circle r="2.3" class="particle" style="{{c2.p3}}"></circle><circle r="4.4" class="particle" style="{{c2.sig}}"></circle><circle cx="{{c2.px}}" cy="{{c2.py}}" r="3.6" style="{{c2.port}}"></circle></g>
+<g style="{{c3.gs}}"><g style="{{c3.glowG}}"><path d="{{c3.d}}" fill="none" stroke-width="12" stroke-linecap="round" filter="url(#blade)" class="{{c3.glowCls}}" style="{{c3.glow}}"></path></g><path d="{{c3.d}}" fill="none" stroke-linecap="round" stroke-dasharray="{{c3.dash}}" class="ign" style="{{c3.mid}}"></path><path d="{{c3.d}}" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="460" class="ign" style="{{c3.core}}"></path><path d="{{c3.d}}" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="460" style="{{c3.grow}}"></path><circle r="2.3" class="particle" style="{{c3.p1}}"></circle><circle r="2.3" class="particle" style="{{c3.p2}}"></circle><circle r="2.3" class="particle" style="{{c3.p3}}"></circle><circle r="4.4" class="particle" style="{{c3.sig}}"></circle><circle cx="{{c3.px}}" cy="{{c3.py}}" r="3.6" style="{{c3.port}}"></circle></g>
+<g style="{{c4.gs}}"><g style="{{c4.glowG}}"><path d="{{c4.d}}" fill="none" stroke-width="12" stroke-linecap="round" filter="url(#blade)" class="{{c4.glowCls}}" style="{{c4.glow}}"></path></g><path d="{{c4.d}}" fill="none" stroke-linecap="round" stroke-dasharray="{{c4.dash}}" class="ign" style="{{c4.mid}}"></path><path d="{{c4.d}}" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="460" class="ign" style="{{c4.core}}"></path><path d="{{c4.d}}" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="460" style="{{c4.grow}}"></path><circle r="2.3" class="particle" style="{{c4.p1}}"></circle><circle r="2.3" class="particle" style="{{c4.p2}}"></circle><circle r="2.3" class="particle" style="{{c4.p3}}"></circle><circle r="4.4" class="particle" style="{{c4.sig}}"></circle><circle cx="{{c4.px}}" cy="{{c4.py}}" r="3.6" style="{{c4.port}}"></circle></g>
+<g style="{{c5.gs}}"><g style="{{c5.glowG}}"><path d="{{c5.d}}" fill="none" stroke-width="12" stroke-linecap="round" filter="url(#blade)" class="{{c5.glowCls}}" style="{{c5.glow}}"></path></g><path d="{{c5.d}}" fill="none" stroke-linecap="round" stroke-dasharray="{{c5.dash}}" class="ign" style="{{c5.mid}}"></path><path d="{{c5.d}}" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="460" class="ign" style="{{c5.core}}"></path><path d="{{c5.d}}" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="460" style="{{c5.grow}}"></path><circle r="2.3" class="particle" style="{{c5.p1}}"></circle><circle r="2.3" class="particle" style="{{c5.p2}}"></circle><circle r="2.3" class="particle" style="{{c5.p3}}"></circle><circle r="4.4" class="particle" style="{{c5.sig}}"></circle><circle cx="{{c5.px}}" cy="{{c5.py}}" r="3.6" style="{{c5.port}}"></circle></g>
+<g style="{{c6.gs}}"><g style="{{c6.glowG}}"><path d="{{c6.d}}" fill="none" stroke-width="12" stroke-linecap="round" filter="url(#blade)" class="{{c6.glowCls}}" style="{{c6.glow}}"></path></g><path d="{{c6.d}}" fill="none" stroke-linecap="round" stroke-dasharray="{{c6.dash}}" class="ign" style="{{c6.mid}}"></path><path d="{{c6.d}}" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="460" class="ign" style="{{c6.core}}"></path><path d="{{c6.d}}" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="460" style="{{c6.grow}}"></path><circle r="2.3" class="particle" style="{{c6.p1}}"></circle><circle r="2.3" class="particle" style="{{c6.p2}}"></circle><circle r="2.3" class="particle" style="{{c6.p3}}"></circle><circle r="4.4" class="particle" style="{{c6.sig}}"></circle><circle cx="{{c6.px}}" cy="{{c6.py}}" r="3.6" style="{{c6.port}}"></circle></g>
+<g style="{{c7.gs}}"><g style="{{c7.glowG}}"><path d="{{c7.d}}" fill="none" stroke-width="12" stroke-linecap="round" filter="url(#blade)" class="{{c7.glowCls}}" style="{{c7.glow}}"></path></g><path d="{{c7.d}}" fill="none" stroke-linecap="round" stroke-dasharray="{{c7.dash}}" class="ign" style="{{c7.mid}}"></path><path d="{{c7.d}}" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="460" class="ign" style="{{c7.core}}"></path><path d="{{c7.d}}" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="460" style="{{c7.grow}}"></path><circle r="2.3" class="particle" style="{{c7.p1}}"></circle><circle r="2.3" class="particle" style="{{c7.p2}}"></circle><circle r="2.3" class="particle" style="{{c7.p3}}"></circle><circle r="4.4" class="particle" style="{{c7.sig}}"></circle><circle cx="{{c7.px}}" cy="{{c7.py}}" r="3.6" style="{{c7.port}}"></circle></g>
+</svg>
+
+<div aria-hidden="true" style="position: absolute; left: 380px; top: 470px; width: 440px; height: 150px; border-radius: 50%; background: radial-gradient(50% 50% at 50% 50%, var(--energy-soft), transparent 70%);"></div>
+<div aria-hidden="true" style="position: absolute; left: 430px; top: 512px; width: 340px; height: 60px; border-radius: 50%; background: linear-gradient(180deg, var(--tower1), var(--tower2)); box-shadow: var(--edge), var(--lift);"></div>
+<div class="ring" aria-hidden="true" style="left: 450px; top: 520px; width: 300px; height: 40px; opacity: .55;"></div>
+<div class="ring" aria-hidden="true" style="left: 490px; top: 526px; width: 220px; height: 28px; opacity: .85;"></div>
+<div class="ring" aria-hidden="true" style="left: 400px; top: 540px; width: 400px; height: 62px; opacity: .3;"></div>
+
+<div aria-hidden="true" style="position: absolute; left: 496px; top: 120px; width: 18px; height: 404px; border-radius: 9px 0 0 9px; background: linear-gradient(90deg, var(--tower2), var(--tower1)); box-shadow: var(--edge);"><span class="seam" style="position: absolute; left: 0; top: 18px; width: 1.5px; height: 368px; opacity: .7;"></span></div>
+<div aria-hidden="true" style="position: absolute; left: 686px; top: 120px; width: 18px; height: 404px; border-radius: 0 9px 9px 0; background: linear-gradient(90deg, var(--tower1), var(--tower2)); box-shadow: var(--edge);"><span class="seam" style="position: absolute; right: 0; top: 18px; width: 1.5px; height: 368px; opacity: .7;"></span></div>
+
+<div aria-hidden="true" style="position: absolute; left: 540px; top: 46px; width: 120px; height: 42px; background: linear-gradient(90deg, var(--tower2), var(--tower1) 50%, var(--tower2)); clip-path: polygon(0 100%, 8% 40%, 16% 100%, 26% 18%, 36% 100%, 50% 0, 64% 100%, 74% 18%, 84% 100%, 92% 40%, 100% 100%);"></div>
+<div aria-hidden="true" style="position: absolute; left: 514px; top: 84px; width: 172px; height: 444px; border-radius: 12px 12px 4px 4px; background: linear-gradient(90deg, var(--tower2), var(--tower1) 50%, var(--tower2)); box-shadow: var(--edge), var(--lift), 0 0 60px var(--energy-soft);"></div>
+<div class="seam hum" aria-hidden="true" style="position: absolute; left: 598px; top: 52px; width: 4px; height: 476px; border-radius: 2px;"></div>
+
+<div class="glass" style="position: absolute; left: 548px; top: 100px; width: 104px; box-sizing: border-box; padding: 12px 6px 10px; border-radius: 14px 14px 40px 40px; background: var(--glass-strong); display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center;">
+<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" style="filter: drop-shadow(0 0 3px var(--energy)) drop-shadow(0 0 8px var(--energy));"><path d="M6 4 L20 12 L6 20 Z" fill="none" stroke="var(--energy-core)" stroke-width="2.2" stroke-linejoin="round"></path></svg>
+<span style="font-weight: 700; font-size: 15px; letter-spacing: .06em;">DEV_OS</span>
+<span style="font-size: 10px; color: var(--muted);">Control Tower</span>
+</div>
+
+<div class="glass" style="position: absolute; left: 530px; top: 220px; width: 140px; box-sizing: border-box; padding: 8px 10px; border-radius: 12px; background: var(--glass-strong); display: flex; flex-direction: column; gap: 3px; font-size: 11px;">
+<span style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--st-pass);"><span class="dot" style="background: var(--st-pass); box-shadow: 0 0 6px var(--st-pass);"></span>{{towerState}}</span>
+<span style="display: flex; justify-content: space-between;"><span style="color: var(--muted);">Instances</span><span class="mono">{{instCount}}</span></span>
+<span style="display: flex; justify-content: space-between;"><span style="color: var(--muted);">Repositories</span><span class="mono">{{repoCount}}</span></span>
+<span style="display: flex; justify-content: space-between;"><span style="color: var(--muted);">Last event</span><span class="mono">{{lastEvent}}</span></span>
+</div>
+
+<div class="module" style="left: 524px; top: 340px; width: 66px;"><span class="led" style="animation-delay: 0s;"></span><span class="slotline"></span><span class="led" style="animation-delay: 1.1s;"></span><span class="mflash" style="{{m0}}"></span></div>
+<div class="module" style="left: 610px; top: 340px; width: 66px;"><span class="led" style="animation-delay: .7s;"></span><span class="slotline"></span><span class="led" style="animation-delay: 2.2s;"></span><span class="mflash" style="{{m1}}"></span></div>
+<div class="module" style="left: 524px; top: 384px; width: 66px;"><span class="led" style="animation-delay: 1.6s;"></span><span class="slotline"></span><span class="led" style="animation-delay: .4s;"></span><span class="mflash" style="{{m2}}"></span></div>
+<div class="module" style="left: 610px; top: 384px; width: 66px;"><span class="led" style="animation-delay: 2.4s;"></span><span class="slotline"></span><span class="led" style="animation-delay: 1.8s;"></span><span class="mflash" style="{{m3}}"></span></div>
+<div class="module" style="left: 524px; top: 428px; width: 66px;"><span class="led" style="animation-delay: .3s;"></span><span class="slotline"></span><span class="led" style="animation-delay: 2.9s;"></span><span class="mflash" style="{{m4}}"></span></div>
+<div class="module" style="left: 610px; top: 428px; width: 66px;"><span class="led" style="animation-delay: 1.3s;"></span><span class="slotline"></span><span class="led" style="animation-delay: .9s;"></span><span class="mflash" style="{{m5}}"></span></div>
+<div class="module" style="left: 524px; top: 472px; width: 66px;"><span class="led" style="animation-delay: 2.1s;"></span><span class="slotline"></span><span class="led" style="animation-delay: 1.5s;"></span><span class="mflash" style="{{m6}}"></span></div>
+<div class="module" style="left: 610px; top: 472px; width: 66px;"><span class="led" style="animation-delay: .9s;"></span><span class="slotline"></span><span class="led" style="animation-delay: 2.6s;"></span><span class="mflash" style="{{m7}}"></span></div>
+
+<div style="position: absolute; left: 380px; top: 614px; width: 440px; text-align: center;">
+<span class="mono" style="font-size: 11px; color: var(--muted);">{{healthLine}}</span>
+</div>
+
+<sc-for list="{{nodes}}" as="n" hint-placeholder-count="8">
+<button class="{{n.cls}}" style="{{n.pos}}" onClick="{{n.pick}}" aria-label="{{n.aria}}" aria-pressed="{{n.isSel}}">
+<span class="flash" style="{{n.flash}}"></span>
+<span class="row"><span class="tile" style="{{n.tileStyle}}">{{n.initials}}</span><span style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto;"><span class="nm">{{n.name}}</span><span class="sub mono">{{n.repo}}</span></span><span class="chip" style="{{n.chipStyle}}">{{n.word}}</span></span>
+<span class="sub">{{n.instance}} · {{n.life}}</span>
+<span class="bar"><span>Tasks</span><span class="{{n.tTrack}}"><span class="fill" style="{{n.tFill}}"></span></span><span class="val mono">{{n.tTxt}}</span></span>
+<span class="bar"><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{n.phase}}</span><span class="{{n.pTrack}}"><span class="fill" style="{{n.pFill}}"></span></span><span class="val mono">{{n.pTxt}}</span></span>
+<span class="cur"><span class="t">{{n.current}}</span><span class="{{n.orgCls}}">{{n.origin}}</span><span class="age mono">{{n.age}}</span></span>
+</button>
+</sc-for>
+
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{false}}">
+<aside class="glass" aria-label="Project details" style="position: absolute; top: 12px; inset-inline-end: 12px; width: 340px; max-height: 636px; overflow: auto; box-sizing: border-box; padding: 18px; border-radius: 20px; background: var(--glass-strong); display: flex; flex-direction: column; gap: 12px; animation: rise 240ms cubic-bezier(.16,1,.3,1) both;">
+<div class="row"><span class="tile" style="{{sel.tileStyle}}">{{sel.initials}}</span><span style="font-size: 20px; font-weight: 700; flex: 1 1 auto; line-height: 1.15;">{{sel.name}}</span><button class="btn" onClick="{{clearSel}}" aria-label="Close details">Close</button></div>
+<div><span class="chip" style="{{sel.chipStyle}}">{{sel.word}}</span></div>
+<div style="display: grid; grid-template-columns: 96px 1fr; gap: 6px 10px; font-size: 13px;">
+<span style="color: var(--muted);">Repository</span><a class="mono" href="{{sel.repoUrl}}" style="font-size: 12px; word-break: break-all;">{{sel.repo}}</a>
+<span style="color: var(--muted);">Instance</span><span>{{sel.instance}}</span>
+<span style="color: var(--muted);">Lifecycle</span><span>{{sel.life}}</span>
+<span style="color: var(--muted);">Tasks</span><span class="mono">{{sel.tTxt}}</span>
+<span style="color: var(--muted);">Phase</span><span>{{sel.phase}} <span class="mono" style="color: var(--muted);">{{sel.pTxt}}</span></span>
+<span style="color: var(--muted);">Now</span><span>{{sel.current}}</span>
+<span style="color: var(--muted);">Last fact</span><span><span class="{{sel.orgCls}}">{{sel.origin}}</span> <span class="mono" style="font-size: 12px; color: var(--muted);">{{sel.age}}</span></span>
+</div>
+<div class="eyebrow">Recent events · ordered by seq</div>
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<sc-for list="{{selEvents}}" as="e" hint-placeholder-count="2">
+<div style="display: flex; gap: 8px; align-items: center; font-size: 12px;"><span class="mono" style="color: var(--muted); width: 34px;">#{{e.seq}}</span><span style="flex: 1 1 auto;">{{e.text}}</span><span class="{{e.orgCls}}">{{e.origin}}</span></div>
+</sc-for>
+<sc-if value="{{selNoEvents}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted);">No event recorded yet for this project.</span></sc-if>
+</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap;"><a class="btn" href="#">Open project page</a><a class="btn" href="{{sel.repoUrl}}">Repository</a></div>
+</aside>
+</sc-if>
+
+</div>
+</div>
+</sc-if>
+
+<div class="{{listCls}}" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+<sc-for list="{{listNodes}}" as="n" hint-placeholder-count="4">
+<button class="node glass" style="position: relative; width: auto; animation: none;" onClick="{{n.pick}}" aria-label="{{n.aria}}">
+<span class="row"><span class="tile" style="{{n.tileStyle}}">{{n.initials}}</span><span style="display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto;"><span class="nm">{{n.name}}</span><span class="sub mono">{{n.repo}}</span></span><span class="chip" style="{{n.chipStyle}}">{{n.word}}</span></span>
+<span class="sub">{{n.instance}} · {{n.life}}</span>
+<span class="bar"><span>Tasks</span><span class="{{n.tTrack}}"><span class="fill" style="{{n.tFill}}"></span></span><span class="val mono">{{n.tTxt}}</span></span>
+<span class="bar"><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{n.phase}}</span><span class="{{n.pTrack}}"><span class="fill" style="{{n.pFill}}"></span></span><span class="val mono">{{n.pTxt}}</span></span>
+<span class="cur"><span class="t">{{n.current}}</span><span class="{{n.orgCls}}">{{n.origin}}</span><span class="age mono">{{n.age}}</span></span>
+</button>
+</sc-for>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+
+<section class="panel glass" aria-label="System overview" style="display: flex; flex-direction: column; gap: 14px;">
+<div style="display: flex; flex-direction: column;"><span class="h2">System overview</span><span style="font-size: 12px; color: var(--muted);">Across every connected instance</span></div>
+<div style="display: flex; gap: 18px; align-items: center; flex-wrap: wrap;">
+<div style="position: relative; width: 116px; height: 116px; flex: 0 0 auto;">
+<svg width="116" height="116" viewBox="0 0 116 116" role="img" aria-label="{{ringAria}}"><circle cx="58" cy="58" r="48" fill="none" stroke-width="7" style="stroke: var(--track);"></circle><circle cx="58" cy="58" r="48" fill="none" stroke-width="7" stroke-linecap="round" stroke-dasharray="{{ringDash}}" transform="rotate(-90 58 58)" style="stroke: var(--energy); filter: drop-shadow(0 0 4px var(--energy)); transition: stroke-dasharray 420ms cubic-bezier(.65,0,.35,1);"></circle><circle cx="58" cy="58" r="48" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="{{ringDash}}" transform="rotate(-90 58 58)" style="stroke: var(--energy-core);"></circle></svg>
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;"><span class="mono" style="font-size: 22px;">{{ringPct}}</span><span style="font-size: 10px; color: var(--muted);">tasks passed</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 160px; min-width: 0;">
+<span class="mono" style="font-size: 13px;">{{tasksLine}}</span>
+<span style="font-size: 12px; color: var(--muted);">{{coverageLine}}</span>
+<div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 13px; margin-top: 4px;">
+<sc-for list="{{stateCounts}}" as="s" hint-placeholder-count="6">
+<span style="display: flex; align-items: center; gap: 8px;"><span class="dot" style="{{s.dot}}"></span>{{s.label}}</span><span class="mono" style="text-align: end;">{{s.count}}</span>
+</sc-for>
+</div>
+</div>
+</div>
+</section>
+
+<section class="panel glass" aria-label="Recent activity" style="display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; align-items: baseline; justify-content: space-between;"><span class="h2">Recent activity</span><a href="#" style="font-size: 12px;">View all events</a></div>
+<sc-for list="{{events}}" as="e" hint-placeholder-count="5">
+<div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px; animation: rise 280ms cubic-bezier(.16,1,.3,1) both;">
+<span class="dot" style="{{e.dot}}"></span>
+<span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;"><span style="font-weight: 500;">{{e.proj}}</span><span style="color: var(--muted); font-size: 12px;">{{e.text}}</span></span>
+<span class="{{e.orgCls}}">{{e.origin}}</span>
+<span class="mono" style="font-size: 11px; color: var(--muted); white-space: nowrap;">{{e.age}}</span>
+</div>
+</sc-for>
+</section>
+
+<section class="panel glass" aria-label="Ingestion health" style="display: flex; flex-direction: column; gap: 10px;">
+<div style="display: flex; flex-direction: column;"><span class="h2">Ingestion health</span><span style="font-size: 12px; color: var(--muted);">The Tower itself, not your projects</span></div>
+<div style="display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; font-size: 13px;">
+<span style="color: var(--muted);">Last event received</span><span class="mono">{{lastEvent}}</span>
+<span style="color: var(--muted);">Events · last hour</span><span class="mono">{{eventsHour}}</span>
+<span style="color: var(--muted);">Webhook deliveries · 24 h</span><span class="mono">112 ok · 0 refused</span>
+<span style="color: var(--muted);">Events refused (auth)</span><span class="mono">0</span>
+<span style="color: var(--muted);">Local journals waiting</span><span class="mono">2 · BETK, Kynora</span>
+</div>
+<span style="font-size: 11px; color: var(--muted);">Host CPU and memory are not collected, so they are not shown.</span>
+</section>
+
+</div>
+
+<section class="panel glass" aria-label="Mockup controls" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; box-shadow: var(--edge), inset 0 0 0 1px var(--energy);">
+<span class="eyebrow" style="color: var(--accent);">Mockup only · simulated events · sample data</span>
+<div style="flex: 1 1 auto;"></div>
+<button class="btn" onClick="{{evStart}}">Task starts · Tower</button>
+<button class="btn" onClick="{{evPass}}">Verification passes · Church</button>
+<button class="btn" onClick="{{evQuota}}">Usage limit · Tower</button>
+<button class="btn" onClick="{{evFail}}">Checks fail · Kynora</button>
+<button class="btn" onClick="{{evDiscover}}">Discovery · B2S connects</button>
+<button class="btn" onClick="{{evReset}}">Reset</button>
+</section>
+
+<footer style="display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); padding: 0 4px;">
+<span style="display: flex; align-items: center; gap: 6px;"><span class="dot" style="background: var(--st-pass);"></span>DEV_OS Control Tower</span>
+<span>Discovery: your GitHub App + connected engines</span>
+<span>{{footerLine}}</span>
+<span style="flex: 1 1 auto;"></span>
+<span>Built with DEV_OS</span>
+</footer>
+
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1520}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = Object.assign({ theme: 'dark' }, this.seedState());
+  }
+
+  seedState() {
+    const gh = 'GitHub Actions · Jovo-Jovi', pc = 'Local · Marco-PC', none = 'No engine connected';
+    return {
+      nodes: [
+        { id: 'tower', slot: 0, name: 'Control Tower', repo: 'Jovo-Jovi/devos-control-tower', instance: gh, life: 'In development', status: 'building', done: 3, total: 9, phase: 'P01 · foundation', pd: 2, pt: 3, current: 'T03 · build · started', age: '6 min ago', origin: 'reported' },
+        { id: 'pilot', slot: 1, name: 'DEV_OS Pilot', repo: 'Jovo-Jovi/devos-pilot', instance: gh, life: 'Finished', status: 'completed', done: 25, total: 25, phase: 'P06 · release', pd: 4, pt: 4, current: 'all 25 tasks passed · history imported', age: '2 h ago', origin: 'imported' },
+        { id: 'betk', slot: 2, name: 'BETK Marketplace', repo: 'Jovo-Jovi/betk', instance: pc, life: 'In development', status: 'waiting', done: 7, total: 18, phase: 'P02 · catalogue', pd: 2, pt: 5, current: 'T08 · review · usage limit, resumes 13:52', age: '12 min ago', origin: 'reported' },
+        { id: 'church', slot: 3, name: 'Church Attendance', repo: 'Jovo-Jovi/church-attendance', instance: gh, life: 'New project', status: 'revise', done: 2, total: 11, phase: 'P01 · setup', pd: 2, pt: 4, current: 'T03 · verdict · REVISE (contrast)', age: '9 min ago', origin: 'reported' },
+        { id: 'b2s', slot: 4, name: 'B2S Brand to Shelf', repo: 'Jovo-Jovi/B2S-BRAND-TO-SHELF', instance: none, life: 'In development', status: 'unverified', done: null, total: null, phase: 'phase unknown', pd: null, pt: null, current: 'engine manifest found · not connected', age: '1 d ago', origin: 'observed' },
+        { id: 'nel', slot: 5, name: 'Nile Egypt Labs', repo: 'Jovo-Jovi/nel-nile-egypt-labs', instance: none, life: 'Production', status: 'stale', done: null, total: null, phase: 'phase unknown', pd: null, pt: null, current: 'no event received for 3 days', age: '3 d ago', origin: 'observed' },
+        { id: 'coptic', slot: 6, name: 'Coptic Study Center', repo: 'Jovo-Jovi/coptic-study-center', instance: gh, life: 'In development', status: 'failed', done: 5, total: 12, phase: 'P02 · lessons', pd: 1, pt: 4, current: 'T06 · checks · typecheck failed (2 of 3)', age: '22 min ago', origin: 'observed' },
+        { id: 'kynora', slot: 7, name: 'Kynora', repo: 'Jovo-Jovi/kynora', instance: pc, life: 'In development', status: 'blocked', done: 9, total: 14, phase: 'P03 · checkout', pd: 3, pt: 3, current: 'T09 · G-Pay gate · waits for your merge', age: '41 min ago', origin: 'reported' }
+      ],
+      events: [
+        { seq: 41, proj: 'Control Tower', text: 'T03 · build started', status: 'building', origin: 'reported', age: '6 min' },
+        { seq: 12, proj: 'Church Attendance', text: 'T03 · verdict REVISE', status: 'revise', origin: 'reported', age: '9 min' },
+        { seq: 77, proj: 'BETK Marketplace', text: 'T08 · review waiting for the usage reset', status: 'waiting', origin: 'reported', age: '12 min' },
+        { seq: 30, proj: 'Coptic Study Center', text: 'T06 · checks failed (typecheck)', status: 'failed', origin: 'observed', age: '22 min' },
+        { seq: 58, proj: 'Kynora', text: 'T09 · gate reached, waits for your merge', status: 'blocked', origin: 'reported', age: '41 min' },
+        { seq: 25, proj: 'DEV_OS Pilot', text: 'history imported · 25 tasks, 34 attempts', status: 'completed', origin: 'imported', age: '2 h' }
+      ],
+      sel: null, view: 'map', filter: 'all', rm: false, sig: null, grow: null, n: 0, lastEvent: '14 s ago', eventsHour: 37
+    };
+  }
+
+  meta(s) {
+    const v = (k) => ({ fg: `var(--st-${k})`, bg: `var(--st-${k}-bg)` });
+    const E = 'var(--energy)', W = 'var(--st-waiting)';
+    const M = {
+      building:   { word: 'building', ...v('building'), ec: E, lit: true, op: 1, dash: null, p: 3, dur: 1.5, group: 'active' },
+      revise:     { word: 'revise', ...v('revise'), ec: E, lit: true, op: .6, dash: null, p: 1, dur: 3.4, group: 'active' },
+      passed:     { word: 'verified · pass', ...v('pass'), ec: E, lit: true, op: .8, dash: null, p: 2, dur: 2.6, group: 'active' },
+      idle:       { word: 'connected · idle', ...v('idle'), ec: E, lit: true, op: .45, dash: null, p: 1, dur: 6.5, group: 'active' },
+      completed:  { word: 'completed', ...v('pass'), ec: E, lit: true, op: .35, dash: null, p: 1, dur: 7, group: 'completed' },
+      waiting:    { word: 'waiting · usage limit', ...v('waiting'), ec: W, lit: true, op: .6, dash: '3 7', p: 1, dur: 8, pulse: true, group: 'waiting' },
+      blocked:    { word: 'gate · waits for you', ...v('waiting'), ec: W, lit: true, op: .45, dash: '12 6', p: 0, group: 'blocked' },
+      failed:     { word: 'failed · link down', ...v('failed'), ec: 'var(--st-failed)', lit: false, op: .8, dash: '4 6', p: 0, group: 'failed' },
+      stale:      { word: 'stale · no contact', ...v('stale'), ec: 'var(--faint)', lit: false, op: .8, dash: '1 8', p: 0, group: 'other' },
+      unverified: { word: 'unverified match', ...v('unv'), ec: 'var(--faint)', lit: false, op: .9, dash: '1 6', p: 0, group: 'other' }
+    };
+    return M[s] || M.idle;
+  }
+
+  geo(slot) {
+    const i = slot % 4, left = slot < 4;
+    const cy = [99, 245, 391, 537][i], py = [178, 270, 362, 454][i];
+    const d = left ? `M312 ${cy} C410 ${cy} 400 ${py} 498 ${py}` : `M888 ${cy} C790 ${cy} 800 ${py} 702 ${py}`;
+    return { d, cy, py, px: left ? 498 : 702, x: left ? 24 : 888, mod: i * 2 + (left ? 0 : 1) };
+  }
+
+  fire(kind) {
+    const nodes = this.state.nodes.map((x) => ({ ...x }));
+    const byId = (id) => nodes.find((x) => x.id === id);
+    const n = this.state.n + 1;
+    let target, ev, grow = null;
+    if (kind === 'start') {
+      target = byId('tower'); Object.assign(target, { status: 'building', current: 'T04 · build · started', age: 'just now', origin: 'reported' });
+      ev = { proj: 'Control Tower', text: 'T04 · build started', status: 'building', origin: 'reported' };
+    } else if (kind === 'pass') {
+      target = byId('church'); Object.assign(target, { status: 'passed', current: 'T03 · verdict · PASS', age: 'just now', origin: 'verified', done: Math.min(target.total, target.done + 1), pd: Math.min(target.pt, target.pd + 1) });
+      ev = { proj: 'Church Attendance', text: 'T03 · verdict PASS, checks green', status: 'passed', origin: 'verified' };
+    } else if (kind === 'quota') {
+      target = byId('tower'); Object.assign(target, { status: 'waiting', current: 'T04 · build · usage limit, resumes 15:40', age: 'just now', origin: 'reported' });
+      ev = { proj: 'Control Tower', text: 'T04 · waiting for the usage reset', status: 'waiting', origin: 'reported' };
+    } else if (kind === 'fail') {
+      target = byId('kynora'); Object.assign(target, { status: 'failed', current: 'T10 · checks · lint failed (1 of 3)', age: 'just now', origin: 'observed' });
+      ev = { proj: 'Kynora', text: 'T10 · checks failed (lint)', status: 'failed', origin: 'observed' };
+    } else {
+      target = byId('b2s'); Object.assign(target, { status: 'idle', instance: 'Observe only · GitHub App', current: 'connected · baseline import queued', age: 'just now', origin: 'observed' });
+      ev = { proj: 'B2S Brand to Shelf', text: 'connected · App installed, baseline queued', status: 'idle', origin: 'observed' };
+      grow = 'b2s';
+    }
+    const top = Math.max(...this.state.events.map((e) => e.seq)) + 1;
+    const events = [{ ...ev, seq: top, age: 'now' }, ...this.state.events].slice(0, 6);
+    this.setState({ nodes, events, n, sig: { id: target.id }, grow, lastEvent: 'just now', eventsHour: this.state.eventsHour + 1 });
+  }
+
+  renderVals() {
+    const st = this.state;
+    const A = st.n % 2 === 1;
+    const nodesV = st.nodes.map((x) => {
+      const m = this.meta(x.status), g = this.geo(x.slot);
+      const isSel = st.sel === x.id, hit = st.filter === 'all' || m.group === st.filter;
+      const sigHere = st.sig && st.sig.id === x.id;
+      const known = x.total != null;
+      const tp = known ? Math.round((x.done / x.total) * 100) : 0;
+      const pp = x.pt != null ? Math.round((x.pd / x.pt) * 100) : 0;
+      return {
+        ...x, word: m.word, isSel, hit, m, g,
+        initials: x.name.split(' ').map((w) => w[0]).join('').replace('_', '').slice(0, 2).toUpperCase(),
+        cls: ['node glass', isSel ? 'sel' : '', !hit ? 'dim' : (st.sel && !isSel ? 'quiet' : '')].join(' '),
+        pos: `left:${g.x}px;top:${g.cy - 66}px;animation-delay:${x.slot * 40}ms`,
+        tileStyle: `color:${m.fg};text-shadow:0 0 8px ${m.fg}`,
+        chipStyle: `background:${m.bg};color:${m.fg};box-shadow:inset 0 0 0 1px ${m.fg}`,
+        tTrack: known ? 'track' : 'track unknown',
+        tFill: `width:${tp}%;background:${m.fg};color:${m.fg}`,
+        tTxt: known ? `${x.done} / ${x.total}` : '—',
+        pTrack: x.pt != null ? 'track' : 'track unknown',
+        pFill: `width:${pp}%;background:${m.fg};color:${m.fg};opacity:.6`,
+        pTxt: x.pt != null ? `${x.pd} / ${x.pt}` : '—',
+        orgCls: `org ${x.origin}`,
+        repoUrl: `https://github.com/${x.repo}`,
+        flash: sigHere ? `background:var(--energy);animation:${A ? 'flashA' : 'flashB'} 650ms cubic-bezier(.16,1,.3,1) forwards` : 'opacity:0',
+        aria: `${x.name}, ${m.word}, tasks ${known ? x.done + ' of ' + x.total : 'unknown'}, ${x.current}, ${x.origin} ${x.age}`,
+        pick: () => this.setState({ sel: st.sel === x.id ? null : x.id })
+      };
+    });
+
+    const out = {};
+    for (let k = 0; k < 8; k++) out['m' + k] = 'opacity:0';
+    nodesV.forEach((x) => {
+      const m = x.m, g = x.g, ec = m.ec;
+      const sigHere = st.sig && st.sig.id === x.id;
+      const solid = !m.dash;
+      const ign = `animation:ignite 720ms cubic-bezier(.16,1,.3,1) ${x.slot * 70}ms both`;
+      const glowShadow = `drop-shadow(0 0 3px ${ec}) drop-shadow(0 0 8px ${ec})`;
+      const base = `offset-path:path('${g.d}');fill:var(--energy-core);filter:${glowShadow};`;
+      const part = (k) => m.p > k ? `${base}animation:flow ${m.dur}s linear ${-k * m.dur / Math.max(m.p, 1)}s infinite` : 'display:none';
+      out['c' + x.slot] = {
+        d: g.d, px: g.px, py: g.py,
+        gs: `opacity:${x.hit ? 1 : .22};transition:opacity 240ms`,
+        glowG: m.lit ? `opacity:${(m.op * .75).toFixed(2)}` : 'display:none',
+        glowCls: m.pulse ? 'cable-pulse' : 'hum',
+        glow: `stroke:${ec};animation-delay:${-x.slot * .37}s`,
+        dash: m.dash || '460',
+        mid: `stroke:${ec};stroke-width:${m.lit ? 3.2 : 1.6}px;opacity:${m.lit ? Math.max(.55, m.op) : m.op};${solid ? ign : ''}`,
+        core: m.lit && solid ? `stroke:var(--energy-core);opacity:${Math.max(.5, m.op)};${ign}` : 'display:none',
+        p1: part(0), p2: part(1), p3: part(2),
+        sig: sigHere ? `offset-path:path('${g.d}');fill:var(--energy-core);filter:drop-shadow(0 0 4px var(--energy)) drop-shadow(0 0 12px var(--energy));animation:${A ? 'sigA' : 'sigB'} 620ms cubic-bezier(.7,0,.84,0) forwards` : 'display:none',
+        grow: st.grow === x.id ? `stroke:var(--energy-core);filter:drop-shadow(0 0 4px var(--energy)) drop-shadow(0 0 10px var(--energy));animation:${A ? 'growA' : 'growB'} 560ms cubic-bezier(.16,1,.3,1) forwards` : 'display:none',
+        port: m.lit ? `fill:var(--energy-core);filter:${glowShadow}` : `fill:${ec};opacity:.5`
+      };
+      if (sigHere) out['m' + g.mod] = `background:var(--energy);animation:${A ? 'modA' : 'modB'} 520ms cubic-bezier(.16,1,.3,1) 560ms both`;
+    });
+
+    const sel = nodesV.find((x) => x.isSel) || null;
+    const selEvents = sel ? st.events.filter((e) => e.proj === sel.name).map((e) => ({ ...e, orgCls: `org ${e.origin}` })) : [];
+    const measured = st.nodes.filter((x) => x.total != null);
+    const done = measured.reduce((a, x) => a + x.done, 0), total = measured.reduce((a, x) => a + x.total, 0);
+    const pct = total ? done / total : 0, circ = 2 * Math.PI * 48;
+    const groups = { active: 0, waiting: 0, blocked: 0, failed: 0, completed: 0, other: 0 };
+    st.nodes.forEach((x) => { groups[this.meta(x.status).group]++; });
+    const connected = st.nodes.filter((x) => !['unverified', 'stale'].includes(x.status)).length;
+    const instances = new Set(st.nodes.map((x) => x.instance).filter((i) => i !== 'No engine connected' && !i.startsWith('Observe'))).size;
+    const F = [['all', 'All', st.nodes.length], ['active', 'Active', groups.active], ['waiting', 'Waiting', groups.waiting], ['blocked', 'Blocked', groups.blocked], ['failed', 'Failed', groups.failed], ['completed', 'Completed', groups.completed]];
+    const th = st.theme;
+    const glowDot = (c) => `background:${c};box-shadow:0 0 6px ${c};margin-top:7px`;
+
+    return Object.assign(out, {
+      rootCls: `app th-${th}${st.rm ? ' rm' : ''}`,
+      thAuto: th === 'auto' ? 'true' : 'false', thLight: th === 'light' ? 'true' : 'false', thDark: th === 'dark' ? 'true' : 'false',
+      setAuto: () => this.setState({ theme: 'auto' }), setLight: () => this.setState({ theme: 'light' }), setDark: () => this.setState({ theme: 'dark' }),
+      nodes: nodesV,
+      listNodes: nodesV.filter((x) => x.hit),
+      listCls: st.view === 'list' ? 'list-show' : 'list-only',
+      viewIsMap: st.view === 'map',
+      viewMap: st.view === 'map' ? 'true' : 'false', viewList: st.view === 'list' ? 'true' : 'false',
+      showMap: () => this.setState({ view: 'map' }), showList: () => this.setState({ view: 'list', sel: null }),
+      rmOn: st.rm ? 'true' : 'false', toggleRm: () => this.setState({ rm: !st.rm }),
+      filters: F.map(([k, label, count]) => ({ label, count, on: st.filter === k ? 'true' : 'false', pick: () => this.setState({ filter: k }) })),
+      hasSel: !!sel,
+      sel: sel || { name: '', initials: '', tileStyle: '', repo: '', repoUrl: '#', chipStyle: '', word: '', instance: '', life: '', tTxt: '', phase: '', pTxt: '', current: '', origin: '', orgCls: '', age: '' },
+      selEvents, selNoEvents: !!sel && selEvents.length === 0,
+      clearSel: () => this.setState({ sel: null }),
+      instCount: instances, repoCount: st.nodes.length, connCount: connected,
+      towerState: groups.failed > 0 ? `Healthy · ${groups.failed} failing` : 'Healthy',
+      healthLine: `ingestion healthy · last event ${st.lastEvent} · reported via OIDC`,
+      footerLine: `${st.nodes.length} repositories known · ${connected} connected`,
+      lastEvent: st.lastEvent, eventsHour: st.eventsHour,
+      ringDash: `${(pct * circ).toFixed(1)} ${circ.toFixed(1)}`,
+      ringPct: `${Math.round(pct * 100)}%`,
+      ringAria: `${done} of ${total} tasks passed across ${measured.length} measured projects`,
+      tasksLine: `${done} / ${total} tasks passed`,
+      coverageLine: `${measured.length} of ${st.nodes.length} projects measured · the rest report no ledger yet`,
+      stateCounts: [
+        { label: 'Active', count: groups.active, dot: 'background:var(--st-building);box-shadow:0 0 6px var(--st-building)' },
+        { label: 'Waiting', count: groups.waiting, dot: 'background:var(--st-waiting);box-shadow:0 0 6px var(--st-waiting)' },
+        { label: 'Blocked at a gate', count: groups.blocked, dot: 'background:var(--st-waiting);box-shadow:0 0 0 2px var(--st-waiting-bg)' },
+        { label: 'Failed', count: groups.failed, dot: 'background:var(--st-failed);box-shadow:0 0 6px var(--st-failed)' },
+        { label: 'Completed', count: groups.completed, dot: 'background:var(--st-pass);box-shadow:0 0 6px var(--st-pass)' },
+        { label: 'Stale or unverified', count: groups.other, dot: 'background:var(--faint)' }
+      ],
+      events: st.events.map((e) => ({ ...e, dot: glowDot(this.meta(e.status).fg), orgCls: `org ${e.origin}`, age: e.age === 'now' ? 'just now' : `${e.age} ago` })),
+      evStart: () => this.fire('start'), evPass: () => this.fire('pass'), evQuota: () => this.fire('quota'),
+      evFail: () => this.fire('fail'), evDiscover: () => this.fire('discover'),
+      evReset: () => this.setState(Object.assign({ theme: st.theme }, this.seedState()))
+    });
+  }
+}
+</script>
+</body>
+</html>
