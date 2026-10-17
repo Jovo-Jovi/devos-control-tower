@@ -60,6 +60,16 @@ jobs:
           # Name the next task in the dispatch so the run is titled "devos Tnn · attempt 1", not "devos next".
           next=$(node scripts/devos/next-task.mjs 2>/dev/null | sed -n 's/^task=//p' | head -1 || true)
           if [ -n "$next" ]; then
+            # Never start a second cycle for a task that already has one: a run queued or in
+            # progress for it (devos-setup or devos-resume may have resumed it), or an open PR on
+            # its branch (it is at a gate or mid-attempt). Two cycles on one branch collide.
+            active=$(gh run list --repo "$REPO" --workflow devos-cycle.yml --limit 30 --json displayTitle,status \
+              --jq "[.[] | select(.status != \"completed\") | select(.displayTitle | startswith(\"devos $next \"))] | length" 2>/dev/null || echo 0)
+            open_pr=$(gh pr list --repo "$REPO" --head "task/$next" --state open --json number --jq 'length' 2>/dev/null || echo 0)
+            if [ "${active:-0}" != "0" ] || [ "${open_pr:-0}" != "0" ]; then
+              echo "::notice title=Dev OS::$next already has a cycle running or an open PR; not dispatching a second one."
+              exit 0
+            fi
             gh workflow run devos-cycle.yml --repo "$REPO" --ref main -f task="$next" -f attempt=1
           else
             gh workflow run devos-cycle.yml --repo "$REPO" --ref main
