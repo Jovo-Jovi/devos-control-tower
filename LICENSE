@@ -1,0 +1,10 @@
+Copyright (c) 2026 Jovo-Jovi. All rights reserved.
+
+This repository is published so that its automated development cycle and its history can be
+inspected. No license is granted. Without the copyright holder's prior written permission you may
+not copy, modify, merge, publish, distribute, sublicense, sell, or otherwise use any part of this
+repository's contents, except as permitted by applicable law.
+
+The method files under scripts/devos/, scripts/guards/, devos/, .github/, .cursor/, .claude/ and
+docs/method/ originate from Jovo-Jovi/devos-pilot at commit 4ccbef7 and remain under the same
+copyright.
