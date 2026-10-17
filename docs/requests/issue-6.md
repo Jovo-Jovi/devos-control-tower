@@ -44,7 +44,8 @@ Today none of this exists:
        (`Page.startScreencast`, PNG, every frame, acknowledged) records frames with timestamps from
        the trigger to trigger + 640 ms + margin. Trigger = first contentful paint for a plain state;
        for an interaction state, the moment just before the action, after the page settled. Frame
-       for target 0 = first frame at or after the trigger; for t > 0 = latest frame at or before
+       for target 0 = first frame at or after the trigger (on a still page that sends none, the latest
+       frame before it, the one on screen, with its negative offset); for t > 0 = latest frame at or before
        trigger + t. Written as `<name>-<width>-film-000|080|160|320|640.png`, each with its real
        offset recorded;
      - then the settled full-page screenshot `<name>-<width>.png` (settled = network idle, fonts
