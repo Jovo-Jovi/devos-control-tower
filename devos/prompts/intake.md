@@ -27,6 +27,7 @@ Exactly one of three outcomes, then the structured answer the output schema requ
    `- Builder: grok-4.7 · Effort: <low|medium|high|xhigh> · Fast: <yes|no>` chosen for the work.
    Rehearse it against the current tree: every path, script and component name it cites must exist
    or be created by its own steps.
+   A UI task's first fence carries `- Screens: \`<name> <path>[ click|hover|focus <selector>]\` · …` in its header, naming every page, state and interaction to capture.
 6. Copy the request and your interpretation to `docs/requests/issue-{{ISSUE}}.md` (what was asked,
    what you decided, what you left out and why).
 

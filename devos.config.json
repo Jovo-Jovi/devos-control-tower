@@ -85,11 +85,13 @@
     "e2e"
   ],
   "screens": {
-    "$comment": "Default pages for scripts/devos/screens.mjs when a run names none (Tower B0 clean-up). Signed-in pages need the M3 fixture states (DEVOS_SCREENS=1).",
+    "$comment": "Default pages when the fence has no `- Screens:` line (Tower B0 clean-up). filmstrip_ms and settle_max_ms are written into .devos/screens/motion.json. Signed-in pages need the M3 fixture states (DEVOS_SCREENS=1).",
     "pages": [
       "/sign-in",
       "/"
-    ]
+    ],
+    "filmstrip_ms": [0, 80, 160, 320, 640],
+    "settle_max_ms": 3000
   },
   "surfaces": {
     "builder": {
