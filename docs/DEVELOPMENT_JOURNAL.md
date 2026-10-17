@@ -166,3 +166,14 @@ entries during the run (the owner-session runner fixes) and the builder's own jo
 with them in `sync-main.sh`. The runner's checkout was discarded, and the build with it. Now
 `docs/DEVELOPMENT_JOURNAL.md` merges by union (`.gitattributes`), so two appended entries never
 conflict, and any other conflict first pushes the run's unmerged work to `rescue/<branch>-<run id>`.
+
+## 2026-10-17 — Runner: the Dev OS supervisor (owner request)
+
+The owner asked for the workflow to repair itself and only ask for approvals. `devos-supervisor.yml`
+runs after every Dev OS workflow, every 30 minutes and on `/devos approve|reject <id>`;
+`scripts/devos/supervisor.mjs` finds stopped or stalled work, explains it with fixed rules (Claude
+Opus, read-only, only when none fits), fixes what is safe on its own within a per-cause limit, and
+turns everything else into something the owner approves (a method-fix issue, a change request, a
+proposed revision, or setup steps). Reports go to the "Dev OS: supervisor" issue. On today's
+incidents, the rules read T04 a1 (hung builder) and T05 a2 (push conflict) as "re-dispatch", which
+is what was done by hand. `scripts/devos/rescue.sh` recovers a rescue branch onto its task branch.
