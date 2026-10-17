@@ -41,7 +41,9 @@ export function AppShell({
             offline={messages.live.offline}
           />
           <main className={styles.main}>
-            <ViewTransition default="route">{children}</ViewTransition>
+            <ViewTransition enter="route" exit="route" update="none" share="none" default="none">
+              {children}
+            </ViewTransition>
           </main>
         </div>
       </div>

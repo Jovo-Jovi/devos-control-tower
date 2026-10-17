@@ -18,6 +18,7 @@ import { ProjectCard } from "@/components/map/ProjectCard";
 import { Tower } from "@/components/map/Tower";
 import type { LinkState, Portfolio, PortfolioProject } from "@/lib/portfolio/aggregate";
 import { fill, type OverviewCopy } from "@/lib/portfolio/copy";
+import { formatCount } from "@/lib/portfolio/formatCount";
 import { tokenMs } from "@/lib/portfolio/readToken";
 import styles from "./Overview.module.css";
 
@@ -181,8 +182,10 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
     stale: copy.staleOrSilent,
   };
 
-  const towerLast =
-    figures && portfolio ? <AgeText at={portfolio.health.lastReceivedAt} empty={copy.noContact} /> : copy.unknown;
+  function receivedAge() {
+    if (!(figures && portfolio)) return copy.unknown;
+    return <AgeText at={portfolio.health.lastReceivedAt} empty={copy.noContact} />;
+  }
 
   return (
     <div className={styles.root} data-view={view}>
@@ -201,7 +204,9 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
         </dl>
         <dl className={styles.fact}>
           <dt>{copy.lastReceived}</dt>
-          <dd>{towerLast}</dd>
+          <dd>
+            {figures && portfolio ? <span data-last-received="counts">{receivedAge()}</span> : copy.unknown}
+          </dd>
         </dl>
       </section>
 
@@ -211,7 +216,7 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
             <button key={item} type="button" aria-pressed={filter === item} onClick={() => setFilter(item)}>
               {filterLabel[item]}{" "}
               <span className={styles.count}>
-                {figures ? projects.filter((project) => matches(item, project.linkState)).length : copy.unknown}
+                {figures ? formatCount(projects.filter((project) => matches(item, project.linkState)).length) : copy.unknown}
               </span>
             </button>
           ))}
@@ -227,13 +232,8 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
       </div>
 
       <div className={styles.region} aria-busy={phase === "loading" ? true : undefined} data-region="">
-        {phase === "error" ? (
-          <div className={styles.banner}>
-            <HealthBanner message={copy.unavailable} />
-          </div>
-        ) : null}
         <div className={styles.phone}>
-          <div className={styles.phoneCard}>
+          <div className={styles.phoneCard} data-phone-card="">
             <span className={styles.phoneTower} aria-hidden="true">
               <span className={styles.phoneBody} />
               <span className={styles.phoneSeam} />
@@ -242,11 +242,11 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
               <LiveMark live={copy.live} offline={copy.offline} />
               <p>
                 <span>{copy.projects}</span>
-                <span>{figures && portfolio ? portfolio.totals.projects : copy.unknown}</span>
+                <span>{figures && portfolio ? formatCount(portfolio.totals.projects) : copy.unknown}</span>
               </p>
               <p>
                 <span>{copy.lastReceived}</span>
-                <span>{towerLast}</span>
+                <span>{receivedAge()}</span>
               </p>
             </div>
           </div>
@@ -269,15 +269,17 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
               <Tower
                 copy={copy}
                 stateWord={phase === "offline" ? copy.offline : copy.towerState}
-                projects={figures && portfolio ? String(portfolio.totals.projects) : copy.unknown}
-                fresh={figures && portfolio ? String(portfolio.totals.fresh) : copy.unknown}
-                stale={figures && portfolio ? String(portfolio.totals.staleOrSilent) : copy.unknown}
-                last={towerLast}
+                projects={figures && portfolio ? formatCount(portfolio.totals.projects) : copy.unknown}
+                fresh={figures && portfolio ? formatCount(portfolio.totals.fresh) : copy.unknown}
+                stale={figures && portfolio ? formatCount(portfolio.totals.staleOrSilent) : copy.unknown}
+                last={receivedAge()}
                 ready={Boolean(figures && portfolio)}
                 flashModules={flashModules}
               />
               {phase === "loading"
-                ? SKELETON_SLOTS.map((slot) => <span key={slot} className={styles.skeleton} data-slot={slot} />)
+                ? SKELETON_SLOTS.map((slot) => (
+                    <span key={slot} className={styles.skeleton} data-skeleton="" data-slot={slot} />
+                  ))
                 : null}
               {shown.map((project, slot) => (
                 <ProjectCard
@@ -296,13 +298,18 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
               ))}
               {overflow > 0 ? (
                 <button type="button" className={styles.more} data-slot={7} onClick={() => setView("list")}>
-                  {fill(copy.more, { count: String(overflow) })}
+                  {fill(copy.more, { count: formatCount(overflow) })}
                 </button>
               ) : null}
             </div>
           </div>
           <p className={styles.legend}>{copy.legend}</p>
         </div>
+        {phase === "error" ? (
+          <div className={styles.banner}>
+            <HealthBanner message={copy.unavailable} />
+          </div>
+        ) : null}
         {phase === "offline" ? <p className={styles.offlineNote}>{copy.offlineKnown}</p> : null}
         {phase === "error" || phase === "offline-first" ? (
           <StateBlock kind="error" message={copy.unavailable} />
@@ -316,6 +323,9 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
           </div>
         ) : null}
         <div className={styles.list}>
+          {phase === "loading"
+            ? SKELETON_SLOTS.map((slot) => <span key={slot} className={styles.listSkeleton} data-skeleton="" />)
+            : null}
           {projects.map((project) => (
             <ProjectCard
               key={project.key}

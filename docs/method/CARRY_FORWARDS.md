@@ -1,7 +1,7 @@
 # TOWER — Carry-forwards
 
 Every finding becomes a row. The reviewer describes the row in a verdict; the landing task allocates
-the id from the live maximum and reports it. **Live maximum: CF-016.**
+the id from the live maximum and reports it. **Live maximum: CF-017.**
 
 Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` · `HANDOVER`.
 
@@ -23,3 +23,4 @@ Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` 
 | CF-014 | `DESIGN_SYSTEM.md` §3 `LiveMark` is "only while the realtime channel is open", but `DATA_MODEL.md` §1 says the browser never calls Supabase except for the Auth redirect (`docs/reviews/T03-a1.md` c). Settled by OD-08 §11 and `DESIGN_SYSTEM.md` §3: no LiveMark in this task. | human | CLOSED at T04 | T04 |
 | CF-015 | `DESIGN_SYSTEM.md` §1 declared `--font-mono: var(--font-mono), …`, a self-reference (`docs/reviews/T03-a1.md` d). Settled by OD-08 §11 and `DESIGN_SYSTEM.md` §1; S1 landed `--font-mono: var(--font-geist-mono), ui-monospace, monospace`. | human | CLOSED at T04 | T04 |
 | CF-016 | `DESIGN_SYSTEM.md` §4 and §5.3 cap first-paint choreography at 740 ms (`--dur-slow` + 320 ms stagger). Blade ignition uses `--dur-ignite` 720 ms and `--stagger-ignite` 70 ms, so eight blades take 720 + 7 × 70 = 1 210 ms. Fence T05 follows README §4.3 and the §1 tokens and does not reconcile the two (`docs/reviews/T04-a1.md` Carry-forwards logged). | human | OPEN | G-Design-v3 |
+| CF-017 | Every 30 s poll of `/api/projects` reads every row of `events`, `runs` and `event_usage` page by page (`portfolio.ts`, fence S2, README §6). The cost grows with the history and with each open tab. A bounded read (a window, or a server-side aggregate, which needs a schema OD) is the human's decision (`docs/reviews/T05-a2.md` a). | human | OPEN | a later OD (bounded read) |

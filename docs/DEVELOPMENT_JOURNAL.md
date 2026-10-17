@@ -176,3 +176,15 @@ project links, view transitions, the live mark), the overview page, the register
 tests, and the scene fixed to the viewport (`position: fixed`, `100lvh`). Playwright's Chromium was
 installed once so `pnpm e2e` could launch. CF-016 is open for the human at G-Design-v3: ignition of
 eight blades is 1 210 ms, against the 740 ms first-paint cap. Awaiting the verdict, then the owner's gate.
+
+## 2026-10-17 — T05 Overview as the tower map (attempt 3)
+
+Attempt 3 kept the attempt-2 tree and changed only what `docs/reviews/T05-a2.md` failed. The Tower
+panel stays inside its box, skeletons share the card slots and appear in the phone list, glass uses
+the backdrop blur with a solid fallback, bars and the ring move by stroke offset, and counts go
+through `Intl.NumberFormat`. Particles are absent under reduced motion, route motion runs only on
+navigation, and a failed registration puts the trimmed values back in the fields. Settled and reduced
+captures are full page. `syntheticPortfolio` is produced by `aggregatePortfolio`. CF-017 is open for
+the human: the 30 s poll reads every event, run and usage row. Playwright's Chromium was installed
+once in this environment so `pnpm e2e` could launch. Awaiting the verdict, then the owner's gate
+G-Design-v3.

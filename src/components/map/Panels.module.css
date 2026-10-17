@@ -56,8 +56,9 @@
 
 .arc {
   stroke: var(--color-energy);
-  stroke-dasharray: var(--overview-ring);
-  stroke-dashoffset: calc(var(--overview-ring) * (100 - attr(data-scale number, 0)) / 100);
+}
+
+.ring[data-move] .arc {
   transition: stroke-dashoffset var(--dur-slow) var(--ease-in-out);
 }
 

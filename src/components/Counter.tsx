@@ -2,7 +2,7 @@
 
 import { animate, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { defaultLocale } from "@/i18n/config";
+import { formatCount } from "@/lib/portfolio/formatCount";
 import { tokenEase, tokenSeconds } from "@/lib/portfolio/readToken";
 import styles from "./Counter.module.css";
 
@@ -10,8 +10,6 @@ export function Counter({ value }: { value: number }) {
   const reduced = useReducedMotion();
   const [shown, setShown] = useState(value);
   const previous = useRef(value);
-  const format = new Intl.NumberFormat(defaultLocale);
-
   useEffect(() => {
     const from = previous.current;
     previous.current = value;
@@ -27,5 +25,5 @@ export function Counter({ value }: { value: number }) {
     return () => controls.stop();
   }, [reduced, value]);
 
-  return <span className={styles.value}>{format.format(Math.round(shown))}</span>;
+  return <span className={styles.value}>{formatCount(Math.round(shown))}</span>;
 }

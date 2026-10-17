@@ -1,7 +1,7 @@
 .panel {
-  position: fixed;
-  inset-block-start: var(--space-5);
-  inset-inline-end: var(--space-5);
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
   z-index: 3;
   display: flex;
   flex-direction: column;
@@ -14,6 +14,22 @@
   background: var(--glass-strong);
   box-shadow: var(--edge), var(--lift);
   color: var(--color-ink);
+  backdrop-filter: blur(var(--blur-glass)) saturate(1.6);
+}
+
+@media (min-width: 47.5625rem) {
+  .panel {
+    position: fixed;
+    inset-block-start: calc(var(--space-4) + var(--space-3) + var(--space-1) + var(--space-7) + var(--space-1) + var(--space-3) + var(--space-3));
+    inset-inline-end: var(--space-5);
+    max-block-size: calc(100vh - var(--space-4) - var(--space-3) - var(--space-1) - var(--space-7) - var(--space-1) - var(--space-3) - var(--space-3) - var(--space-4));
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .panel {
+    background: var(--color-surface);
+  }
 }
 
 .head,

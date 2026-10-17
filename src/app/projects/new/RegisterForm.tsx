@@ -39,14 +39,17 @@ export function RegisterForm({
   const keyMessage = fieldError(state?.key, keyError, keyTaken);
   const repoMessage = fieldError(state?.repo, repoError, repoTaken);
   const staleMessage = state?.stale ? staleError : null;
+  const values = state?.values;
+  const formKey = values ? `${values.key}\u0000${values.repo}\u0000${values.stale}` : "blank";
 
   return (
-    <form className={styles.form} action={action}>
+    <form className={styles.form} action={action} key={formKey}>
       <div className={styles.field} data-invalid={keyMessage ? "" : undefined}>
         <label htmlFor="register-key">{keyLabel}</label>
         <input
           id="register-key"
           name="key"
+          defaultValue={values?.key ?? ""}
           aria-invalid={keyMessage ? true : undefined}
           aria-describedby={keyMessage ? "register-key-error" : undefined}
         />
@@ -59,6 +62,7 @@ export function RegisterForm({
         <input
           id="register-repo"
           name="repo"
+          defaultValue={values?.repo ?? ""}
           aria-invalid={repoMessage ? true : undefined}
           aria-describedby={repoMessage ? "register-repo-error" : undefined}
         />
@@ -71,7 +75,7 @@ export function RegisterForm({
         <input
           id="register-stale"
           name="stale"
-          defaultValue="1440"
+          defaultValue={values?.stale ?? "1440"}
           inputMode="numeric"
           aria-invalid={staleMessage ? true : undefined}
           aria-describedby={staleMessage ? "register-stale-error" : undefined}

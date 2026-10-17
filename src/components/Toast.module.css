@@ -10,4 +10,11 @@
   background: var(--glass-strong);
   box-shadow: var(--edge), var(--lift);
   color: var(--color-ink);
+  backdrop-filter: blur(var(--blur-glass)) saturate(1.6);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .toast {
+    background: var(--color-surface);
+  }
 }

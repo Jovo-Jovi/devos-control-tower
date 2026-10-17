@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "motion/react";
 import type { LinkState } from "@/lib/portfolio/aggregate";
 import { SLOTS, slotGeometry } from "./geometry";
 import styles from "./BladeField.module.css";
@@ -38,6 +39,7 @@ export function BladeField({
   offline: boolean;
   signals: BladeSignal[];
 }) {
+  const reduced = useReducedMotion();
   const [ignite, setIgnite] = useState<Record<number, number>>({});
   const previous = useRef<Record<number, LinkState>>({});
 
@@ -77,7 +79,7 @@ export function BladeField({
         const geometry = slotGeometry(slot.slot);
         const solid = SOLID.has(blade.linkState);
         const signal = signals.find((item) => item.slot === slot.slot);
-        const particles = live && !offline ? particleCount(blade.linkState) : 0;
+        const particles = live && !offline && reduced === false ? particleCount(blade.linkState) : 0;
         return (
           <g
             key={slot.slot}

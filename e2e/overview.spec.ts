@@ -65,10 +65,14 @@ async function settle(page: Page) {
       const timing = animation.effect?.getTiming();
       if (timing && timing.iterations !== Infinity && typeof timing.duration === "number") animation.finish();
     }
-    for (const animation of document.getAnimations()) {
-      if (animation.playState === "finished") animation.cancel();
-    }
   });
+}
+
+function boxesIntersect(
+  left: { x: number; y: number; width: number; height: number },
+  right: { x: number; y: number; width: number; height: number },
+) {
+  return left.x < right.x + right.width && left.x + left.width > right.x && left.y < right.y + right.height && left.y + left.height > right.y;
 }
 
 async function seek(page: Page, time: number) {
@@ -170,6 +174,39 @@ test("Map", async ({ browser }) => {
   await expect(page.locator('[data-health="rejections"]')).toHaveText(rejections);
   await expect(page.locator("[data-map] svg[viewBox='0 0 1200 660']")).toHaveAttribute("aria-hidden", "true");
 
+  const towerPanel = await page.locator("[data-tower-panel]").boundingBox();
+  const moduleZero = await page.locator('[data-module="0"]').boundingBox();
+  expect(towerPanel).not.toBeNull();
+  expect(moduleZero).not.toBeNull();
+  expect((towerPanel?.y ?? 0) + (towerPanel?.height ?? 0)).toBeLessThanOrEqual(moduleZero?.y ?? 0);
+  const towerAge = page.locator('[data-last-received="tower"]');
+  const countsAge = page.locator('[data-last-received="counts"]');
+  expect(await towerAge.textContent()).toBe(await countsAge.textContent());
+  const ageFit = await towerAge.evaluate((element) => {
+    const display = getComputedStyle(element).display;
+    const parent = element.parentElement?.getBoundingClientRect();
+    const panel = element.closest("[data-tower-panel]")?.getBoundingClientRect();
+    const box = element.getBoundingClientRect();
+    const inside = (outer: DOMRect | undefined) =>
+      Boolean(
+        outer &&
+          box.top >= outer.top - 0.5 &&
+          box.bottom <= outer.bottom + 0.5 &&
+          box.left >= outer.left - 0.5 &&
+          box.right <= outer.right + 0.5,
+      );
+    return {
+      display,
+      fits: element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight,
+      insideParent: inside(parent),
+      insidePanel: inside(panel),
+    };
+  });
+  expect(ageFit.display === "block" || ageFit.display === "inline-block").toBe(true);
+  expect(ageFit.fits).toBe(true);
+  expect(ageFit.insideParent).toBe(true);
+  expect(ageFit.insidePanel).toBe(true);
+
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => window.scrollTo(0, 400));
   const scene = await page.evaluate(() => {
@@ -243,6 +280,16 @@ test("Selected", async ({ browser }) => {
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText("fixture-org/alpha");
   await expect(dialog).toContainText("GitHub Actions");
+  await expect(dialog).toContainText("0 / 1");
+  await expect(dialog).toContainText("P01");
+  await expect(dialog).toContainText("checks · started");
+  await expect(dialog).toContainText("reported");
+  await expect(dialog.locator("ol li")).toHaveCount(1);
+  expect(await dialog.evaluate((element) => getComputedStyle(element).backdropFilter)).not.toBe("none");
+  const dialogTop = await dialog.evaluate((element) => element.getBoundingClientRect().top);
+  const bannerBottom = await page.getByRole("banner").evaluate((element) => element.getBoundingClientRect().bottom);
+  expect(dialogTop).toBeGreaterThanOrEqual(bannerBottom);
+  expect(await page.getByRole("group", { name: "Filter" }).evaluate((element) => getComputedStyle(element).backdropFilter)).not.toBe("none");
   await expect(page.locator("[data-map-card][data-dimmed='panel']")).toHaveCount(7);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -263,6 +310,20 @@ test("States and live changes", async ({ browser }) => {
   await page.route("**/api/projects", () => undefined);
   await page.goto("/");
   await expect(page.locator("[aria-busy='true']")).toBeVisible();
+  const mapSkeletons = page.locator("[data-map] [data-skeleton]");
+  await expect(mapSkeletons).toHaveCount(8);
+  const skeletonTops = await mapSkeletons.evaluateAll((elements) =>
+    elements.map((element) => Math.round(element.getBoundingClientRect().top)),
+  );
+  expect(new Set(skeletonTops).size).toBe(4);
+  for (let slot = 0; slot < 4; slot += 1) {
+    const start = await page.locator(`[data-map] [data-skeleton][data-slot="${slot}"]`).boundingBox();
+    const end = await page.locator(`[data-map] [data-skeleton][data-slot="${slot + 4}"]`).boundingBox();
+    expect(start?.y).toBe(end?.y);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator("[data-skeleton]:visible").first()).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   await fulfillJson(page, emptyPortfolio(now));
   await page.reload();
@@ -275,6 +336,13 @@ test("States and live changes", async ({ browser }) => {
   );
   const mainText = await page.locator("main").innerText();
   expect(mainText).not.toMatch(/\d/);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const alertBox = await page.locator("main").getByRole("alert").boundingBox();
+  const phoneBox = await page.locator("[data-phone-card]").boundingBox();
+  expect(alertBox).not.toBeNull();
+  expect(phoneBox).not.toBeNull();
+  if (alertBox && phoneBox) expect(boxesIntersect(alertBox, phoneBox)).toBe(false);
+  await page.setViewportSize({ width: 1280, height: 900 });
 
   const eight = syntheticPortfolio(now, 8);
   let calls = 0;
@@ -292,6 +360,15 @@ test("States and live changes", async ({ browser }) => {
   await expect(page.getByRole("banner").locator("[data-status='offline']").getByText("offline", { exact: true })).toBeVisible();
   await expect(page.getByText("offline · last known state")).toBeVisible();
   await expect(page.locator("[data-map-card]")).toHaveCount(8);
+  const noteBox = await page.getByText("offline · last known state").boundingBox();
+  const legendBox = await page.getByText("Moving light shows each link's state while the Tower is live. It is not traffic.").boundingBox();
+  expect(noteBox).not.toBeNull();
+  expect(legendBox).not.toBeNull();
+  if (noteBox && legendBox) expect(boxesIntersect(noteBox, legendBox)).toBe(false);
+  for (const card of await page.locator("[data-map-card]").all()) {
+    const cardBox = await card.boundingBox();
+    if (noteBox && cardBox) expect(boxesIntersect(noteBox, cardBox)).toBe(false);
+  }
 
   const next = changedPortfolio(eight);
   calls = 0;
@@ -303,12 +380,18 @@ test("States and live changes", async ({ browser }) => {
   });
   await page.reload();
   await expect(page.locator('[data-project="ALPHA"]').first()).toContainText("checks · started");
+  const earlierStatus = new Map<string, string>();
+  for (const key of ["ALPHA", "BRAVO", "CHARLIE", "DELTA"]) {
+    earlierStatus.set(key, await page.locator(`[data-map-card][data-project="${key}"] [data-status]`).innerText());
+  }
   await page.clock.fastForward(30_000);
   for (const key of ["ALPHA", "BRAVO", "CHARLIE", "DELTA"]) {
-    await expect(page.locator(`[data-project="${key}"]`).first()).toContainText("review · fail");
+    const chip = page.locator(`[data-map-card][data-project="${key}"] [data-status]`);
+    await expect(chip).toHaveText("review · fail");
+    expect(earlierStatus.get(key)).not.toBe("review · fail");
   }
   await expect(page.locator("[data-activity-row]").first()).toContainText("DELTA");
-  expect(await page.locator("[data-signal]").count()).toBeLessThanOrEqual(3);
+  await expect(page.locator("[data-signal]")).toHaveCount(3);
   expect(csp).toEqual([]);
   await context.close();
 });
@@ -323,10 +406,25 @@ test("Register", async ({ browser }) => {
   await expect(page.getByRole("link", { name: "Register project" })).toHaveAttribute("aria-current", "page");
   const before = query("select count(*) from public.projects");
   await page.getByLabel("Key").fill("bad");
+  await page.getByLabel("Repository").fill("fixture-org/kept-repo");
+  await page.getByLabel("Stale after (minutes)").fill("60");
   await page.getByRole("button", { name: "Register", exact: true }).click();
   await expect(page.getByLabel("Key")).toHaveAttribute("aria-invalid", "true");
   await expect(page.getByText("Use 2 to 32 characters: a capital letter, then capitals, digits, - or _.")).toBeVisible();
+  await expect(page.getByLabel("Key")).toHaveValue("bad");
+  await expect(page.getByLabel("Repository")).toHaveValue("fixture-org/kept-repo");
+  await expect(page.getByLabel("Stale after (minutes)")).toHaveValue("60");
   expect(query("select count(*) from public.projects")).toBe(before);
+  expect(
+    await page.evaluate(() =>
+      document.getAnimations().filter((animation) => {
+        const effect = animation.effect;
+        if (!effect || !("pseudoElement" in effect)) return false;
+        const pseudo = effect.pseudoElement;
+        return typeof pseudo === "string" && pseudo.startsWith("::view-transition");
+      }).length,
+    ),
+  ).toBe(0);
 
   await page.getByLabel("Key").fill("TAKEN");
   await page.getByLabel("Repository").fill("fixture-org/fixture-repo");
@@ -338,7 +436,9 @@ test("Register", async ({ browser }) => {
   await page.getByLabel("Stale after (minutes)").fill("60");
   await page.getByRole("button", { name: "Register", exact: true }).click();
   await expect(page).toHaveURL(/\/\?registered=E2E$/);
-  await expect(page.getByRole("status")).toHaveText("Project E2E registered.");
+  const toast = page.getByRole("status");
+  await expect(toast).toHaveText("Project E2E registered.");
+  expect(await toast.evaluate((element) => getComputedStyle(element).backdropFilter)).not.toBe("none");
   await expect(page.locator("[data-project='E2E']:visible")).toBeVisible();
   expect(query("select owner_github_id from public.projects where key = 'E2E'")).toBe("700011");
   query("delete from public.projects where key = 'E2E';");
@@ -415,10 +515,16 @@ test("Evidence", async ({ browser }) => {
         for (const state of STATES) {
           await show(page, state);
           await settle(page);
-          if (reduced) expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+          if (reduced) {
+            expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+            if (state === "map") expect(await page.locator("circle[data-kind]").count()).toBe(0);
+          }
           const suffix = reduced ? "-reduced" : "";
-          await page.screenshot({ path: `.devos/screens/t05-${state}-${theme}-${viewport.width}${suffix}.png` });
           shifts[`${state}-${theme}-${viewport.width}${suffix}`] = await readShift(page);
+          await page.screenshot({
+            path: `.devos/screens/t05-${state}-${theme}-${viewport.width}${suffix}.png`,
+            fullPage: true,
+          });
         }
         await context.close();
       }
@@ -476,13 +582,13 @@ test("Evidence", async ({ browser }) => {
         button.click();
         for (const animation of document.getAnimations()) animation.pause();
       }, choice);
+      shifts[`theme-to-${choice}-${viewport.width}`] = await readShift(page);
       for (const time of [0, 450, 900, 1350, 1800]) {
         await seek(page, time);
         await page.screenshot({
           path: `.devos/screens/t05-theme-to-${choice}-${viewport.width}-${String(time).padStart(4, "0")}.png`,
         });
       }
-      shifts[`theme-to-${choice}-${viewport.width}`] = await readShift(page);
     }
     await context.close();
   }

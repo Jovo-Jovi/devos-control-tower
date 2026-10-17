@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { LINK_STATES, type LinkState, type Portfolio, type PortfolioProject, type PortfolioStepEvent } from "../../src/lib/portfolio/aggregate";
+import { aggregatePortfolio, LINK_STATES, type LinkState, type Portfolio } from "../../src/lib/portfolio/aggregate";
 
 const KEYS = ["ALPHA", "BRAVO", "CHARLIE", "DELTA", "ECHO", "FOXTROT", "GOLF", "HOTEL", "INDIA", "JULIET"] as const;
 
@@ -13,73 +13,50 @@ function statusOf(state: LinkState): { step: string; status: string } {
   return { step: "checks", status: "pass" };
 }
 
-function emptyTotals(): Portfolio["totals"]["byLinkState"] {
-  return { active: 0, steady: 0, revise: 0, waiting: 0, gate: 0, down: 0, stale: 0, silent: 0 };
-}
-
 export function syntheticPortfolio(now: Date, count: number): Portfolio {
-  const byLinkState = emptyTotals();
-  const projects: PortfolioProject[] = [];
+  const projectRows = [];
+  const stepEventRows = [];
+  const runRows = [];
   for (let index = 0; index < count; index += 1) {
-    const state = LINK_STATES[index] ?? "steady";
+    const state: LinkState = LINK_STATES[index] ?? "silent";
     const key = KEYS[index] ?? `P${index}`;
-    byLinkState[state] += 1;
-    const silent = state === "silent";
-    const received = new Date(now.getTime() - (index + 1) * 60_000).toISOString();
-    const fact = statusOf(state);
-    const latest: PortfolioStepEvent | null = silent
-      ? null
-      : {
-          key,
-          task: "T02",
-          phase: "P01",
-          step: fact.step,
-          status: fact.status,
-          origin: "reported",
-          seq: 1,
-          at: received,
-          receivedAt: received,
-        };
-    projects.push({
+    const id = `fixture-${key}`;
+    projectRows.push({
+      id,
       key,
       repo: `fixture-org/${key.toLowerCase()}`,
-      staleAfterMinutes: 1440,
-      lastActivityAt: latest?.at ?? null,
-      lastContactAt: latest?.receivedAt ?? null,
-      latest,
-      freshness: silent ? "none" : state === "stale" ? "stale" : "fresh",
-      execution: latest ? "ci" : null,
-      tasks: { passed: 0, seen: latest ? 1 : 0 },
-      phase: latest ? { id: "P01", passed: 0, seen: 1 } : null,
-      linkState: state,
-      recent: latest ? [latest] : [],
+      stale_after_minutes: state === "stale" ? 1 : 1440,
+    });
+    if (state === "silent") continue;
+    const runId = `run-${key}`;
+    runRows.push({ id: runId, source: "ci" });
+    const received = new Date(now.getTime() - (index + 1) * 60_000).toISOString();
+    const fact = statusOf(state);
+    stepEventRows.push({
+      id: index + 1,
+      project_id: id,
+      run_id: runId,
+      seq: 1,
+      phase: "P01",
+      task: "T02",
+      step: fact.step,
+      status: fact.status,
+      origin: "reported",
+      at: received,
+      received_at: received,
     });
   }
-  const recentActivity = projects
-    .flatMap((project) => project.recent)
-    .sort((left, right) => Date.parse(right.receivedAt) - Date.parse(left.receivedAt))
-    .slice(0, 6);
-  const tasksSeen = projects.reduce((sum, project) => sum + project.tasks.seen, 0);
-  return {
-    projects,
-    totals: {
-      projects: projects.length,
-      fresh: projects.filter((project) => project.freshness === "fresh").length,
-      staleOrSilent: projects.filter((project) => project.linkState === "stale" || project.linkState === "silent").length,
-      tasksPassed: 0,
-      tasksSeen,
-      measuredAttempts: 0,
-      byLinkState,
-    },
-    recentActivity,
-    health: {
-      lastReceivedAt: recentActivity[0]?.receivedAt ?? null,
-      stepEventsLastHour: recentActivity.length,
+  return aggregatePortfolio(
+    {
+      projectRows,
+      stepEventRows,
+      runRows,
+      measuredEventIds: [],
       deliveriesLast24h: 0,
       rejectionsLast24h: 0,
     },
-    generatedAt: now.toISOString(),
-  };
+    now,
+  );
 }
 
 export function emptyPortfolio(now: Date): Portfolio {

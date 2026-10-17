@@ -22,16 +22,18 @@
   );
 }
 
-.fill {
+.meter {
   display: block;
+  inline-size: 100%;
   block-size: 100%;
-  inline-size: calc(attr(data-scale number, 0) * 1%);
-  border-radius: var(--radius-pill);
-  background: var(--color-energy);
 }
 
-.fill[data-move] {
-  transition: inline-size var(--dur-slow) var(--ease-in-out);
+.stroke {
+  stroke: var(--color-energy);
+}
+
+.track[data-move] .stroke {
+  transition: stroke-dashoffset var(--dur-slow) var(--ease-in-out);
 }
 
 .value {

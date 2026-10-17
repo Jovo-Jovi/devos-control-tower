@@ -8,15 +8,17 @@ function FactValue({
   pending,
   value,
   ready,
+  marker,
 }: {
   pending: string;
   value: React.ReactNode;
   ready: boolean;
+  marker?: "tower";
 }) {
   return (
     <span className={styles.value}>
       <span className={ready ? styles.quiet : undefined}>{pending}</span>
-      {ready ? <span className={styles.figure}>{value}</span> : null}
+      {ready ? <span className={styles.figure} data-last-received={marker}>{value}</span> : null}
     </span>
   );
 }
@@ -58,7 +60,7 @@ export function Tower({
         <span className={styles.word}>{copy.productWord}</span>
         <span className={styles.caption}>{copy.towerTitle}</span>
       </span>
-      <span className={styles.panel}>
+      <span className={styles.panel} data-tower-panel="">
         <span className={styles.state}>
           <span className={styles.led} />
           {stateWord}
@@ -75,9 +77,9 @@ export function Tower({
           <span>{copy.staleOrSilent}</span>
           <FactValue pending={copy.unknown} value={stale} ready={ready} />
         </span>
-        <span className={styles.fact}>
+        <span className={`${styles.fact} ${styles.factStack}`}>
           <span>{copy.lastReceived}</span>
-          <FactValue pending={copy.unknown} value={last} ready={ready} />
+          <FactValue pending={copy.unknown} value={last} ready={ready} marker="tower" />
         </span>
       </span>
       {MODULES.map((module) => (
