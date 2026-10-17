@@ -36,6 +36,7 @@ else is out of scope until an OD adds it.
 | A-1 (M2) | Ingest keys: `/projects/[key]/keys` owner page — issue (shown once, stored hashed), revoke; key path in `/api/ingest` (`source = local`) | OD to be drafted at M2 intake | plan label T08 |
 | A-2 (M3) | The Tower adopts the pilot's mechanical design gate (plan label TM02) and a retro-review of every page under it | OD at M3 intake | plan labels TM02, T09 |
 | A-3 (M5) | Discovery: App repo list, manifest detection, classes, consented connect, scope panel, §E scenarios as e2e; conditional telemetry only if decision 4 (b)/(c) | OD at M5 intake | plan labels T10–T14 |
+| A-4 (M1) | Design system v2 built: the v2 foundation (tokens §1, Inter + Geist Mono, `motion`, the primitives T04 uses) inside T04's scope; further primitives in T05–T07, whose fences follow v2; the sign-in retrofit `DESIGN_SYSTEM.md` §4.1 with the "Checking your access…" interstitial (`/auth/callback` page, `/auth/confirm` route) | OD-07 (DRAFT, issue #5), amends OD-06 A1 §4 | T04–T07 (rows unchanged), T08 |
 
 Amendments are written by intake when their milestone starts; the plan labels map to repository ids in
 `plan/ID-MAP.md`.

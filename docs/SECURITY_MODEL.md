@@ -47,6 +47,8 @@ Machine routes answer `application/json` with `Cache-Control: no-store` and no C
 | `POST /api/github/webhook` (T03) | HMAC | 1 production host else `404` · 2 `X-Hub-Signature-256` valid else `401`, nothing stored · 3 delivery id seen → `202`, nothing · 4 repository registered? else `202`, nothing · 5 store delivery + observation(s) → `202` | JSON |
 | `POST /api/github/reconcile` (M5) | App installation token, server-side | per Tower ADR-003 | JSON |
 | `/sign-in` | none | renders the GitHub button; states signed-out, denied (`?reason=not_owner`), error (`?reason=auth_error`) | HTML |
+| `/auth/callback` (page from T08, OD-07 §4; a route handler until then) | none | Supabase's OAuth return URL. Renders "Checking your access…"; in the browser it replaces itself with `/auth/confirm?code=<code>` (the `code` parameter only, every other parameter dropped) or, without a code, with `/sign-in?reason=auth_error`. The server renders no query value | HTML |
+| `GET /auth/confirm` (T08, OD-07 §4) | OAuth code + the Auth helper's PKCE verifier cookie | 1 code present and exchanged for a session, else `303 /sign-in?reason=auth_error` · 2 `select public.is_owner()` false → sign out + `303 /sign-in?reason=not_owner` · 3 `303 /` (exactly T01's callback logic, moved) | redirect |
 
 Rate limiting: Vercel's platform limits plus one in-route cap on `/api/ingest` of 60 requests per
 minute per project (`429`, contract §8) — a sender journals and retries later. Sessions: Supabase Auth
