@@ -87,11 +87,11 @@ timestamptz`. The key itself is shown once and never stored.
 |---|---|---|
 | `public.is_owner() returns boolean` | the only identity check: `auth.identities` (`provider = 'github'`, `user_id = auth.uid()`) joined to `public.owner_allowlist` | `language sql`, `stable`, **`security definer`**, `set search_path = ''`, fully qualified names, `execute` granted to `authenticated` only (ADR-002). The **only** `security definer` function in the database — pgTAP asserts the count |
 | `public.ingest_event(payload jsonb, src text) returns jsonb` (T02) | the atomic write: upsert `runs`, insert `events` with `body_hash`, insert `event_usage` rows, decide `stored` / `duplicate` / `conflict` (writing the rejection row for a conflict) — one transaction, because the route cannot open one through the JS client | `security invoker`; `execute` granted to `service_role` only; called by `/api/ingest` and the import action after authentication and schema validation |
-| `public.verify_reported_events(run uuid)` (T06) | sets `origin = 'verified'` on reported `checks`/`verdict`/`gate` events whose `evidence` commit has an observation with context `devos/<step>` and a matching state | `security invoker`; called inside `ingest_event` for the event's run and after each observation insert |
+| `public.verify_reported_events(run uuid)` (T07) | sets `origin = 'verified'` on reported `checks`/`verdict`/`gate` events whose `evidence` commit has an observation with context `devos/<step>` and a matching state | `security invoker`; called inside `ingest_event` for the event's run and after each observation insert |
 
 ## 5. Views
 
-`public.usage_by_attempt` (T05): one row per `(project, phase, task, run, agent, model, account_alias)`
+`public.usage_by_attempt` (T06): one row per `(project, phase, task, run, agent, model, account_alias)`
 with the four sums, `source`, the event's `status` and `at`. `security_invoker = true` so RLS of the
 underlying tables applies; `anon` sees no row.
 
@@ -127,5 +127,5 @@ id). pgTAP in `supabase/tests/`: RLS enabled on every table; every policy refere
 
 `supabase/migrations/<14-digit timestamp>_<snake_name>.sql`; a migration on `main` is never edited
 (`guard:data` rules 1–2). T01: `owner_allowlist`, `is_owner()`. T02: `projects`, `runs`, `events`,
-`event_usage`, `event_rejections`. T03: `webhook_deliveries`, `observations`. T05: `usage_by_attempt`.
-T06: `verify_reported_events`. Each has a down file under `supabase/down/` for rollback (`M1.md` §10).
+`event_usage`, `event_rejections`. T03: `webhook_deliveries`, `observations`. T06: `usage_by_attempt`.
+T07: `verify_reported_events`. Each has a down file under `supabase/down/` for rollback (`M1.md` §10).

@@ -11,12 +11,12 @@ quotation: the Tower has one owner and no price).
 | S-2 | Schema (`projects`, `runs`, `events`, `event_usage`, `event_rejections`) and `POST /api/ingest`: production host only, OIDC-verified, idempotent, contract answers exactly as §8 | J4 | T02 |
 | S-3 | GitHub App webhook receiver: HMAC check, `webhook_deliveries`, `observations` — origin **observed** | J4 | T03 |
 | S-4 | Portfolio `/`, `/projects/new`, Tower-health banner; states loading / empty / error / stale | J5 | T04 |
-| S-5 | Usage view `/projects/[key]/usage`: totals; by phase / task / attempt / agent / model / account alias; coverage per agent; failed attempts separate | J5 | T05 |
-| S-6 | Project page `/projects/[key]`: phases and tasks, run timeline by `seq`, origin labels reported / observed / verified / imported with age, evidence links | J5 | T06 |
-| S-7 | Pilot history export (`scripts/tower/export-history.mjs`) and import page `/projects/[key]/import`; replay of the pilot's 25 tasks labelled **imported** | J5 | T07 |
+| S-5 | Usage view `/projects/[key]/usage`: totals; by phase / task / attempt / agent / model / account alias; coverage per agent; failed attempts separate | J5 | T06 |
+| S-6 | Project page `/projects/[key]`: phases and tasks, run timeline by `seq`, origin labels reported / observed / verified / imported with age, evidence links | J5 | T07 |
+| S-7 | Pilot history export (`scripts/tower/export-history.mjs`) and import page `/projects/[key]/import`; replay of the pilot's 25 tasks labelled **imported** | J5 | T10 |
 
 The Tower reporting its own events (plan label TM01) is a method fix planned from a "Dev OS method fix"
-issue after T07 (Phase `PM`, PR-28); it is in scope of M1 and outside this table because intake assigns
+issue after T10 (Phase `PM`, PR-28); it is in scope of M1 and outside this table because intake assigns
 its id (`plan/ID-MAP.md`).
 
 ## 2. Out of scope

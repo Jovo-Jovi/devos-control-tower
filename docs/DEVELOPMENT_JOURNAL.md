@@ -125,3 +125,12 @@ minutes). A stall is restarted once in place; a second stall, or one too late to
 `devos-stall:` line that `builder-status.mjs` parks like a usage limit (resume after
 `resume.stall_wait_minutes`, default 10). A spent budget halts with a PR comment as before. T04 was
 not re-dispatched: the design v3 change request (#13) rewrites it first.
+
+## 2026-10-17 — Ledger renumbered for design v3 (owner session, issue #13)
+
+The owner chose layout (a) of the intake's question on #13: T04 becomes the design v3 foundation, a new
+T05 the overview as the tower map (gate G-Design-v3), the usage view T05 → T06, the project page T06 →
+T07, the history import T07 → T10 with G-Tower-v1, after the T09 sign-in retrofit. Forward references in
+SCOPE, DATA_MODEL, CONTENT_MODEL, the event contract, README and SETUP follow the new ids; signed
+decisions, requests, reviews and earlier fences keep their wording (history). `docs/fences/T04.md` is the
+old scope's v1 fence until intake reissues it; nothing dispatches T04 before then.

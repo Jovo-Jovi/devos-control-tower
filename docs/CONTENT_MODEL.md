@@ -8,7 +8,7 @@ text. What it renders is interface text from the catalogue and data from Postgre
 | Path | Holds | Written by |
 |---|---|---|
 | `src/i18n/messages/en.json` | every interface string (labels, state texts, button names, legend) | the builder, under the fence |
-| `supabase/seed.sql` | synthetic fixture rows for local and CI (`FIXTURE` project, run `gha-1-1`, events, one `event_usage` pair) | the builder (T02), extended by T05 |
+| `supabase/seed.sql` | synthetic fixture rows for local and CI (`FIXTURE` project, run `gha-1-1`, events, one `event_usage` pair) | the builder (T02), extended by T06 |
 | `tests/fixtures/*.json` | contract events and CLI result shapes used by unit and e2e tests | the builder |
 
 Nothing else is content. `guard:naming` still reads `docs/GLOSSARY.md` §3 and scans `content/` (absent →
@@ -27,9 +27,9 @@ state, login (owner or bot only). They are shown verbatim in `--font-mono` where
 | `/sign-in` | sign-in (states: signed-out, denied, error) | T01 |
 | `/` | portfolio | T04 |
 | `/projects/new` | register a project | T04 |
-| `/projects/[key]/usage` | usage view | T05 |
-| `/projects/[key]` | project page | T06 |
-| `/projects/[key]/import` | history import | T07 |
+| `/projects/[key]/usage` | usage view | T06 |
+| `/projects/[key]` | project page | T07 |
+| `/projects/[key]/import` | history import | T10 |
 | `/api/projects` | read API (owner session) | T04 |
 | `/api/ingest` | machine route, contract events | T02 |
 | `/api/github/webhook` | machine route, App deliveries | T03 |

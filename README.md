@@ -134,11 +134,11 @@ Before you merge a gate PR, check its three statuses: **`devos/checks`**, **`dev
 | Phase | What | Tasks | Gate |
 |---|---|---|---|
 | P01 | Tower v1 foundation: owner sign-in, OIDC-verified ingestion, GitHub App webhook receiver | T01–T03 | G-Tower-Auth, G-Tower-Ingest, G-Tower-Observe |
-| P02 | Tower v1 pages: portfolio, usage view, project timeline, pilot history replay | T04–T07 | G-Tower-v1 |
+| P02 | Tower v1 pages: design v3 foundation, tower map, usage view, project timeline, sign-in retrofit, pilot history replay | T04–T07, T09, T10 | G-Design-v3, G-Design-v2, G-Tower-v1 |
 
 Between T02 and T03 the pilot adopts its reporting method fix (plan label PM01) and the owner runs the
 CK1 checkpoint: a real pilot cycle run whose events land in the Tower's Postgres, proven by SQL and
-recorded in `docs/DEVELOPMENT_JOURNAL.md`. After T07 the pilot's companions report too (PM02) and the
+recorded in `docs/DEVELOPMENT_JOURNAL.md`. After T10 the pilot's companions report too (PM02) and the
 Tower reports its own events (plan label TM01, a Phase `PM` method-fix row added by intake). The
 plan-label → task-id map is `plan/ID-MAP.md` in `devos-plan`.
 

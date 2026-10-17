@@ -130,8 +130,8 @@ What you will see (`docs/PHASES.md`; the plan is milestone M1 of `devos-plan`):
 | 2 | T02 Schema + OIDC-verified ingestion (risk 3, G-Tower-Ingest) | deep review → PR waits | read `docs/reviews/T02-a1.md`, then **merge** |
 | — | pilot PM01 (method fix in `devos-pilot`) and the **CK1** checkpoint | you register the pilot by one SQL insert, merge PM01, run one pilot cycle | SQL proofs into `docs/DEVELOPMENT_JOURNAL.md`; fail → stop, no T03 |
 | 3 | T03 GitHub App webhook receiver (risk 3, G-Tower-Observe) | deep review → PR waits | **merge** |
-| 4 | T04 · T05 · T06 pages (risk 2) | light or deep review by the diff; design judged by hand at 1280/390 | merge each when `devos/gate` is green |
-| 5 | T07 Pilot history replay (G-Tower-v1) | PR waits | check 25/25 on the project page, then **merge** |
+| 4 | T04 · T05 · T06 · T07 pages (risk 2; T05 stops at G-Design-v3 for your look) | light or deep review by the diff; design judged by hand at 1280/390 | merge each when `devos/gate` is green |
+| 5 | T10 Pilot history replay (G-Tower-v1), after the T09 sign-in retrofit | PR waits | check 25/25 on the project page, then **merge** |
 
 Every merge you make triggers `devos-advance`, which dispatches the next task. On a FAIL the runner
 dispatches the reissued fence (attempt 2, then 3) on the same branch.

@@ -2,7 +2,7 @@
 
 One tiny event per workflow step, sent by the runner when the step ends. Reporting never blocks work.
 This document is normative for `report.mjs` (sender), the Tower's `/api/ingest` (receiver), the local
-runner (M2) and the import page (T06). Adopted by pilot ADR-004; authentication by pilot ADR-005.
+runner (M2) and the import page (T10). Adopted by pilot ADR-004; authentication by pilot ADR-005.
 
 ## 1. Event
 
@@ -242,7 +242,7 @@ Step shape in every workflow (the guard checks it when `tower.required` is true)
 | **reported** | `/api/ingest` with OIDC (ci) or ingest key (local) | `events` row, `origin = reported`, `source = ci | local` |
 | **observed** | GitHub App webhooks: `workflow_run`, `check_run`, `status`, `pull_request` (Tower ADR-003) | `observations` row |
 | **verified** | derived, not stored by the sender: a reported `checks`, `verdict` or `gate` event whose `evidence` commit `c` has an observed commit status on `c` with context `devos/<step>` and matching state (`pass` ↔ `success`; `fail`, `revise` ↔ `failure` or `error`) | label computed when read (or materialised by the Tower) |
-| **imported** | the owner's upload on `/projects/<key>/import` (T06) — the pilot's `PHASES.md`, reviews, reports and git history as events with `run = import-<commit>` | `events` row, `origin = imported`, `source = import` |
+| **imported** | the owner's upload on `/projects/<key>/import` (T10) — the pilot's `PHASES.md`, reviews, reports and git history as events with `run = import-<commit>` | `events` row, `origin = imported`, `source = import` |
 
 A reported completion without a matching observation is shown as **reported**, never as verified. Observed
 facts without a report (a status the Tower never got an event for) are shown as **observed**. Every label
