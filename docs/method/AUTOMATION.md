@@ -103,6 +103,7 @@ on its issue, updated at each check (PR-31).
 | `devos-deploy.yml` | push to main; dispatch (production/preview) | `which`, `deploy` | production order (§2) |
 | `ci.yml` | push to main; dispatch | `checks` | the same checks on main (PRs are checked by the cycle, PR-25) |
 | `devos-wait.yml` | dispatch only (from the waiting jobs) | `wait` | long usage-limit waits: sleeps as long as one job may, starts itself again, resumes the planning or task at the reset (PR-31) |
+| `devos-supervisor.yml` | any `devos-cycle`, `devos-intake`, `devos-deploy`, `devos-resume`, `devos-wait` or `devos-advance` run finishing; every 30 minutes (:11, :41); `/devos approve <id>` / `/devos reject <id>` on the supervisor issue; dispatch (dry run) | `supervise` | finds stopped or stalled work, fixes what is safe, turns the rest into approvals (`supervisor.mjs`, §4) |
 
 GitHub rules the design depends on: pushes and merges made with the built-in `GITHUB_TOKEN` start no
 workflows (except `workflow_dispatch`), so the runner dispatches explicitly; `GITHUB_TOKEN` can never
@@ -151,8 +152,10 @@ or locale) · `data` (migrations, RLS, grants, server-only secret key, synthetic
 
 ## 6. Prompts, schemas, rules
 
-`devos/prompts/`: `builder.md`, `reviewer.md`, `intake.md`, `method.md`, `revise.md`, `doctor.md`.
-`devos/schemas/`: verdict, intake (also revise and method), doctor.
+`devos/prompts/`: `builder.md`, `reviewer.md`, `intake.md`, `method.md`, `revise.md`, `doctor.md`, `supervisor.md`.
+`devos/schemas/`: verdict, intake (also revise and method), doctor, supervisor.
+
+Other scripts: `scripts/scene/art.mjs` is product code of the Tower (T04): it prints the scene-art prompts, checks generated images (size, ratio, seams, poles, bytes) and verifies the bundled set. `.gitattributes` merges `docs/DEVELOPMENT_JOURNAL.md` by union.
 
 A UI fence carries a header line `- Screens: \`<name> <path>[ click|hover|focus <selector>]\` · …` naming every page, state and interaction to capture. `screens.mjs` reads that line; without it, `devos.config.json` `screens.pages` is used.
 
@@ -175,13 +178,19 @@ A UI fence carries a header line `- Screens: \`<name> <path>[ click|hover|focus 
   `devos/gate` (the doctor: ready for your merge or not).
 - **Labels:** `devos`, `risk-1..3`, `devos:auto-merged`, `devos:human-gate`, `devos:halted`,
   `devos:quota-wait`, `devos:setup-wait`, `devos:needs-you`, `devos:method`, `devos:intake`,
-  `devos:request`, `devos:setup`, `devos:notices`.
+  `devos:request`, `devos:setup`, `devos:notices` (issue #1: run notices and the live builder progress
+  comments), `devos:supervisor` (the supervisor's issue).
+- **Branches:** `task/Tnn` (one per task), `intake/issue-N` (plans), `rescue/task/Tnn-<run id>` (the
+  work of a run whose push conflicted; the supervisor recovers it with `rescue.sh`).
 - **Comment markers** (HTML comments the runner reads back): `devos-resume` (park and resume),
   `devos-intake-resume`, `devos-held` / `devos-held-done` (PR-20), `devos-doctor`, `devos-setup`,
-  `devos-setup-wait`, `devos-setup-missing`, `devos-setup-resumed`.
+  `devos-setup-wait`, `devos-setup-missing`, `devos-setup-resumed`, `devos-supervisor` (one per
+  incident: key, action, done, AI used, pending proposal), and the builder commit tag
+  "(time slice k)" that tells the next run which slice it is.
 - **Run scratch** (`.devos/`, never committed, kept as the run's artifact): prompts, agent output,
   `ci-results.json`, `logs/`, `evidence.md`, `screens/` (`motion.json` plus settled, filmstrip and reduced-motion PNGs), `*.env` (module services), `limits/`,
-  `accounts.md`, `setup.md`, `setup-result.json`.
+  `accounts.md`, `setup.md`, `setup-result.json`, `progress-issue` / `progress-comment` (the live
+  progress comment), `supervisor/` (facts, incidents, Claude's diagnosis).
 
 ## 8. Settings
 
@@ -212,6 +221,7 @@ A UI fence carries a header line `- Screens: \`<name> <path>[ click|hover|focus 
   | `DEVOS_HEAVY` | **notify** · hold | heavy runs are announced; hold also waits for `/devos go` | SETUP §11.8 |
   | `DEVOS_CURSOR_ACCOUNT` | **1** · 2 | the Cursor account (builder) a run starts with | SETUP §15 |
   | `DEVOS_CLAUDE_ACCOUNT` | **1** · 2 | the Claude account (review, planning, revision) a run starts with | SETUP §15 |
+  | `DEVOS_SUPERVISOR` | **on** · off | off stops the supervisor only (the cycle keeps running) | §4 |
   | `DEVOS_ACCOUNT_SWITCH` | **auto** · off | auto: at a usage limit the run continues on the other account; off: only the chosen one (shared by Cursor and Claude) | SETUP §15 |
 
   Accounts, in practice: nothing set = both accounts on, starting with 1 · only account 2 =
@@ -221,9 +231,13 @@ A UI fence carries a header line `- Screens: \`<name> <path>[ click|hover|focus 
 - **`devos.config.json`:** `max_attempts`; `builder` (model family, effort by risk); `reviewer`
   (models and efforts by risk and gate, `modes.light/deep`, `deep_paths`, intake and method efforts);
   `required_checks` / `optional_checks`; `screens` (`pages`, `filmstrip_ms`, `settle_max_ms`; a fence `- Screens:` line overrides `pages`); `surfaces` (builder, builder_method, reviewer, intake,
-  revise); `resume` (inline wait, relay, back-off); `modules` (supabase, r2, firebase); `heavy`; `retry_build_on`.
+  revise); `resume` (inline wait, relay, back-off, `stall_wait_minutes`); `modules` (supabase, r2, firebase); `heavy`; `retry_build_on`;
+  `builder.max_time_slices` (4) and `builder.idle_stop_minutes` (30) for the watchdog; `supervisor`
+  (`model`, `max_auto_per_key`, `max_ai_per_day`, `idle_minutes`, `overdue_park_minutes`, issue title and label).
 - **Commands** (owners, members, collaborators only): `/devos intake [resume]`, `/devos revise …`,
-  `/devos doctor`, `/devos go`, `/devos setup`.
+  `/devos doctor`, `/devos go`, `/devos setup`, `/devos approve <id>`, `/devos reject <id>` (on the
+  supervisor issue). A command works only when the comment **starts** with it; editing a comment
+  does not run it.
 
 ## 9. When something goes wrong
 
@@ -234,7 +248,10 @@ A UI fence carries a header line `- Screens: \`<name> <path>[ click|hover|focus 
 | Review finds an outside cause | `setup_wait`: no retry spent; steps in the verdict | add it, comment `/devos setup` |
 | A check fails on the code | the reviewer FAILs with a focus; Grok retries up to `max_attempts` | only at halt: `/devos revise` or a change request |
 | Review over its turn limit | the verdict is taken from the complete review file (PR-21) | nothing |
-| Main moved during a run | merged in before push; re-checked before any merge (PR-14, PR-25) | nothing |
+| Main moved during a run | merged in before push (the journal by union); a real conflict saves the work on `rescue/…` and the supervisor recovers it; re-checked before any merge (PR-14, PR-25) | nothing |
+| The builder runs out of time while still working | the slice is committed and the same attempt continues in a fresh run (up to 4 slices) | nothing; watch issue #1 |
+| The builder loses its connection or stops changing anything | restarted once; then parked (connection) or halted (stuck), and the supervisor re-dispatches within its limit | nothing, unless the supervisor asks |
+| Any run stops and no rule above covers it | the supervisor asks Claude for a diagnosis and fixes or proposes | approve or reject on the supervisor issue |
 | Google Fonts download fails the build | retried three times (PR-24) | nothing |
 | Deploy fails (database paused, wrong key) | stops before the app moves, with the reason | fix the setting; a failed deploy re-runs when setup completes |
 | The automation itself misbehaves | — | file a "Dev OS method fix" with the run link |
