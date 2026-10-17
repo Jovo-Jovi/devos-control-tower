@@ -183,6 +183,26 @@
   gap: var(--space-1);
 }
 
+.value {
+  position: relative;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-align: end;
+  block-size: calc(var(--text-0) * var(--leading) * 2);
+}
+
+.quiet {
+  visibility: hidden;
+}
+
+.figure {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  text-align: start;
+}
+
 .led,
 .moduleLed {
   inline-size: var(--space-2);

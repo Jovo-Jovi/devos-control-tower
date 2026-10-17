@@ -1,0 +1,134 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-block-size: var(--panel-min);
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+  background: var(--glass);
+  box-shadow: var(--edge), var(--lift);
+  backdrop-filter: blur(var(--blur-glass)) saturate(1.6);
+}
+
+.panel h2,
+.recent {
+  margin: 0;
+  font-size: var(--text-3);
+  font-weight: 600;
+}
+
+.skeleton {
+  display: block;
+  flex: 1 1 auto;
+  border-radius: var(--radius-2);
+  background: var(--color-line);
+}
+
+.ringWrap {
+  position: relative;
+  display: grid;
+  inline-size: var(--space-8);
+  block-size: var(--space-8);
+  place-items: center;
+}
+
+.ring {
+  inline-size: 100%;
+  block-size: 100%;
+  transform: rotate(-90deg);
+}
+
+.track,
+.arc {
+  fill: none;
+  stroke-width: var(--space-1);
+}
+
+.track {
+  stroke: var(--track);
+}
+
+.arc {
+  stroke: var(--color-energy);
+  stroke-dasharray: var(--overview-ring);
+  stroke-dashoffset: calc(var(--overview-ring) * (100 - attr(data-scale number, 0)) / 100);
+  transition: stroke-dashoffset var(--dur-slow) var(--ease-in-out);
+}
+
+.ringValue {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.states,
+.activity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.states li,
+.activity li,
+.health {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-1);
+}
+
+.health {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.health dt {
+  color: var(--color-ink-muted);
+}
+
+.health dd,
+.key {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.activity li[data-rise] {
+  animation: rise var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .panel {
+    background: var(--color-surface);
+  }
+}
+
+@media (max-width: 47.5rem) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

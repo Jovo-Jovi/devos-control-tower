@@ -1,7 +1,7 @@
 # TOWER — Carry-forwards
 
 Every finding becomes a row. The reviewer describes the row in a verdict; the landing task allocates
-the id from the live maximum and reports it. **Live maximum: CF-015.**
+the id from the live maximum and reports it. **Live maximum: CF-016.**
 
 Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` · `HANDOVER`.
 
@@ -22,3 +22,4 @@ Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` 
 | CF-013 | `docs/SESSION_CONTEXT.md` showed T08 `built — awaiting verdict` while `docs/PHASES.md` has `PASS a2` (`docs/reviews/T03-a1.md` b). | T04 ledger step | CLOSED at T04 | T04 |
 | CF-014 | `DESIGN_SYSTEM.md` §3 `LiveMark` is "only while the realtime channel is open", but `DATA_MODEL.md` §1 says the browser never calls Supabase except for the Auth redirect (`docs/reviews/T03-a1.md` c). Settled by OD-08 §11 and `DESIGN_SYSTEM.md` §3: no LiveMark in this task. | human | CLOSED at T04 | T04 |
 | CF-015 | `DESIGN_SYSTEM.md` §1 declared `--font-mono: var(--font-mono), …`, a self-reference (`docs/reviews/T03-a1.md` d). Settled by OD-08 §11 and `DESIGN_SYSTEM.md` §1; S1 landed `--font-mono: var(--font-geist-mono), ui-monospace, monospace`. | human | CLOSED at T04 | T04 |
+| CF-016 | `DESIGN_SYSTEM.md` §4 and §5.3 cap first-paint choreography at 740 ms (`--dur-slow` + 320 ms stagger). Blade ignition uses `--dur-ignite` 720 ms and `--stagger-ignite` 70 ms, so eight blades take 720 + 7 × 70 = 1 210 ms. Fence T05 follows README §4.3 and the §1 tokens and does not reconcile the two (`docs/reviews/T04-a1.md` Carry-forwards logged). | human | OPEN | G-Design-v3 |

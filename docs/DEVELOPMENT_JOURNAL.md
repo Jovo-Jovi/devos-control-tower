@@ -166,3 +166,13 @@ entries during the run (the owner-session runner fixes) and the builder's own jo
 with them in `sync-main.sh`. The runner's checkout was discarded, and the build with it. Now
 `docs/DEVELOPMENT_JOURNAL.md` merges by union (`.gitattributes`), so two appended entries never
 conflict, and any other conflict first pushes the run's unmerged work to `rescue/<branch>-<run id>`.
+
+## 2026-10-17 — T05 Overview as the tower map (attempts 1 and 2)
+
+Attempt 1 (`1f76c4a`) landed the portfolio aggregate, the owner read of projects, `GET /api/projects`,
+the register action, the map pieces and the 93-key catalogue, then ran out of budget with no report.
+Attempt 2 kept that work and added the missing styles, the shell (poll status, Overview and Register
+project links, view transitions, the live mark), the overview page, the register page, seven overview
+tests, and the scene fixed to the viewport (`position: fixed`, `100lvh`). Playwright's Chromium was
+installed once so `pnpm e2e` could launch. CF-016 is open for the human at G-Design-v3: ignition of
+eight blades is 1 210 ms, against the 740 ms first-paint cap. Awaiting the verdict, then the owner's gate.

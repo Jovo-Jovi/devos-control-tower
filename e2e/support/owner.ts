@@ -19,6 +19,8 @@ const FIXTURES = [
   { githubId: "700002", login: "fixture-other" },
 ] as const;
 
+export type OwnerFixture = { githubId: string; login: string };
+
 function localEnv(): Record<string, string> {
   const env: Record<string, string> = {};
   const text = readFileSync(".devos/supabase.env", "utf8");
@@ -116,9 +118,9 @@ export async function sessionCookies(email: string): Promise<SessionCookie[]> {
   });
 }
 
-export async function removeOwner(): Promise<void> {
-  const emails = FIXTURES.map((fixture) => `'${fixture.login}@example.test'`).join(", ");
-  const ids = FIXTURES.map((fixture) => `'${fixture.githubId}'`).join(", ");
+export async function removeOwner(fixtures: readonly OwnerFixture[] = FIXTURES): Promise<void> {
+  const emails = fixtures.map((fixture) => `'${fixture.login}@example.test'`).join(", ");
+  const ids = fixtures.map((fixture) => `'${fixture.githubId}'`).join(", ");
   psql(
     `delete from public.owner_allowlist where github_id in (${ids}); delete from auth.users where email in (${emails});`,
   );

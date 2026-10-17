@@ -1,0 +1,7 @@
+.title {
+  margin: 0;
+  font-size: var(--text-5);
+  font-weight: 700;
+  letter-spacing: var(--tracking-title);
+  line-height: var(--leading-tight);
+}

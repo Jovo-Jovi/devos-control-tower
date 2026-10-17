@@ -5,7 +5,10 @@ import styles from "./Bar.module.css";
 
 export function Bar({ passed, seen, dash }: { passed: number; seen: number; dash: string }) {
   const [move, setMove] = useState(false);
-  useEffect(() => setMove(true), []);
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => setMove(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
   const empty = seen === 0;
   const scale = empty ? 0 : Math.max(0, Math.min(100, Math.round((passed / seen) * 100)));
   return (

@@ -4,6 +4,23 @@ import styles from "./Tower.module.css";
 
 const MODULES = [0, 1, 2, 3, 4, 5, 6, 7] as const;
 
+function FactValue({
+  pending,
+  value,
+  ready,
+}: {
+  pending: string;
+  value: React.ReactNode;
+  ready: boolean;
+}) {
+  return (
+    <span className={styles.value}>
+      <span className={ready ? styles.quiet : undefined}>{pending}</span>
+      {ready ? <span className={styles.figure}>{value}</span> : null}
+    </span>
+  );
+}
+
 export function Tower({
   copy,
   stateWord,
@@ -11,6 +28,7 @@ export function Tower({
   fresh,
   stale,
   last,
+  ready,
   flashModules,
 }: {
   copy: OverviewCopy;
@@ -19,6 +37,7 @@ export function Tower({
   fresh: string;
   stale: string;
   last: React.ReactNode;
+  ready: boolean;
   flashModules: readonly number[];
 }) {
   return (
@@ -46,19 +65,19 @@ export function Tower({
         </span>
         <span className={styles.fact}>
           <span>{copy.projects}</span>
-          <span>{projects}</span>
+          <FactValue pending={copy.unknown} value={projects} ready={ready} />
         </span>
         <span className={styles.fact}>
           <span>{copy.fresh}</span>
-          <span>{fresh}</span>
+          <FactValue pending={copy.unknown} value={fresh} ready={ready} />
         </span>
         <span className={styles.fact}>
           <span>{copy.staleOrSilent}</span>
-          <span>{stale}</span>
+          <FactValue pending={copy.unknown} value={stale} ready={ready} />
         </span>
         <span className={styles.fact}>
           <span>{copy.lastReceived}</span>
-          <span>{last}</span>
+          <FactValue pending={copy.unknown} value={last} ready={ready} />
         </span>
       </span>
       {MODULES.map((module) => (

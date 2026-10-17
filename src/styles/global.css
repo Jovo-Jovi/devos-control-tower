@@ -37,6 +37,67 @@ body {
   }
 }
 
-:root[data-scene-paused] * {
-  animation-play-state: paused;
+:root[data-scene-paused] *,
+:root[data-scene-paused] *::before,
+:root[data-scene-paused] *::after {
+  animation-play-state: paused !important;
+}
+
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-out);
+}
+
+::view-transition-old(*) {
+  animation-name: view-fade;
+}
+
+::view-transition-new(*) {
+  animation-name: view-rise;
+}
+
+@keyframes view-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--rise));
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes view-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes view-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: var(--dur-quick);
+    animation-timing-function: var(--ease-out);
+    transform: none;
+  }
+
+  ::view-transition-old(*) {
+    animation-name: view-fade;
+  }
+
+  ::view-transition-new(*) {
+    animation-name: view-fade-in;
+  }
 }

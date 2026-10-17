@@ -54,10 +54,12 @@ export function BladeField({
       }
       previous.current[blade.slot] = blade.linkState;
     }
-    if (play) {
-      ignitedOnce = true;
+    if (!play) return;
+    ignitedOnce = true;
+    const id = window.requestAnimationFrame(() => {
       setIgnite((current) => ({ ...current, ...next }));
-    }
+    });
+    return () => window.cancelAnimationFrame(id);
   }, [blades, ignite]);
 
   const bySlot = new Map(blades.map((blade) => [blade.slot, blade]));

@@ -1,4 +1,5 @@
 import { Bidi } from "@/components/Bidi";
+import { LiveMark } from "@/components/LiveMark";
 import { ThemeSwitch } from "@/components/ThemeSwitch";
 import styles from "./AppHeader.module.css";
 
@@ -11,6 +12,8 @@ export function AppHeader({
   themeAuto,
   themeLight,
   themeDark,
+  live,
+  offline,
 }: {
   title: string;
   login: string;
@@ -20,11 +23,14 @@ export function AppHeader({
   themeAuto: string;
   themeLight: string;
   themeDark: string;
+  live: string;
+  offline: string;
 }) {
   return (
     <header className={styles.header}>
       <div className={styles.lead}>
         <p className={styles.title}>{title}</p>
+        <LiveMark live={live} offline={offline} />
         <ThemeSwitch label={themeLabel} auto={themeAuto} light={themeLight} dark={themeDark} />
       </div>
       <div className={styles.owner}>
