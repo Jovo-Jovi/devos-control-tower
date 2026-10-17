@@ -7,7 +7,7 @@
     "title": "Sign in",
     "body": "The Tower admits one GitHub account: its owner.",
     "button": "Continue with GitHub",
-    "denied": "This GitHub account is not the owner. You have been signed out.",
+    "denied": "This GitHub account is not the owner. Signed out.",
     "error": "Sign-in did not complete: {reason}. Try again.",
     "authErrorReason": "no session was returned",
     "retry": "Try again"

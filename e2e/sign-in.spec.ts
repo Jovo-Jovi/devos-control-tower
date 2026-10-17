@@ -25,8 +25,15 @@ test("unsigned visitors are sent to sign-in and the read API refuses them", asyn
   const denied = await request.get("/sign-in?reason=not_owner", { maxRedirects: 0 });
   expect(denied.status()).toBe(403);
   const deniedBody = await denied.text();
-  expect(deniedBody).toContain('<html lang="en" dir="ltr"');
-  expect(deniedBody).toContain("This GitHub account is not the owner. You have been signed out.");
+  expect(deniedBody).toContain("This GitHub account is not the owner. Signed out.");
+
+  const signedOut = await request.get("/sign-in", { maxRedirects: 0 });
+  expect(signedOut.status()).toBe(200);
+  expect(await signedOut.text()).toContain('<html lang="en" dir="ltr"');
+
+  const authError = await request.get("/sign-in?reason=auth_error", { maxRedirects: 0 });
+  expect(authError.status()).toBe(200);
+  expect(await authError.text()).toContain('<html lang="en" dir="ltr"');
 });
 
 test("sign-in renders its three states and the header baseline", async ({ page }) => {
@@ -38,6 +45,8 @@ test("sign-in renders its three states and the header baseline", async ({ page }
 
   const signedOut = await page.goto("/sign-in");
   expect(signedOut?.status()).toBe(200);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
   await expect(page.getByText("The Tower admits one GitHub account: its owner.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Continue with GitHub" })).toBeVisible();
@@ -62,10 +71,14 @@ test("sign-in renders its three states and the header baseline", async ({ page }
 
   const denied = await page.goto("/sign-in?reason=not_owner");
   expect(denied?.status()).toBe(403);
-  await expect(page.getByText("This GitHub account is not the owner. You have been signed out.")).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await expect(page.getByText("This GitHub account is not the owner. Signed out.")).toBeVisible();
 
   const errored = await page.goto("/sign-in?reason=auth_error");
   expect(errored?.status()).toBe(200);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.getByText("Sign-in did not complete: no session was returned. Try again.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Try again" })).toBeVisible();
   expect(cspMessages).toEqual([]);
