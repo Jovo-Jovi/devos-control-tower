@@ -465,6 +465,9 @@ GitHub Actions or on your computer) can work on it without this conversation's h
   runner script, guard, prompt, label, status, marker and setting, what happens when something
   fails, and how to change the automation safely. `guard:manual` fails any change that leaves it
   behind, so it stays complete.
+- **`docs/HOW_TO_USE_DEVOS_AND_WORKFLOWS.md`**, the owner's guide in plain words, sorted by topic
+  with an A–Z index: daily routine, requests, gates, progress, the supervisor, commands, settings,
+  limits, deploys, what to do when something goes wrong, and every workflow and script.
 - **`CLAUDE.md`** and **`docs/method/PRECEDENTS.md`**: the binding rules.
 - **When the automation misbehaves:** open a "Dev OS method fix" issue with the run link (the
   reviewer diagnoses, Grok fixes, you merge), or run `claude` in the repository on your computer and
