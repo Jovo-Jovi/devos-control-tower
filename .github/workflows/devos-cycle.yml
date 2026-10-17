@@ -281,12 +281,25 @@ jobs:
           hb=$!
           # PR-29: on a usage limit, the same attempt continues on the other account at once; the
           # partial work stays in the tree and the second run is told to continue from it.
-          used=""
+          # The watchdog stops a hung CLI inside this step (72 of its 80 minutes), so the work is always
+          # committed and the park/halt comment always posted. A lost connection that makes no progress
+          # for 10 minutes is restarted once in place; a second stall parks the task (builder-status).
+          used=""; restarted=""; T0=$(date +%s)
           for acc in $accounts; do
             devos_use_cursor "$acc"; used="$acc"
-            agent -p --force --trust --approve-mcps --model "$MODEL" --output-format json \
-              "$(cat .devos/builder-prompt.md)" > .devos/builder.json 2> .devos/builder.err
-            code=$?
+            while :; do
+              left=$(( 72 - ($(date +%s) - T0) / 60 ))
+              bash scripts/devos/agent-watchdog.sh "$left" 10 .devos/builder.json .devos/builder.err -- \
+                agent -p --force --trust --approve-mcps --model "$MODEL" --output-format json "$(cat .devos/builder-prompt.md)"
+              code=$?
+              if [ "$code" = "125" ] && [ -z "$restarted" ] && [ $(( 72 - ($(date +%s) - T0) / 60 )) -ge 25 ]; then
+                restarted=1; mkdir -p .devos/logs; cp .devos/builder.err .devos/logs/builder-stalled.err
+                devos_note "Builder: the Cursor CLI lost its connection and stopped making progress; restarted once."
+                printf '\n\n**An earlier run of this attempt lost its connection to Cursor.** Its partial changes are already in the working tree (`git status`). Verify them against the fence and continue from them; do not redo or duplicate them.\n' >> .devos/builder-prompt.md
+                continue
+              fi
+              break
+            done
             if [ "$code" != "0" ] && devos_limited .devos/builder.json .devos/builder.err "$code"; then
               mkdir -p .devos/limits; cat .devos/builder.json .devos/builder.err > ".devos/limits/cursor-$acc.txt"
               devos_note "Builder: Cursor account $acc reached its usage limit."
@@ -401,7 +414,7 @@ jobs:
           cat .devos/builder-summary.md >> "$GITHUB_STEP_SUMMARY"
           if [ "$STATE" = "quota" ]; then
             gh pr edit "$PRN" --repo "$REPO" --add-label "devos:quota-wait"
-            echo "::warning title=Dev OS::$TASK parked: Cursor usage/rate limit. devos-resume retries hourly."
+            echo "::warning title=Dev OS::$TASK parked (Cursor usage limit or lost connection); it resumes on its own. See the PR comment."
           else
             gh pr edit "$PRN" --repo "$REPO" --add-label "devos:halted"
             echo "::error title=Dev OS::$TASK halted: the builder failed (not a usage limit). See the PR comment."

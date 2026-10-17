@@ -32,19 +32,26 @@ let state = "ok";
 // PR-29: with a second Cursor account, both were tried; resume when the first one resets.
 const waitUntil = earliestNotBefore("cursor", `${out}\n${err}`, config().resume?.default_wait_minutes ?? 60);
 let reason = "builder finished";
+// agent-watchdog.sh: a CLI that lost its connection and stalled twice is transient, not a defect:
+// park the same attempt for a short wait (no review spent) instead of halting it.
+const stalled = /devos-stall:/.test(err);
+const stallWait = new Date(Date.now() + (config().resume?.stall_wait_minutes ?? 10) * 60000).toISOString().replace(/\.\d{3}Z$/, "Z");
 if (failed) {
-  state = looksLikeLimit(out, err) ? "quota" : "error";
+  state = stalled || looksLikeLimit(out, err) ? "quota" : "error";
   reason = `builder exit ${Number.isNaN(exit) ? "unknown" : exit}${detail ? `: ${detail}` : ""}`;
 }
+const resumeAt = stalled ? stallWait : waitUntil;
 
 if (state !== "ok") {
   const head = state === "quota"
-    ? `### Dev OS ${task} · attempt ${attempt} · **waiting for Cursor usage** → \`quota_wait\``
+    ? `### Dev OS ${task} · attempt ${attempt} · **${stalled ? "Cursor connection lost" : "waiting for Cursor usage"}** → \`quota_wait\``
     : `### Dev OS ${task} · attempt ${attempt} · **builder error** → \`halt\``;
-  const body = state === "quota"
+  const body = state === "quota" && stalled
+    ? `The Cursor CLI lost its connection and stopped making progress. Whatever it finished is committed on this branch. No review was spent and the attempt was not used up. The runner resumes it after **${resumeAt}** (UTC); remove the \`devos:quota-wait\` label to cancel that.`
+    : state === "quota"
     ? `Cursor stopped on a plan/usage or rate limit. Whatever it finished is committed on this branch. No review was spent and the attempt was not used up. The runner resumes it after **${waitUntil}** (UTC); remove the \`devos:quota-wait\` label to cancel that.`
     : `The Cursor CLI failed before finishing, for a reason that does not look like a usage limit. Whatever it finished is committed on this branch. No review was spent. Fix the cause (key, model id, install), then re-run devos-cycle with task=${task} attempt=${attempt}.`;
   writeFileSync(P(".devos/builder-summary.md"), [head, "", body, "", "```", reason, "```", "",
-    state === "quota" ? resumeMarker(task, attempt, false, waitUntil) : ""].join("\n"));
+    state === "quota" ? resumeMarker(task, attempt, false, resumeAt) : ""].join("\n"));
 }
-emit({ state, reason, not_before: state === "quota" ? waitUntil : "" });
+emit({ state, reason, not_before: state === "quota" ? resumeAt : "" });

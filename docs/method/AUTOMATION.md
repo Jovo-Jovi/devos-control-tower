@@ -49,7 +49,7 @@ merge signs the OD → `devos-advance` dispatches `devos-cycle`.
    cycle` stops a run that has no credentials (PR-27); `heavy.mjs` announces or holds heavy runs (PR-20).
 2. `cycle`: branch `task/Tnn` (a reissue continues it, PR-03) → `builder-model.mjs` picks the Grok
    id → `modules.mjs start` brings up the local services → Grok builds (`accounts.sh` switches
-   Cursor accounts on a limit, PR-29) → `guard-surfaces.mjs builder` + the method-file guard (from
+   Cursor accounts on a limit, PR-29; `agent-watchdog.sh` stops a hung CLI inside the step) → `guard-surfaces.mjs builder` + the method-file guard (from
    main's workflow) → commit, `sync-main.sh`, push → PR → `builder-status.mjs` (ok / park / halt) →
    `run-checks.mjs` + `checks-status.sh` (status `devos/checks`) → preview + `screens.mjs` (settled screenshot, filmstrip, reduced-motion screenshot and layout shift, written to `.devos/screens/motion.json`) →
    `review-mode.mjs` (light/deep) + `evidence.mjs` → Claude reviews (account switch, PR-29) →
@@ -122,7 +122,8 @@ workflow may start late.
 | `accounts.sh` · `limit-check.mjs` | account order, credential export, limit detection (PR-29) |
 | `guard-surfaces.mjs` | who may change what, per role |
 | `sync-main.sh` | merges main into the task branch before every push (PR-14) |
-| `builder-status.mjs` | ok / quota park / halt after the build |
+| `agent-watchdog.sh` | runs the Cursor CLI with a 72-minute budget and a stall check: a lost connection with no progress for 10 minutes is restarted once, then parked (`devos-stall:`), so the step never hits its timeout with nothing committed |
+| `builder-status.mjs` | ok / quota park (usage limit or `devos-stall:`) / halt after the build |
 | `run-checks.mjs` | module checks, then guards, typecheck, lint, test, build, e2e → `.devos/ci-results.json` |
 | `checks-status.sh` | posts `devos/checks` |
 | `vercel-deploy.sh` | git-less prebuilt upload, prints only a real URL |

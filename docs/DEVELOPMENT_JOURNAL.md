@@ -113,3 +113,15 @@ on the raw body, and stores one `webhook_deliveries` row and one `observations` 
 repository. Unknown events, unregistered repositories and redeliveries answer 202 and store nothing.
 The conclusion is folded into `state` (DATA_MODEL §2.8). Carry-forwards CF-008…CF-011 landed from
 T02's review. Awaiting the verdict and G-Tower-Observe.
+
+## 2026-10-17 — Runner: hung builder watchdog (owner-requested fix)
+
+T04 attempt 1 (run 39030193670) changed no file in 80 minutes: at minute 13 the Cursor CLI printed
+"Connection lost, reconnecting … Retry attempt 1" and never returned. The step hit its 80-minute
+timeout, so the job skipped the commit, the PR and the park/halt comment, and nothing visible
+happened. `scripts/devos/agent-watchdog.sh` now runs the CLI with a 72-minute budget and a stall check
+(a lost connection that is still the CLI's last line and no change to the tree or its output for 10
+minutes). A stall is restarted once in place; a second stall, or one too late to restart, ends with a
+`devos-stall:` line that `builder-status.mjs` parks like a usage limit (resume after
+`resume.stall_wait_minutes`, default 10). A spent budget halts with a PR comment as before. T04 was
+not re-dispatched: the design v3 change request (#13) rewrites it first.
