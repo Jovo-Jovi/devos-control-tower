@@ -60,3 +60,9 @@ states; the denied state is HTTP 403 via `forbidden()`. The header baseline is o
 a per-request CSP nonce. `/` redirects an anonymous request to `/sign-in`; `/api/projects` answers
 401 without a session. No product tables, webhook, or portfolio. Awaiting the verdict and
 G-Tower-Auth.
+
+## 2026-10-17 — T01 skeleton (builder, attempt 2)
+
+Reissue. Sign-out `POST` answers 303 through `NextResponse.redirect`. An anonymous request to any page except `/sign-in`, the auth routes, `/api/`, `/_next/` and `/favicon.ico` is `302 /sign-in`. Production `style-src` is `'self'` and the per-request nonce. The focus offset is `calc(var(--space-1) / 2)`. `DocumentLocale` is removed.
+
+S3 halts. `forbidden()` before streaming, including a static page whose only call is `forbidden()`, is HTTP 403 on Next's `<html id="__next_error__">`, which has no `lang` or `dir`. The root layout's `lang` and `dir` are in the Flight payload. `<Suspense>` around the check keeps those attributes and answers 200. `await connection()` in the root layout is not what strips them. No documented path yields both the 403 and the document locale.

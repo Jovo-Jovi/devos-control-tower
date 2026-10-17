@@ -18,7 +18,9 @@ function contentSecurityPolicy(nonce: string): string {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${evalSource}`,
-    "style-src 'self' 'unsafe-inline'",
+    process.env.NODE_ENV === "production"
+      ? `style-src 'self' 'nonce-${nonce}'`
+      : "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://avatars.githubusercontent.com",
     `connect-src ${connectSrc}`,
     "font-src 'self'",
@@ -32,9 +34,10 @@ function isSessionExempt(pathname: string): boolean {
   return (
     pathname === "/sign-in" ||
     pathname === "/auth/callback" ||
-    pathname.startsWith("/api/ingest") ||
-    pathname.startsWith("/api/github/webhook") ||
-    pathname.startsWith("/_next/")
+    pathname === "/auth/sign-out" ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico"
   );
 }
 
@@ -75,10 +78,7 @@ export async function proxy(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname;
-  // /api/projects answers 401 itself (SECURITY_MODEL §3). Unknown paths are not redirected:
-  // Done-when D3 requires a missing path to be 404, which only happens if this proxy calls next().
-  const sessionGated = pathname === "/";
-  if (!signedIn && sessionGated && !isSessionExempt(pathname)) {
+  if (!signedIn && !isSessionExempt(pathname)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/sign-in";
     redirectUrl.search = "";

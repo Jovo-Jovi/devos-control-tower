@@ -1,4 +1,3 @@
-import { DocumentLocale } from "./DocumentLocale";
 import { SignInButton } from "./SignInButton";
 import type { Messages } from "@/i18n/messages";
 import styles from "./SignInCard.module.css";
@@ -14,7 +13,6 @@ export function SignInCard({
 
   return (
     <main className={styles.page}>
-      <DocumentLocale />
       <section className={styles.card}>
         <p className={styles.product}>{messages.site.productName}</p>
         <h1 className={styles.title}>{messages.signIn.title}</h1>

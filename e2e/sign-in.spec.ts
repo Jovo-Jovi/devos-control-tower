@@ -10,12 +10,32 @@ test("unsigned visitors are sent to sign-in and the read API refuses them", asyn
   expect(home.status()).toBe(302);
   expect(home.headers().location ?? "").toMatch(/\/sign-in$/);
 
+  const missing = await request.get("/denied-does-not-exist", { maxRedirects: 0 });
+  expect(missing.status()).toBe(302);
+  expect(missing.headers().location ?? "").toMatch(/\/sign-in$/);
+
+  const signOut = await request.post("/auth/sign-out", { maxRedirects: 0 });
+  expect(signOut.status()).toBe(303);
+  expect(signOut.headers().location ?? "").toMatch(/\/sign-in$/);
+
   const projects = await request.get("/api/projects");
   expect(projects.status()).toBe(401);
   expect(await projects.json()).toEqual({ error: "unauthenticated" });
+
+  const denied = await request.get("/sign-in?reason=not_owner", { maxRedirects: 0 });
+  expect(denied.status()).toBe(403);
+  const deniedBody = await denied.text();
+  expect(deniedBody).toContain('<html lang="en" dir="ltr"');
+  expect(deniedBody).toContain("This GitHub account is not the owner. You have been signed out.");
 });
 
 test("sign-in renders its three states and the header baseline", async ({ page }) => {
+  const cspMessages: string[] = [];
+  page.on("console", (message) => {
+    const text = message.text();
+    if (text.includes("Content Security Policy")) cspMessages.push(text);
+  });
+
   const signedOut = await page.goto("/sign-in");
   expect(signedOut?.status()).toBe(200);
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
@@ -32,7 +52,8 @@ test("sign-in renders its three states and the header baseline", async ({ page }
   const policy = headers["content-security-policy"] ?? "";
   expect(policy).toContain("default-src 'self'");
   expect(policy).toMatch(/script-src 'self' 'nonce-[^']+' 'strict-dynamic'/);
-  expect(policy).toContain("style-src 'self' 'unsafe-inline'");
+  expect(policy).toMatch(/style-src 'self' 'nonce-[^']+'/);
+  expect(policy).not.toContain("'unsafe-inline'");
   expect(policy).toContain("img-src 'self' data: https://avatars.githubusercontent.com");
   expect(policy).toContain("font-src 'self'");
   expect(policy).toContain("frame-ancestors 'none'");
@@ -47,9 +68,15 @@ test("sign-in renders its three states and the header baseline", async ({ page }
   expect(errored?.status()).toBe(200);
   await expect(page.getByText("Sign-in did not complete: no session was returned. Try again.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Try again" })).toBeVisible();
+  expect(cspMessages).toEqual([]);
 });
 
 test("screenshots of the three sign-in states", async ({ page }) => {
+  const cspMessages: string[] = [];
+  page.on("console", (message) => {
+    const text = message.text();
+    if (text.includes("Content Security Policy")) cspMessages.push(text);
+  });
   const shots: Array<[string, string]> = [
     ["signed-out", "/sign-in"],
     ["denied", "/sign-in?reason=not_owner"],
@@ -66,4 +93,5 @@ test("screenshots of the three sign-in states", async ({ page }) => {
       await page.screenshot({ path: `.devos/screens/sign-in-${name}-${width}.png`, fullPage: true });
     }
   }
+  expect(cspMessages).toEqual([]);
 });

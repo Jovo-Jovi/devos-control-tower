@@ -20,8 +20,9 @@ body {
 }
 
 :focus-visible {
-  outline: 1px solid var(--color-accent);
-  outline-offset: 1px;
+  outline: var(--color-accent);
+  outline-style: solid;
+  outline-offset: calc(var(--space-1) / 2);
 }
 
 @media (prefers-reduced-motion: reduce) {

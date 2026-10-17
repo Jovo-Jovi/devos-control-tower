@@ -11,4 +11,4 @@
 
 ## Next action
 
-Deep review of T01, then gate **G-Tower-Auth**. The owner merges after the gate checks: the sign-in screenshots (1280 and 390, signed-out, denied, error), the Supabase Advisors security screenshot, and the forged-metadata proof. The single `owner_allowlist` row is inserted in the SQL editor after this migration is applied; it is not in the repository.
+Review of T01 attempt 2. The build halted on S3: `forbidden()` cannot serve HTTP 403 and `lang`/`dir` on the same server document. The other reissue items are in the tree. Gate **G-Tower-Auth** stays with the owner after a passing review: the sign-in screenshots (1280 and 390, signed-out, denied, error), the Supabase Advisors security screenshot, and the forged-metadata proof. The single `owner_allowlist` row is inserted in the SQL editor after this migration is applied; it is not in the repository.

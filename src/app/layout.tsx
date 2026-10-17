@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { connection } from "next/server";
-import { DocumentLocale } from "@/components/DocumentLocale";
 import { defaultLocale, directionOf } from "@/i18n/config";
 import { getMessages } from "@/i18n/messages";
 import "@/styles/global.css";
@@ -30,10 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   await connection();
   return (
     <html lang={defaultLocale} dir={directionOf(defaultLocale)} className={`${sans.variable} ${mono.variable}`}>
-      <body>
-        <DocumentLocale />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
