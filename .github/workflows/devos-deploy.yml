@@ -221,8 +221,9 @@ jobs:
       - name: Smoke test the deployment
         env:
           # Tower ADR-004: no bypass secret. Generated deployment URLs sit behind Vercel
-          # Authentication (Standard), so production is probed on its own domain (vars.TOWER_URL).
-          URL: ${{ (inputs.target || 'production') == 'production' && vars.TOWER_URL || steps.d.outputs.url }}
+          # Authentication (Standard), so production is probed on its own domain: vars.TOWER_URL when
+          # set, else the production hostname (public, not a secret; devos/setup.json tower-url).
+          URL: ${{ (inputs.target || 'production') == 'production' && (vars.TOWER_URL || 'https://devos-control-tower.vercel.app') || steps.d.outputs.url }}
         run: |
           # Probe the deployment itself, never a local server: an empty URL is a failure (PR-16).
           case "$URL" in https://*) ;; *) echo "::error title=Dev OS::No deployment URL to smoke test"; exit 1 ;; esac
