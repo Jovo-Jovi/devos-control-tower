@@ -90,3 +90,16 @@ the gate mechanical (`DESIGN REVISE`). A correct page with poor UI/UX does not p
 **3.** No design tool is a dependency: the direction is text and tokens in this repository.
 **Does not decide:** a second locale (`I18N_MODEL.md` records the one-locale assumption for the owner to
 confirm).
+
+**Amendment A1 (2026-10-17) — Design system v2, "Night-shift control room"**
+**Status:** SIGNED by the owner's merge of the pull request that lands it.
+**1.** `DESIGN_SYSTEM.md` v2 replaces v1 as the approved direction: one dark theme derived from the
+Raycast style (Refero Styles) the owner chose, Inter + Geist Mono, and a motion system (tokens §1,
+choreography §4, rules §5) inspired by the prompt-motion.com gallery. Truthfulness, origin/age and
+"meaning never by colour alone" are unchanged and outrank motion.
+**2.** Motion is part of the enforced UI/UX gate: every UI task's evidence adds motion filmstrips,
+reduced-motion screenshots and a zero layout-shift value (§7); the design ledger gains a *motion* row.
+**3.** New dependency allowed: `motion` (Motion for React). No other animation library.
+**4.** The sign-in shipped by T01 is retrofitted to v2 by a task planned before T04; the fences of T04–T07
+are written against v2 (the v1 Design specifications in `devos-plan` are not copied as they are).
+**Does not decide:** a light theme (later scope amendment).
