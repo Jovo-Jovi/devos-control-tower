@@ -220,9 +220,10 @@ jobs:
           echo "::notice title=Dev OS::Deployed $(git rev-parse --short HEAD) to $TARGET: $url"
       - name: Smoke test the deployment
         env:
-          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
-          URL: ${{ steps.d.outputs.url }}
+          # Tower ADR-004: no bypass secret. Generated deployment URLs sit behind Vercel
+          # Authentication (Standard), so production is probed on its own domain (vars.TOWER_URL).
+          URL: ${{ (inputs.target || 'production') == 'production' && vars.TOWER_URL || steps.d.outputs.url }}
         run: |
           # Probe the deployment itself, never a local server: an empty URL is a failure (PR-16).
           case "$URL" in https://*) ;; *) echo "::error title=Dev OS::No deployment URL to smoke test"; exit 1 ;; esac
-          node scripts/devos/probe.mjs --base "$URL" --strict / /ar /en /fr
+          node scripts/devos/probe.mjs --base "$URL" --strict /

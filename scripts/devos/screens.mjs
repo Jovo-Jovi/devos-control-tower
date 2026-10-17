@@ -3,13 +3,14 @@
 // and phone widths, written to .devos/screens/*.png. Claude reads these images during the review
 // and compares them with docs/DESIGN_SYSTEM.md and the approved mockup.
 // Uses the project's own Playwright; skips cleanly when the project has none.
-// Usage: node scripts/devos/screens.mjs [--base https://preview.vercel.app] [--port 3200] [/ar /en ...]
+// Usage: node scripts/devos/screens.mjs [--base https://preview.vercel.app] [--port 3200] [/path ...]
+// Without paths: devos.config.json screens.pages (Tower: the pilot's /ar /en /notices do not exist).
 // A --base that answers with the Vercel login (401, or a redirect to vercel.com/sso) is not used:
 // the screenshots come from the local build instead, and .devos/screens/SOURCE.txt says which (PR-15).
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { P } from "./lib.mjs";
+import { P, config } from "./lib.mjs";
 import { readEnvFile } from "./supabase.mjs";
 
 const argv = process.argv.slice(2);
@@ -17,7 +18,7 @@ const opt = (n, d) => { const i = argv.indexOf(`--${n}`); return i >= 0 ? argv[i
 let base = (opt("base", "") || "").replace(/\/$/, "");
 const port = Number(opt("port", "3200"));
 const pages = argv.filter((a, i) => a.startsWith("/") && argv[i - 1] !== "--base");
-if (!pages.length) pages.push("/ar", "/en", "/ar/notices", "/en/notices");
+if (!pages.length) pages.push(...(config().screens?.pages ?? ["/"]));
 const WIDTHS = [{ name: "desktop", width: 1280, height: 900 }, { name: "phone", width: 390, height: 844 }];
 
 let chromium;
