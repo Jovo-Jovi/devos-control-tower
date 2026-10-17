@@ -35,6 +35,7 @@ let reason = "builder finished";
 // agent-watchdog.sh: a CLI that lost its connection and stalled twice is transient, not a defect:
 // park the same attempt for a short wait (no review spent) instead of halting it.
 const stalled = /devos-stall:/.test(err);
+const budgetSpent = /devos-watchdog: stopped after/.test(err);
 const stallWait = new Date(Date.now() + (config().resume?.stall_wait_minutes ?? 10) * 60000).toISOString().replace(/\.\d{3}Z$/, "Z");
 if (failed) {
   state = stalled || looksLikeLimit(out, err) ? "quota" : "error";
@@ -45,11 +46,13 @@ const resumeAt = stalled ? stallWait : waitUntil;
 if (state !== "ok") {
   const head = state === "quota"
     ? `### Dev OS ${task} · attempt ${attempt} · **${stalled ? "Cursor connection lost" : "waiting for Cursor usage"}** → \`quota_wait\``
-    : `### Dev OS ${task} · attempt ${attempt} · **builder error** → \`halt\``;
+    : `### Dev OS ${task} · attempt ${attempt} · **${budgetSpent ? "time budget used up" : "builder error"}** → \`halt\``;
   const body = state === "quota" && stalled
     ? `The Cursor CLI lost its connection and stopped making progress. Whatever it finished is committed on this branch. No review was spent and the attempt was not used up. The runner resumes it after **${resumeAt}** (UTC); remove the \`devos:quota-wait\` label to cancel that.`
     : state === "quota"
     ? `Cursor stopped on a plan/usage or rate limit. Whatever it finished is committed on this branch. No review was spent and the attempt was not used up. The runner resumes it after **${waitUntil}** (UTC); remove the \`devos:quota-wait\` label to cancel that.`
+    : budgetSpent
+    ? `The builder used its whole time budget (agent-watchdog.sh) before finishing. Whatever it finished is committed on this branch. No review was spent. To continue from this work, comment \`/devos revise continue from the work on this branch; <anything to change>\` on this PR: the reviewer reissues the fence for the next attempt with only what is left, and the builder picks up from the branch.`
     : `The Cursor CLI failed before finishing, for a reason that does not look like a usage limit. Whatever it finished is committed on this branch. No review was spent. Fix the cause (key, model id, install), then re-run devos-cycle with task=${task} attempt=${attempt}.`;
   writeFileSync(P(".devos/builder-summary.md"), [head, "", body, "", "```", reason, "```", "",
     state === "quota" ? resumeMarker(task, attempt, false, resumeAt) : ""].join("\n"));
