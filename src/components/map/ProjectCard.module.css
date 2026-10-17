@@ -1,0 +1,163 @@
+.mapCard,
+.listCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-3);
+  background: var(--glass);
+  box-shadow: var(--edge);
+  color: var(--color-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  backdrop-filter: blur(var(--blur-glass)) saturate(1.6);
+}
+
+.mapCard {
+  position: absolute;
+  inline-size: var(--map-card-inline-size);
+  min-block-size: var(--card-block);
+}
+
+.mapCard[data-slot="0"],
+.mapCard[data-slot="4"] {
+  inset-block-start: var(--slot-block-0);
+}
+
+.mapCard[data-slot="1"],
+.mapCard[data-slot="5"] {
+  inset-block-start: var(--slot-block-1);
+}
+
+.mapCard[data-slot="2"],
+.mapCard[data-slot="6"] {
+  inset-block-start: var(--slot-block-2);
+}
+
+.mapCard[data-slot="3"],
+.mapCard[data-slot="7"] {
+  inset-block-start: var(--slot-block-3);
+}
+
+.mapCard[data-slot="0"],
+.mapCard[data-slot="1"],
+.mapCard[data-slot="2"],
+.mapCard[data-slot="3"] {
+  inset-inline-start: var(--space-5);
+}
+
+.mapCard[data-slot="4"],
+.mapCard[data-slot="5"],
+.mapCard[data-slot="6"],
+.mapCard[data-slot="7"] {
+  inset-inline-end: var(--space-5);
+}
+
+.listCard {
+  inline-size: 100%;
+  min-block-size: var(--card-block);
+}
+
+.mapCard[data-dimmed="filter"],
+.listCard[data-dimmed="filter"] {
+  opacity: 0.3;
+}
+
+.mapCard[data-dimmed="panel"],
+.listCard[data-dimmed="panel"] {
+  opacity: 0.55;
+}
+
+.mapCard[data-tint],
+.listCard[data-tint] {
+  background: var(--color-energy-wash);
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--color-energy);
+  opacity: 0;
+  animation: tile var(--dur-tile-flash) var(--ease-out) both;
+  pointer-events: none;
+}
+
+.identity,
+.fact,
+.metric {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.names {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.key,
+.repo,
+.execution,
+.fact {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.repo,
+.execution {
+  color: var(--color-ink-muted);
+  font-size: var(--text-0);
+}
+
+.monogram {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--space-6);
+  block-size: var(--space-6);
+  border-radius: var(--radius-2);
+  background: var(--color-energy-wash);
+  font-family: var(--font-mono);
+  font-size: var(--text-0);
+}
+
+.metric {
+  color: var(--color-ink-muted);
+  font-size: var(--text-0);
+}
+
+.fact {
+  font-size: var(--text-0);
+}
+
+@keyframes tile {
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  35% {
+    opacity: 0.85;
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .mapCard,
+  .listCard {
+    background: var(--color-surface);
+  }
+}

@@ -24,7 +24,12 @@
     "productWord": "DEV_OS",
     "title": "Control Tower",
     "nav": "Sections",
-    "overview": "Overview"
+    "overview": "Overview",
+    "register": "Register project"
+  },
+  "live": {
+    "live": "live",
+    "offline": "offline"
   },
   "theme": {
     "label": "Theme",
@@ -41,5 +46,86 @@
     "title": "Not found",
     "body": "Nothing is at this address.",
     "back": "Back to overview"
+  },
+  "counts": {
+    "projects": "Projects",
+    "fresh": "Fresh",
+    "staleOrSilent": "Stale or silent",
+    "lastReceived": "Last step event received",
+    "towerState": "Tower state"
+  },
+  "views": {
+    "label": "View",
+    "map": "Tower map",
+    "list": "List",
+    "filter": "Filter",
+    "all": "All",
+    "active": "Active",
+    "waiting": "Waiting",
+    "gate": "At a gate",
+    "failed": "Failed"
+  },
+  "cards": {
+    "tasks": "Tasks",
+    "phase": "Phase",
+    "ofSeen": "of seen",
+    "unknown": "—",
+    "more": "+{count} more · List",
+    "ci": "GitHub Actions",
+    "local": "Local engine",
+    "imported": "Imported",
+    "label": "{key}: {state}. Tasks {passed} of {seen} seen. Latest {step}. {origin}, {age}."
+  },
+  "link": {
+    "active": "active",
+    "steady": "steady",
+    "revise": "revise",
+    "waiting": "waiting",
+    "gate": "at a gate",
+    "down": "link down",
+    "stale": "stale",
+    "silent": "no step event yet"
+  },
+  "detail": {
+    "close": "Close",
+    "execution": "Execution",
+    "latest": "Latest step",
+    "fact": "Last fact",
+    "recent": "Recent step events",
+    "repository": "Open repository"
+  },
+  "map": {
+    "offline": "offline · last known state",
+    "legend": "Moving light shows each link's state while the Tower is live. It is not traffic."
+  },
+  "panels": {
+    "system": "System overview",
+    "ofTasks": "of tasks seen",
+    "activity": "Recent activity",
+    "health": "Ingestion health",
+    "hour": "Step events, last hour",
+    "deliveries": "Webhook deliveries, last 24 h",
+    "rejections": "Rejected step events, last 24 h"
+  },
+  "states": {
+    "empty": "No project yet. Register the first one.",
+    "unavailable": "The Tower could not read its own database. No number is shown until it can.",
+    "registered": "Project {key} registered.",
+    "fresh": "fresh",
+    "noContact": "No contact yet"
+  },
+  "register": {
+    "title": "Register a project",
+    "key": "Key",
+    "repo": "Repository",
+    "stale": "Stale after (minutes)",
+    "submit": "Register",
+    "pending": "Registering…",
+    "keyError": "Use 2 to 32 characters: a capital letter, then capitals, digits, - or _.",
+    "repoError": "Use owner/name, as on GitHub.",
+    "staleError": "Use a whole number from 1 to 100 000.",
+    "keyTaken": "This key is already registered.",
+    "repoTaken": "This repository is already registered.",
+    "failed": "The project could not be saved. Nothing was stored."
   }
 }

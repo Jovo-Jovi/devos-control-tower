@@ -1,0 +1,36 @@
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-block-size: var(--state-block);
+  justify-content: center;
+}
+
+.message {
+  margin: 0;
+  color: var(--color-ink);
+}
+
+.skeleton {
+  display: block;
+  block-size: var(--space-4);
+  border-radius: var(--radius-1);
+  background: var(--color-line);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--color-energy-wash), transparent);
+  transform: translateX(-100%);
+  animation: sheen var(--dur-ambient) var(--ease-linear) infinite;
+}
+
+@keyframes sheen {
+  to {
+    transform: translateX(100%);
+  }
+}

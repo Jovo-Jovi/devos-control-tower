@@ -1,0 +1,13 @@
+.toast {
+  position: fixed;
+  inset-block-end: var(--space-5);
+  inset-inline-start: var(--space-5);
+  z-index: 4;
+  max-inline-size: var(--form-inline);
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--glass-strong);
+  box-shadow: var(--edge), var(--lift);
+  color: var(--color-ink);
+}

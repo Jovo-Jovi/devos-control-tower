@@ -1,0 +1,28 @@
+.origin {
+  display: inline-flex;
+  align-items: center;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-1);
+  color: var(--color-ink);
+  font-size: var(--text-0);
+  line-height: var(--leading-tight);
+}
+
+.origin[data-origin="reported"] {
+  border: 1px solid var(--color-origin-verified);
+}
+
+.origin[data-origin="observed"] {
+  border: 1px dotted var(--color-origin-verified);
+}
+
+.origin[data-origin="verified"] {
+  background: var(--color-origin-verified);
+  color: var(--color-canvas);
+}
+
+.origin[data-origin="imported"] {
+  background: var(--color-origin-imported);
+  color: var(--color-canvas);
+}

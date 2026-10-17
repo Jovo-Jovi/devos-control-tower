@@ -1,0 +1,82 @@
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  overflow: hidden;
+  padding-block: var(--space-1);
+  padding-inline: var(--space-2);
+  border-radius: var(--radius-1);
+  background: var(--color-badge);
+  color: var(--color-ink);
+  font-size: var(--text-0);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+}
+
+.chip[data-status="started"] {
+  background: var(--color-started-bg);
+  color: var(--color-started);
+}
+
+.chip[data-status="pass"] {
+  background: var(--color-pass-bg);
+  color: var(--color-pass);
+}
+
+.chip[data-status="skipped"] {
+  background: var(--color-skipped-bg);
+  color: var(--color-skipped);
+}
+
+.chip[data-status="revise"] {
+  background: var(--color-revise-bg);
+  color: var(--color-revise);
+}
+
+.chip[data-status="waiting"] {
+  background: var(--color-waiting-bg);
+  color: var(--color-waiting);
+}
+
+.chip[data-status="fail"] {
+  background: var(--color-fail-bg);
+  color: var(--color-fail);
+}
+
+.dot {
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  animation: breathe var(--dur-ambient) var(--ease-in-out) infinite;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: var(--color-energy-wash);
+  animation: tint var(--dur-quick) var(--ease-out) both;
+  pointer-events: none;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes tint {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
