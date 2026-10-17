@@ -1,0 +1,295 @@
+# TOWER — Design v3 ("Energy-blade control tower")
+
+**Status:** approved by the owner on 2026-10-17 as the look of the Tower (option B of the mockup review),
+precedence 8 with `docs/DESIGN_SYSTEM.md`. It becomes binding when intake turns it into `DESIGN_SYSTEM.md` v3
+and a signed OD (change request "Design v3", see §12). Until then `DESIGN_SYSTEM.md` v2 binds every fence.
+
+This folder holds:
+
+| Path | What it is |
+|---|---|
+| `README.md` | this specification |
+| `mockup/tower-map.dc.html` | the approved mockup's source (a Design-canvas component, **reference only**: it does not run outside the canvas; its CSS values and geometry are the reference) |
+| `assets/planet-land.png` · `planet-clouds.png` · `planet-lights.png` | the planet's surface, cloud and night-lights strips (1360×680, equirectangular, seamless in x; shown at 680×340) |
+| `assets/planet-sphere-map.png` | the 340×340 displacement map that bends the moving strip into a sphere (§3.4) |
+| `tools/gen-planet.py` | the generator of the four images (Python 3, numpy, Pillow; `python3 gen-planet.py <out-dir>`); deterministic seeds |
+| `screens/planet-day.png` · `planet-switch-900ms.png` · `planet-night.png` | the theme switch at 0, 900 and 3100 ms (Chromium, standalone render of §3.4) |
+
+Nothing here is copied from a film, game or brand: the scene, tower, planet and textures are original and
+procedural. No character, ship, logo or title of any franchise appears, and none may be added.
+
+## 0. Idea
+
+A control tower that stands in a world which turns from day to night. **Light** is a bright sky with drifting
+clouds, white spires and azure energy; **dark** is a crimson night with stars, a lit horizon and red energy.
+Every project is a card around the tower, joined to it by a **light blade**, a glowing conduit whose look
+tells the state of that link. v2's three rules (truthfulness, never colour alone, motion never lies) stay
+above everything here.
+
+## 1. Themes and tokens
+
+Two themes, one set of token names (v2's names kept, so components do not change). `src/styles/tokens.css`
+stays the only file with raw values; it declares:
+
+- `:root` = **light**, `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { … } }` = **dark**,
+  `:root[data-theme="dark"]` = dark, `:root[data-theme="light"]` = light. `color-scheme` follows.
+- Default is **Auto** (the system setting). The header switch sets `data-theme` on `<html>` for the session.
+  **It is not persisted**: `BOUNDARY_MODEL.md` forbids browser storage beyond the Auth cookie (see §11, D1).
+
+| Token (v2 name) | Light | Dark | Role |
+|---|---|---|---|
+| `--color-canvas` | `#eef4fb` | `#050507` | page ground under the scene |
+| `--color-surface` | `#f7f9fc` | `#0e0a0c` | solid fallback for `--glass` (no `backdrop-filter`) |
+| `--color-raised` | `#ffffff` | `#181113` | inputs, popovers, detail panel |
+| `--glass` | `rgb(255 255 255 / .55)` | `rgb(16 11 13 / .58)` | cards, sidebar, top bar (+ `--blur-glass`) |
+| `--glass-strong` | `rgb(255 255 255 / .82)` | `rgb(24 16 18 / .86)` | detail panel, tower plates, pressed segments |
+| `--color-line` | `#d8e2ee` | `#2a1c1e` | hairlines |
+| `--color-line-strong` | `#66748a` | `#75605f` | chip and input borders |
+| `--color-ink` | `#13202f` | `#f4f1ee` | text |
+| `--color-ink-muted` | `#4c5a6a` | `#aaa3a1` | secondary text |
+| `--color-ink-faint` | `#8693a2` | `#6f6766` | non-text marks only |
+| `--color-accent` | `#0d57bf` | `#ff6b62` | links, focus ring |
+| `--color-energy` | `#2f8cff` | `#ff2b2b` | blade edge, seam, LEDs, glows — **never text** |
+| `--color-energy-core` | `#ffffff` | `#fff0ee` | blade core, particles |
+| `--color-energy-wash` | `rgb(47 140 255 / .16)` | `rgb(255 43 43 / .16)` | selected nav, pressed segment glow |
+| `--edge` | `inset 0 1px 0 rgb(255 255 255 / .95), 0 0 0 1px rgb(30 123 255 / .16)` | `inset 0 1px 0 rgb(255 255 255 / .06), 0 0 0 1px rgb(255 59 59 / .22)` | card edge |
+| `--lift` | `0 14px 36px rgb(19 32 47 / .12), 0 2px 6px rgb(19 32 47 / .06)` | `0 18px 44px rgb(0 0 0 / .6), 0 0 24px rgb(255 43 43 / .06)` | card shadow |
+
+Step-status pairs (`--color-<s>` / `--color-<s>-bg`): **dark keeps v2's values unchanged**; light:
+
+| Status | Light text / bg | Contrast |
+|---|---|---|
+| `started` | `#0b5cad` / `#e3eefb` | 5.68 |
+| `revise` | `#6b3fbf` / `#eee7fb` | 5.65 |
+| `pass` | `#136b41` / `#e3f3ea` | 5.70 |
+| `skipped` | `#55524c` / `#ecebe7` | 6.53 |
+| `waiting` | `#865600` / `#fbf0d2` | 5.53 |
+| `fail` | `#b3261e` / `#fbe9e6` | 5.57 |
+| `stale` | `#7a4806` / `#fbeedd` | 6.66 |
+
+Contrast was computed (WCAG relative luminance) on the glass composited over the canvas and over the darkest
+scene colour behind a card (light: `#c4d4e7` spires and `#a7c7ee` sky top; dark: `#3d070a` horizon). Worst
+cases: light ink 12.98, muted 5.56, accent 5.28, line-strong 3.74, every status text ≥ 4.95; dark ink 16.73,
+muted 7.58, accent 6.75, line-strong 3.22, every status text ≥ 7.23. The reviewer recomputes them.
+
+Scene colours (sky stops, spires, ridge, stars, clouds, horizon glow) are tokens too (`--scene-*`), so
+`guard:design` keeps holding: no raw colour outside `tokens.css`. The PNG textures carry their own pixels.
+
+Type stays v2's (Inter, Geist Mono, same scale); the page title is `--text-5` 700 with 0.02em tracking.
+
+## 2. Shell
+
+- **Sidebar** (≥ 981 px): glass, `--radius-3`, product mark (the outlined play triangle with an energy
+  glow) and the word "DEV_OS"; links only to routes that exist: **Overview** (`/`) and **Register project**
+  (`/projects/new`). The current link has `--color-energy-wash` and a 3 px energy bar at the start edge.
+  At ≤ 980 px it becomes a horizontal strip above the content. No link to a page that does not exist.
+- **Top bar:** glass; "Control Tower"; `LiveMark` ("live" / "offline", from the poll, v2 §3); the theme
+  switch (segmented **Auto · Light · Dark**, `aria-pressed`); avatar with alt = login. Sign-out stays.
+- **Page head:** eyebrow "Discover · Monitor · Trace · Verify", `h1` "Overview", one sentence; counts card
+  (§5).
+
+## 3. The scene (behind everything, `aria-hidden`, `pointer-events: none`)
+
+### 3.1 Light
+Sky gradient (`#a7c7ee` → `#d7e7f8` → `#f8f2e6` → `#eef4fb`), a soft sun glow at the top centre, two cloud
+layers of soft puffs drifting ±60 px (110 s and 70 s, `ease-in-out`, alternate), a far ridge, white spires at
+both edges with a 1.5 px white rim, and a cloud sea at the horizon.
+
+### 3.2 Dark
+Sky `#050507` → `#0d0507` → `#3d070a` (horizon) → `#050507`, 150 stars (28 twinkle, 3–7 s, opacity
+.25 ↔ 1), a faint diagonal star band, the crimson horizon glow, the same ridge and spires in near-black with
+a red rim (`--color-energy` at 38 %).
+
+### 3.3 The switch
+Both scenes are present; each layer's opacity follows the theme (`--scene-light` / `--scene-dark` = 0 or 1)
+with a **1.8 s `--ease-in-out`** crossfade. Tokens of the UI change at once; the scene and planet carry the
+transition. This is the one transition longer than `--dur-slow` (amendment A, §8).
+
+### 3.4 The planet (top end corner, 340 px; on ≤ 760 px scaled to 0.62)
+Layers, back to front, all clipped to a circle:
+1. **Globe:** the land strip and the cloud strip, each in its own `spin` wrapper moving `translateX` by one
+   tile (680 px) per turn — land 160 s, clouds 105 s — inside a `turn` wrapper. The globe has
+   `filter: url(#sphere)`: an SVG `feDisplacementMap` (scale 200, `color-interpolation-filters="sRGB"`)
+   fed by `planet-sphere-map.png`, which bends the flat strip into an orthographic sphere.
+2. **Night disc:** a soft dark disc (scale 1.5) with a warm twilight band at its edge;
+   `translateX(118%)` in light, `translateX(20%)` in dark — the terminator sweeps from the end edge.
+3. **Night lights:** the lights strip in its own globe, masked by the same disc (mask position moves
+   with it), fading in 0.5 s after the switch starts.
+4. **Crimson rim** (dark only), **shade** (specular highlight + limb darkening), **atmosphere** (bright
+   limb ring; 35 % in dark).
+
+**The switch** turns the globe half a turn (`turn` wrapper `translateX(-340px)` in dark) while the night disc
+sweeps across, both 1.8 s `--ease-in-out`, so the planet *rotates into night*. Back to light plays it in
+reverse. The ambient spin continues underneath.
+
+## 4. The tower map (`/`, ≥ 761 px)
+
+A fixed 1200×660 stage (geometry as tokens `--map-*`), centred, scaled down in steps (0.86 ≤ 1460 px, 0.74
+≤ 1240 px, 0.66 ≤ 1060 px); below 761 px the map is replaced by §4.6.
+
+### 4.1 Tower (centre)
+A stepped crown, a body 172×444 with a cylindrical shade, two side fins, a **vertical energy seam** down the
+middle with a beam rising from the crown, the identity plate (play mark, "DEV_OS", "Control Tower"), the
+**Tower panel** (§5), eight modules (two columns × four rows) with energy LEDs, and a base with three energy
+rings. Module *n* sits at the height of node *n*'s link.
+
+### 4.2 Nodes
+Up to **eight** project cards (288 px glass), four each side, in the portfolio's sort order (contact first,
+`lastContactAt` descending, then by key). With more than eight projects the eighth slot becomes a "+N more ·
+List" card that opens the list. Each card shows, all from data (§6):
+- monogram tile, project key in mono, repository in `<bdi>`, a `StatusChip` (word first);
+- **execution** of its latest run (§6) — never a machine name;
+- **Tasks** bar: verdict-passed of tasks **seen** (`a / b`, label "of seen"); a hatched empty bar with `—`
+  when no task was seen;
+- **Phase** bar for the latest phase (same rule, the phase id as its label);
+- the latest task · step · status in words, `OriginChip`, `AgeText`.
+
+Selecting a card (click, Enter, Space) opens the **detail panel** (glass-strong, end edge): repository link,
+execution, tasks, phase, latest step, last fact with origin and age, the project's last six step events by
+`seq`, and links to the project page (`/projects/[key]`) and the repository. Other cards drop to 55 %;
+filtered-out cards to 30 %. Escape or "Close" closes it.
+
+### 4.3 Blades (one per node, SVG paths fixed per slot)
+Layers: a blurred glow path (stroke 12, `feGaussianBlur` 5, static), the edge path (3.2 px,
+`--color-energy`), the core path (1.2 px, `--color-energy-core`), a port dot at the tower, and up to three
+core-coloured particles (`offset-path`). Each link's look comes from §6's **link state**:
+
+| Link state | Blade | Particles | Hum |
+|---|---|---|---|
+| `active` (latest status `started`) | full energy, glow 100 % | 3, 1.5 s per trip | yes |
+| `steady` (`pass`, `skipped`) | energy, glow 80 % | 2, 2.6 s | yes |
+| `revise` | energy, glow 60 % | 1, 3.4 s | yes |
+| `waiting` (`waiting`, step ≠ `gate`) | `--color-waiting`, dashed 3 7, slow pulse 2.4 s | 1, 8 s | no |
+| `gate` (`waiting` at step `gate`) | `--color-waiting`, dashed 12 6, glow 45 %, static | 0 | no |
+| `down` (`fail`) | **blade off**: no glow, no core, 1.6 px `--color-fail` dashed 4 6 | 0 | no |
+| `stale` (freshness `stale`) | 1.6 px `--color-ink-faint`, dotted 1 8 | 0 | no |
+| `silent` (no step event yet) | 1.6 px `--color-ink-faint`, dotted 1 6 | 0 | no |
+
+**Offline** (the last poll failed): every blade keeps its last look, but particles and hum stop and blades
+drop to 50 %, with the words "offline · last known state" under the tower. Particles never stand for real
+traffic: they appear only while the Tower is live and say "this link is in this state", which the legend
+under the map spells out.
+
+**Ignition:** on first view the solid blades draw from the card to the tower (stroke-dashoffset 460 → 0,
+720 ms `--ease-out`, 70 ms stagger) — once per document. A link that changes from a dashed or dotted state
+to a solid one ignites again (that is the "discovered / reconnected" moment); solid → `down` switches the
+blade off.
+
+### 4.4 Live changes (from a poll that brings a new latest step event for a project)
+1. The card's chip changes (v2 `StatusChip`) and its tile flashes once in energy (650 ms).
+2. A core-coloured signal travels the blade to the tower (620 ms, `--ease-in`).
+3. The matching module flashes (520 ms, 560 ms delay).
+4. The activity list (§5) gets the new row at the top (rise, `--dur-base`).
+5. Bars move to the new values (`--dur-slow`, `--ease-in-out`), never from 0.
+Several changes in one poll: at most **three** signals play, in `received_at` order, 120 ms apart; the rest
+update without a signal.
+
+### 4.5 Filters and list
+A segmented filter (All · Active · Waiting · At a gate · Failed · Stale or silent, each with its count) dims
+cards and blades outside the filter. A **Tower map · List** switch shows the same cards as a responsive grid
+(the accessible equivalent of the map, every fact and action included). The list is also what assistive
+technology reads: the map's SVG is `aria-hidden`; each card is a real `<button>` with an `aria-label` that
+says name, state, tasks, latest step, origin and age.
+
+### 4.6 Phone (≤ 760 px)
+No map. A **tower card** (small tower with its seam, Tower state, Projects, Last step event) above the list
+of cards; the planet scaled to 0.62 in the top end corner; scene and glass as on desktop.
+
+## 5. Panels (from data that exists)
+
+- **Counts card** (page head) and **Tower panel** (inside the tower): Projects · Fresh · Stale or silent;
+  "Last step event received" (age). No "instances": the Tower has no instance identity yet (§11, D3).
+- **System overview:** ring = tasks verdict-passed of tasks seen, across projects (`Portfolio.totals`), the
+  words "of tasks seen", and counts per link state.
+- **Recent activity:** the last six step events across projects by `received_at`: project, task · step ·
+  status, `OriginChip`, `AgeText`.
+- **Ingestion health** (the Tower itself, not the projects): last step event received; step events in the
+  last hour; webhook deliveries in the last 24 h; rejected step events in the last 24 h. No CPU, memory or
+  network metric anywhere (none is collected).
+
+## 6. Where every value comes from (no migration, no new table)
+
+All reads through the owner's session (RLS `is_owner()`), as T04's `loadPortfolio()` does, paged.
+
+| Value | Source |
+|---|---|
+| key, repo, freshness, last activity, last contact, latest step event | T04's `PortfolioProject` |
+| latest task, latest phase | the latest step event's `task` and `phase` |
+| execution | `runs.source` of the latest step event's run: `ci` → "GitHub Actions", `local` → "Local engine", `import` → "Imported" |
+| tasks passed / seen | per project: distinct `task` with a `verdict · pass` / distinct non-null `task` |
+| phase passed / seen | the same, restricted to the latest `phase` |
+| link state | §4.3 table, from the latest step event and freshness |
+| recent activity | `events` ordered by `received_at` desc, 6 rows, with `projects.key` |
+| ingestion health | `max(events.received_at)`; count of `events` with `received_at` in the last hour; count of `webhook_deliveries` and of `event_rejections` with `received_at` in the last 24 h |
+
+The aggregation stays pure (`src/lib/portfolio/aggregate.ts` grows the fields above, with unit tests);
+`GET /api/projects` answers the larger `Portfolio`. Nothing is estimated: a value the tables cannot give is
+`—` with its legend.
+
+## 7. States of `/`
+
+loading (tower drawn, blades dark, cards as hairline skeletons with sheen) · map · list · selected · empty (no
+project: the tower alone, blades absent, "No project yet. Register the first one." and the button, rising in)
+· error (`HealthBanner`, no number anywhere, blades absent) · offline (§4.3) · reduced motion (§8). Every state
+in both themes.
+
+## 8. Motion — amendments to `DESIGN_SYSTEM.md` v2 §5
+
+Kept: purpose test, durations from tokens, once-only entrances, never block reading or input, reduced
+motion, no layout shift, `motion` for FLIP and odometer. Amended (the OD of §12 signs these):
+
+- **A. The theme switch** is a 1.8 s transition (`--dur-scene: 1800ms`). It answers *what changed* (the
+  owner changed the theme) and blocks nothing.
+- **B. Scene ambient loops** join the allowed loops: planet spin, cloud drift, star twinkle, blade hum and
+  particles, module LEDs, the seam beam. All are slow and low-contrast, and **all stop** when
+  `prefers-reduced-motion: reduce`, when the in-app "Reduce motion" is on, and while
+  `document.visibilityState` is `hidden`.
+- **C. Animated properties** may include `stroke-dashoffset`, `offset-distance` and `mask-position` (planet
+  lights) in addition to `transform`, `opacity` and `clip-path`. `filter` is never animated; the static blur
+  and the sphere displacement are allowed on their own elements only (blades, 340 px globe).
+- **D. Gradients and the second accent:** the scene and the energy colour are the theme, so v2 §8's "one
+  accent, gradients only on sign-in and empty" becomes: one **text** accent (`--color-accent`), one
+  **energy** colour for light only, gradients only in the scene, the tower and the planet.
+- **E. Reduced motion:** the theme switches instantly; the planet stands still in its theme's position; blades
+  are drawn, static, without particles or hum; signals become a 160 ms tint on the card; meaning is unchanged.
+
+## 9. Performance budget
+
+60 fps on a mid-range laptop and phone in both themes; first view under 2.5 s LCP on the production URL;
+the three PNGs total about 0.85 MB and load after the first paint (`loading="lazy"`/`fetchpriority="low"`
+or CSS after hydration), the map never waits for them; blurred glows are static; the page pauses every loop
+when hidden; on devices without `backdrop-filter` the glass falls back to `--color-surface`. If the evidence
+shows the sphere filter dropping frames on the runner, the fallback is the flat strip without displacement
+(the reviewer decides with the filmstrip).
+
+## 10. Evidence (v2 §7, extended)
+
+At 1280 and 390, **light and dark**: screenshots of loading, map, list, selected, empty, error, offline; the
+first-paint filmstrip (0, 80, 160, 320, 640 ms); the **theme-switch filmstrip** at 0, 450, 900, 1350, 1800
+ms; reduced-motion screenshots in both themes; layout shift 0; contrast of §1 recomputed.
+
+## 11. Decisions for the owner, and what waits for data
+
+- **D1 — Theme persistence.** As written, the switch lasts for the session only (no browser storage,
+  `BOUNDARY_MODEL.md`). Remembering it needs either a Boundary amendment for one first-party preference
+  cookie or a `theme` column on an owner-only table (schema change, human gate). Not part of this design.
+- **D2 — Pages that do not exist** (Repositories, Instances, Events, Settings in the early mockups) are not
+  in the sidebar. Each would be its own change request.
+- **D3 — Instances, lifecycle and ledger totals** are not in the event contract: the Tower cannot tell an
+  engine instance or machine, a project's lifecycle stage, or how many tasks a ledger holds. The map shows
+  "seen" counts and execution only. Showing them needs an event-contract change (v2) reported by the DEV_OS
+  Engine — a later change request in `devos-plan`.
+- **D4 — Observed-only repositories** (the GitHub App installed, project not registered) are not stored
+  (`DATA_MODEL.md` §2.8: unknown repositories store nothing), so they cannot appear as nodes.
+
+## 12. How it reaches the product
+
+One change request ("Design v3: tower map, light and dark themes, scene"), planned by intake:
+- `DESIGN_SYSTEM.md` v3 from this folder (§1 tokens for both themes, §2–§7, the §8 amendments) and a new
+  OD signed by the owner;
+- **one new product task right after T04** (risk 2, deep review of `package.json` and `src/lib/supabase/**`,
+  a UI gate for the owner's look): the theme layer, the scene and planet, the shell, the tower map and its
+  panels, the aggregation additions of §6, the evidence of §10. Planet images are copied from
+  `docs/design/v3/assets/` to `public/scene/`;
+- the open UI rows after it (usage view, project page, import, sign-in retrofit) are written against v3; the
+  sign-in retrofit uses the scene and planet as its atmosphere.
