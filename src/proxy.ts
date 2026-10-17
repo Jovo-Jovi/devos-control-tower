@@ -42,6 +42,10 @@ function isSessionExempt(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/api/ingest") {
+    return NextResponse.next();
+  }
+
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
   const policy = contentSecurityPolicy(nonce);
   const requestHeaders = new Headers(request.headers);

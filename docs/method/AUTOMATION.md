@@ -51,7 +51,7 @@ merge signs the OD → `devos-advance` dispatches `devos-cycle`.
    id → `modules.mjs start` brings up the local services → Grok builds (`accounts.sh` switches
    Cursor accounts on a limit, PR-29) → `guard-surfaces.mjs builder` + the method-file guard (from
    main's workflow) → commit, `sync-main.sh`, push → PR → `builder-status.mjs` (ok / park / halt) →
-   `run-checks.mjs` + `checks-status.sh` (status `devos/checks`) → preview + `screens.mjs` →
+   `run-checks.mjs` + `checks-status.sh` (status `devos/checks`) → preview + `screens.mjs` (settled screenshot, filmstrip, reduced-motion screenshot and layout shift, written to `.devos/screens/motion.json`) →
    `review-mode.mjs` (light/deep) + `evidence.mjs` → Claude reviews (account switch, PR-29) →
    `guard-surfaces.mjs reviewer` → `verdict.mjs` decides → review commit, sync, re-check if main
    moved (PR-25), statuses → act.
@@ -126,7 +126,8 @@ workflow may start late.
 | `run-checks.mjs` | module checks, then guards, typecheck, lint, test, build, e2e → `.devos/ci-results.json` |
 | `checks-status.sh` | posts `devos/checks` |
 | `vercel-deploy.sh` | git-less prebuilt upload, prints only a real URL |
-| `screens.mjs` · `probe.mjs` | screenshots for the visual check; strict reachability probe |
+| `screens.mjs` · `probe.mjs` | motion evidence for the visual check: settled screenshot, filmstrip, reduced-motion screenshot and layout shift in `.devos/screens/motion.json` (PR-35); strict reachability probe |
+| `screens.test.mjs` | self-test of that capture (the fence `- Screens:` line, frame pick, filmstrip, layout shift) |
 | `review-mode.mjs` | light or deep review, model, effort, turns, critical paths |
 | `evidence.mjs` | `.devos/evidence.md`, the reviewer's evidence pack |
 | `render-prompt.mjs` | fills `devos/prompts/*.md` |
@@ -148,6 +149,8 @@ or locale) · `data` (migrations, RLS, grants, server-only secret key, synthetic
 
 `devos/prompts/`: `builder.md`, `reviewer.md`, `intake.md`, `method.md`, `revise.md`, `doctor.md`.
 `devos/schemas/`: verdict, intake (also revise and method), doctor.
+
+A UI fence carries a header line `- Screens: \`<name> <path>[ click|hover|focus <selector>]\` · …` naming every page, state and interaction to capture. `screens.mjs` reads that line; without it, `devos.config.json` `screens.pages` is used.
 
 | Surface | Files |
 |---|---|
@@ -173,7 +176,7 @@ or locale) · `data` (migrations, RLS, grants, server-only secret key, synthetic
   `devos-intake-resume`, `devos-held` / `devos-held-done` (PR-20), `devos-doctor`, `devos-setup`,
   `devos-setup-wait`, `devos-setup-missing`, `devos-setup-resumed`.
 - **Run scratch** (`.devos/`, never committed, kept as the run's artifact): prompts, agent output,
-  `ci-results.json`, `logs/`, `evidence.md`, `screens/`, `*.env` (module services), `limits/`,
+  `ci-results.json`, `logs/`, `evidence.md`, `screens/` (`motion.json` plus settled, filmstrip and reduced-motion PNGs), `*.env` (module services), `limits/`,
   `accounts.md`, `setup.md`, `setup-result.json`.
 
 ## 8. Settings
@@ -213,7 +216,7 @@ or locale) · `data` (migrations, RLS, grants, server-only secret key, synthetic
   exists only if its `_2` secret is set.
 - **`devos.config.json`:** `max_attempts`; `builder` (model family, effort by risk); `reviewer`
   (models and efforts by risk and gate, `modes.light/deep`, `deep_paths`, intake and method efforts);
-  `required_checks` / `optional_checks`; `surfaces` (builder, builder_method, reviewer, intake,
+  `required_checks` / `optional_checks`; `screens` (`pages`, `filmstrip_ms`, `settle_max_ms`; a fence `- Screens:` line overrides `pages`); `surfaces` (builder, builder_method, reviewer, intake,
   revise); `resume` (inline wait, relay, back-off); `modules` (supabase, r2, firebase); `heavy`; `retry_build_on`.
 - **Commands** (owners, members, collaborators only): `/devos intake [resume]`, `/devos revise …`,
   `/devos doctor`, `/devos go`, `/devos setup`.

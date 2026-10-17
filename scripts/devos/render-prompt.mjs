@@ -6,6 +6,19 @@
 // DEVOS_PREVIEW_URL, DEVOS_ISSUE, DEVOS_INTAKE_RESUME, DEVOS_REVIEW_MODE, DEVOS_REVIEW_REASONS, DEVOS_REVIEW_CRITICAL.
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { P, parsePhases, isHumanGate, taskAfter, config, fail } from "./lib.mjs";
+import { motionCounts } from "./screens.mjs";
+
+function screensLine(screens) {
+  const manifestPath = P(".devos/screens/motion.json");
+  if (existsSync(manifestPath)) {
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    const c = motionCounts(manifest);
+    return `- \`.devos/screens/\`: ${c.states} states × ${c.widths} widths from ${manifest.states_from}: ${c.settled} settled, ${c.reduced} reduced-motion, ${c.frames} filmstrip frames, ${c.shifted} with layout shift above 0, ${c.errors} capture errors (\`.devos/screens/motion.json\`; \`SOURCE.txt\` says preview or local build). **Read them with the Read tool**, beside the evidence pack's motion table.\n`;
+  }
+  return screens.length
+    ? `- \`.devos/screens/\`: ${screens.length} full-page screenshots (desktop 1280 and phone 390) of this branch (\`.devos/screens/SOURCE.txt\` says whether they come from the preview or the local build). **Look at them with the Read tool.**\n`
+    : "";
+}
 
 function commonVars(cfg, rows) {
   const ids = rows.map((r) => Number(r.task.slice(1)));
@@ -26,9 +39,7 @@ function commonVars(cfg, rows) {
     PREVIEW_LINE: env.DEVOS_PREVIEW_URL
       ? `- Preview deployment of this branch: ${env.DEVOS_PREVIEW_URL} (check it with \`node scripts/devos/probe.mjs --base ${env.DEVOS_PREVIEW_URL} /\`; previews sit behind the Vercel login by design, Tower ADR-004).\n`
       : "",
-    SCREENS_LINE: screens.length
-      ? `- \`.devos/screens/\`: ${screens.length} full-page screenshots (desktop 1280 and phone 390) of this branch (\`.devos/screens/SOURCE.txt\` says whether they come from the preview or the local build). **Look at them with the Read tool.**\n`
-      : "",
+    SCREENS_LINE: screensLine(screens),
   };
 }
 
