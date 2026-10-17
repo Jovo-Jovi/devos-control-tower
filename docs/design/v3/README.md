@@ -94,8 +94,11 @@ Type stays v2's (Inter, Geist Mono, same scale); the page title is `--text-5` 70
 
 ## 3. The scene (behind everything, `aria-hidden`, `pointer-events: none`)
 
-The sky fills the **whole width and the top 1040 px** of every page; the skyline sits low so the sky
-dominates; the canvas colour continues below.
+**The scene is fixed to the viewport** (amendment 2026-10-17, the owner's test on a phone): the sky,
+skyline, stars, clouds and planet sit in a `position: fixed` layer that covers the whole screen
+(`inset: 0`, `block-size: 100lvh` so mobile browser bars never uncover it) and never scrolls, swipes or
+bounces with the page; only the content moves over it. Overscroll on the root shows the scene, never a
+blank colour. The skyline sits low so the sky dominates.
 
 ### 3.1 Light
 The `sky-day` backdrop (blue zenith, sun glow, pale horizon) under the `sky-clouds` layer, which covers the
@@ -115,21 +118,32 @@ with a **1.8 s `--ease-in-out`** crossfade. Tokens of the UI change at once; the
 transition. This is the one transition longer than `--dur-slow` (amendment A, §8).
 
 ### 3.4 The planet (top end corner, 340 px; on ≤ 760 px scaled to 0.62)
-Layers, back to front, all clipped to a circle:
-1. **Globe:** the land strip and the cloud strip, each in its own `spin` wrapper moving `translateX` by one
-   tile (680 px) per turn — land 160 s, clouds 105 s — inside a `turn` wrapper. The globe has
-   `filter: url(#sphere)`: an SVG `feDisplacementMap` (scale 200, `color-interpolation-filters="sRGB"`)
-   fed by `planet-sphere-map.png`, which bends the flat strip into an orthographic sphere.
-2. **Night disc:** a soft dark disc (scale 1.5) with a warm twilight band at its edge;
-   `translateX(118%)` in light, `translateX(20%)` in dark — the terminator sweeps from the end edge.
-3. **Night lights:** the lights strip in its own globe, masked by the same disc (mask position moves
-   with it), fading in 0.5 s after the switch starts.
-4. **Crimson rim** (dark only), **shade** (specular highlight + limb darkening), **atmosphere** (bright
-   limb ring; 35 % in dark).
 
-**The switch** turns the globe half a turn (`turn` wrapper `translateX(-340px)` in dark) while the night disc
-sweeps across, both 1.8 s `--ease-in-out`, so the planet *rotates into night*. Back to light plays it in
-reverse. The ambient spin continues underneath.
+**Amended 2026-10-17 (v3.1): the owner's Grok maps replace the procedural textures.** The owner made one
+Earth-like globe with Grok in Cursor as three flat equirectangular maps that line up exactly
+(`assets/v3.1/source/planet-day-map.webp`, `planet-night-lights-map.webp`, `planet-clouds-map.webp`; 2:1,
+seamless left-right, uniform poles: left/right edge difference 0, 92 % of the city lights on land). From them:
+
+- `assets/v3.1/planet-day.webp` (1360×680): the day map with the clouds baked in, for the light theme;
+- `assets/v3.1/planet-crimson.webp` (1360×680): the same surface as a crimson night side (oceans deep red,
+  land in red tones, clouds red, the city lights screened on top), for the dark theme;
+- `assets/v3.1/planet-sphere-map.png` (340×340): the displacement map regenerated at **scale 300** (the old map at
+  200 clipped the polar rows into flat bands); the `feDisplacementMap` `scale` becomes 300.
+
+Layers, back to front, clipped to the circle:
+1. **Day globe:** `planet-day.webp` in a `spin` wrapper (one 680 px tile per 120 s, `translateX`) inside a
+   `turn` wrapper, through `filter: url(#sphere)`.
+2. **Crimson globe:** `planet-crimson.webp` in the same `spin`/`turn` structure and timing, through the same filter,
+   inside a mask: a soft disc (`radial-gradient`, 520 px, edge 46 %→54 %) whose `mask-position` sits off the
+   planet in light and covers it in dark. The disc's edge is the terminator.
+3. **Shade** (specular highlight and limb darkening) and **atmosphere** (bright limb ring, 25 % in dark).
+
+**The switch** (1.8 s, `--ease-in-out`): both `turn` wrappers move half a turn (`translateX(-340px)` in dark)
+while the mask disc sweeps across, so the planet turns and its crimson night side rolls over it; back to light
+plays it in reverse. The spin continues underneath. Reduced motion: no spin, the theme's side at once.
+`screens/v3.1-scene-switch.mp4` shows it (slowed: one frame per screenshot), `screens/v3.1-desktop-*.jpg`
+the three states. The procedural strips of v3 (`planet-land`, `planet-clouds`, `planet-lights`) leave the
+bundle.
 
 ## 4. The tower map (`/`, ≥ 761 px)
 
@@ -265,7 +279,7 @@ motion, no layout shift, `motion` for FLIP and odometer. Amended (the OD of §12
 ## 9. Performance budget
 
 60 fps on a mid-range laptop and phone in both themes; first view under 2.5 s LCP on the production URL;
-the scene images total about 0.72 MB (WebP, JPEG and the lossless sphere map) and load after the first paint (`loading="lazy"`/`fetchpriority="low"`
+the scene images total about 1 MB (v3.1: four backgrounds about 0.71 MB, two planet textures about 0.28 MB, the sphere map 15 KB); only the theme's background and planet texture load before the first paint, the rest after it (`loading="lazy"`/`fetchpriority="low"`
 or CSS after hydration), the map never waits for them; blurred glows are static; the page pauses every loop
 when hidden; on devices without `backdrop-filter` the glass falls back to `--color-surface`. If the evidence
 shows the sphere filter dropping frames on the runner, the fallback is the flat strip without displacement
@@ -321,3 +335,18 @@ the procedural baseline with more realistic art, under these rules:
 
 If the automated run has no image tool, the owner can generate the same six images in Cursor's editor with the
 prompts from the task's script and commit them through a pull request; the checks above still apply.
+
+## 14. Owner's realistic backgrounds (v3.1, landed 2026-10-17)
+
+The owner made the backgrounds with Grok in Cursor: one composition (a terrace above a city of spires on the
+horizon) in two lightings, landscape and portrait — `assets/v3.1/bg-night.webp`, `bg-day.webp` (2560×1440) and
+`bg-night-portrait.webp`, `bg-day-portrait.webp` (1440×2560), WebP at quality 80 (80–302 KB each). They replace
+`sky-day.jpg`, `sky-night.jpg` and `sky-clouds.webp`:
+- the images contain the city, so the vector skylines, window lights and drifting cloud layer of §3.1–§3.2 are
+  removed; the 28 twinkling vector stars stay in dark, in the upper half only;
+- each theme's image fills the fixed layer of §3 with `background-size: cover`, anchored at the bottom
+  centre; the portrait pair is used at ≤ 760 px; the two themes crossfade over `--dur-scene`;
+- the day image scales very slowly (1 → 1.04 over 60 s, alternate) for life; it stops under reduced motion and
+  while the page is hidden;
+- `screens/v3.1-phone-day-scrolled.jpg` shows the page scrolled on a phone with the scene standing still.
+The scene's images total about 1 MB; only the theme's background and planet texture load before first paint.
