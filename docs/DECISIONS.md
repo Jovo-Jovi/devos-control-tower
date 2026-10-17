@@ -103,3 +103,43 @@ reduced-motion screenshots and a zero layout-shift value (§7); the design ledge
 **4.** The sign-in shipped by T01 is retrofitted to v2 by a task planned before T04; the fences of T04–T07
 are written against v2 (the v1 Design specifications in `devos-plan` are not copied as they are).
 **Does not decide:** a light theme (later scope amendment).
+
+### OD-07 — Design system v2 lands inside T04; the sign-in retrofit is T09
+**Status:** DRAFT — signed when the human merges the intake PR
+**Amends:** OD-06 Amendment A1 §4 (the timing of the v2 foundation and of the sign-in retrofit only)
+**Requested by:** issue #5 (the owner's option (c) in the issue thread)
+**Numbering note:** the "OD-07" and "OD-08" cited by the method files copied from the pilot (`CLAUDE.md`
+"Automation v3", workflow and runner comments) are `devos-pilot`'s decisions, carried unchanged under
+OD-03. This OD-07 is the Tower's. Likewise "T09" below is this repository's task id; the "plan label T08"
+in `SCOPE.md` A-1 is a `devos-plan` label mapped in `plan/ID-MAP.md`.
+**1.** No task is inserted before T04 and nothing is renumbered. **T04 lands the v2 foundation as part of
+its own scope**, row unchanged: the tokens of `DESIGN_SYSTEM.md` §1 byte for byte in `src/styles/tokens.css`
+(new values under the existing names, so the sign-in shipped by T01 turns dark with it); Inter + Geist Mono
+through `next/font/google` in place of IBM Plex (§2); the `motion` dependency (OD-06 A1 §3); and the
+primitives T04 itself uses — `LiveMark`, the `StatusChip` transition, `Counter`, the FLIP list, the
+`StateBlock` sheen, `Toast`, and View Transitions between routes (§3–§5). T04's fence also carries
+sign-in screenshots at 1280 and 390, proving the T01 states still read correctly in the dark tokens.
+**2.** T05, T06 and T07 each add the further primitives they use (§3). The fences of T04–T07 are written
+against v2 (`DESIGN_SYSTEM.md` §1–§8); the v1 Design specifications in `devos-plan` are not copied.
+**3.** The sign-in retrofit (`DESIGN_SYSTEM.md` §4.1: first paint, redirecting, "Checking your access…",
+the success transition with the shared product mark, denied, error, signed out) is **T09**, after T07,
+**risk 3**, gate **G-Design-v2**. Until T09 the sign-in keeps T01's structure in the v2 tokens.
+**4.** To make the "Checking your access…" interstitial truthful (it shows only while the code exchange is
+pending), T09 turns `/auth/callback` into the page that shows it and moves the code exchange, unchanged,
+into a new route handler `GET /auth/confirm`. The claim path, `public.is_owner()`, the 303/403 answers,
+the header baseline and the CSP do not change. Supabase's redirect URL stays `/auth/callback`, so no
+dashboard setting changes. `SECURITY_MODEL.md` §3 lists both routes.
+**5.** Motion evidence (`DESIGN_SYSTEM.md` §7) in the runner (`scripts/devos/screens.mjs`) is a method
+fix the owner files as a separate "Dev OS method fix" issue (Phase `PM`, its own intake, PR-28); it is
+not planned here. Until it lands, every UI task's builder produces the filmstrips, the reduced-motion
+screenshots and the layout-shift value from its own Playwright spec into `.devos/screens/`, under file
+names its fence states.
+**6.** Gate **G-Design-v2** (the owner merges T09): on production at 1280 and 390 the sign-in plays every
+§4.1 state; with "reduce motion" on, the same states are clear without movement; the review shows the
+filmstrips and a layout-shift value of 0 for every state.
+**7.** The boundary is unchanged: no new form field, cookie, storage, third party or stored data; the new
+route lies inside the `owner` zone (`src/app/**`), so the `devos:boundary` line does not change. No new
+setting outside the repository (`docs/setup-items.json` not needed).
+**Does not decide:** a light theme; the design of the §7 method fix (its own intake); a guard for
+durations and easings (still a review finding, `DESIGN_SYSTEM.md` preamble); "use another account"
+forcing GitHub's account chooser (the button restarts the same sign-in).
