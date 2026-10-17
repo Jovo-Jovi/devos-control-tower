@@ -158,3 +158,11 @@ proving they are not stuck. Now:
 - **Live progress.** `scripts/devos/progress.sh` keeps one comment per run on the "Dev OS: run notices"
   issue up to date every 5 minutes: working / quiet / finished / slice used / stuck, minutes, files
   changed, a link to the run. Its token is removed from the agent's environment by the watchdog.
+
+## 2026-10-17 — Runner: a merge conflict at push time no longer loses the build
+
+T05 attempt 2 finished its build (68 min, 26 files) but the push failed: main had gained journal
+entries during the run (the owner-session runner fixes) and the builder's own journal entry conflicted
+with them in `sync-main.sh`. The runner's checkout was discarded, and the build with it. Now
+`docs/DEVELOPMENT_JOURNAL.md` merges by union (`.gitattributes`), so two appended entries never
+conflict, and any other conflict first pushes the run's unmerged work to `rescue/<branch>-<run id>`.

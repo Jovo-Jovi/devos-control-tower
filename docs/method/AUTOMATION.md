@@ -121,7 +121,7 @@ workflow may start late.
 | `supabase.mjs` · `r2.mjs` · `firebase.mjs` | each module's local service, env file and checks (PR-17, PR-26) |
 | `accounts.sh` · `limit-check.mjs` | account order, credential export, limit detection (PR-29) |
 | `guard-surfaces.mjs` | who may change what, per role |
-| `sync-main.sh` | merges main into the task branch before every push (PR-14) |
+| `sync-main.sh` | merges main into the task branch before every push (PR-14); `.gitattributes` merges the append-only journal by union, and any other conflict first pushes the run's work to `rescue/<branch>-<run id>` so it is never lost |
 | `agent-watchdog.sh` | runs the Cursor CLI in 72-minute time slices with two checks: a lost connection with no progress for 10 minutes (`devos-stall:`, exit 125) and nothing changing at all for `builder.idle_stop_minutes` (`devos-stuck:`, exit 126) are restarted once, then parked (stall) or halted (stuck); a slice that ends while files are still changing (exit 124) is committed and the same attempt continues in a fresh run, up to `builder.max_time_slices` (`builder-status.mjs` → `continue`). The agent's environment never holds a GitHub token |
 | `progress.sh` | live builder progress for the owner: one comment per run on the open `devos:notices` issue, edited every 5 minutes (working · quiet · finished · time slice used · stuck), with the minutes, files changed and a link to the run |
 | `builder-status.mjs` | ok / continue (next time slice) / quota park (usage limit or `devos-stall:`) / halt after the build |

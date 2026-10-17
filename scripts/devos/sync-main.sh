@@ -13,6 +13,15 @@ fi
 echo "main moved during this run; merging it into $(git branch --show-current) before pushing"
 if ! git merge --no-edit origin/main; then
   git merge --abort || true
-  echo "::error title=Dev OS::main changed during this run and conflicts with this task's work. Re-run the task; nothing was lost on main."
+  # Never lose the run's work: push it, unmerged, to a rescue branch before failing.
+  branch=$(git branch --show-current)
+  rescue="rescue/${branch}-${GITHUB_RUN_ID:-$(date -u +%Y%m%d%H%M%S)}"
+  if git push --quiet "$remote" "HEAD:refs/heads/$rescue" 2>/dev/null; then
+    echo "$rescue" > .devos/rescue-branch 2>/dev/null || true
+    echo "::error title=Dev OS::main changed during this run and conflicts with this task's work. The run's work is saved on branch $rescue (not merged). Merge main into it, resolve, and push it to $branch, or re-run the task."
+  else
+    echo "::error title=Dev OS::main changed during this run and conflicts with this task's work, and the rescue push failed. Re-run the task; nothing was lost on main."
+  fi
+  git diff --name-only --diff-filter=U 2>/dev/null || true
   exit 1
 fi
