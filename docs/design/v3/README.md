@@ -10,10 +10,14 @@ This folder holds:
 |---|---|
 | `README.md` | this specification |
 | `mockup/tower-map.dc.html` | the approved mockup's source (a Design-canvas component, **reference only**: it does not run outside the canvas; its CSS values and geometry are the reference) |
-| `assets/planet-land.png` · `planet-clouds.png` · `planet-lights.png` | the planet's surface, cloud and night-lights strips (1360×680, equirectangular, seamless in x; shown at 680×340) |
-| `assets/planet-sphere-map.png` | the 340×340 displacement map that bends the moving strip into a sphere (§3.4) |
-| `tools/gen-planet.py` | the generator of the four images (Python 3, numpy, Pillow; `python3 gen-planet.py <out-dir>`); deterministic seeds |
-| `screens/planet-day.png` · `planet-switch-900ms.png` · `planet-night.png` | the theme switch at 0, 900 and 3100 ms (Chromium, standalone render of §3.4) |
+| `assets/planet-land.webp` · `planet-clouds.webp` · `planet-lights.webp` | the planet's surface, cloud and night-lights strips (1360×680, equirectangular, seamless in x; shown at 680×340) |
+| `assets/planet-sphere-map.png` | the 340×340 displacement map that bends the moving strip into a sphere (§3.4); lossless on purpose |
+| `assets/sky-day.jpg` · `sky-night.jpg` · `sky-clouds.webp` | the full-sky backdrops: day gradient with sun, night starfield with star band and crimson nebula, and the drifting cloud layer (3200×1100, alpha, seamless in x) |
+| `tools/gen-planet.py` · `tools/gen-sky.py` | the generators of these images (Python 3, numpy, Pillow; `python3 <tool> <out-dir>`, then WebP at quality 82); deterministic seeds |
+| `screens/scene-day.png` · `scene-switch-900ms.png` · `scene-night.png` | the whole scene at 1440×900 (empty glass boxes in place of the cards) before, during and after the switch |
+| `screens/planet-day.png` · `planet-switch-900ms.png` · `planet-night.png` | the planet alone through the same switch |
+
+These images are the **procedural baseline**. §13 replaces them with Grok-generated art when that is better.
 
 Nothing here is copied from a film, game or brand: the scene, tower, planet and textures are original and
 procedural. No character, ship, logo or title of any franchise appears, and none may be added.
@@ -90,15 +94,20 @@ Type stays v2's (Inter, Geist Mono, same scale); the page title is `--text-5` 70
 
 ## 3. The scene (behind everything, `aria-hidden`, `pointer-events: none`)
 
+The sky fills the **whole width and the top 1040 px** of every page; the skyline sits low so the sky
+dominates; the canvas colour continues below.
+
 ### 3.1 Light
-Sky gradient (`#a7c7ee` → `#d7e7f8` → `#f8f2e6` → `#eef4fb`), a soft sun glow at the top centre, two cloud
-layers of soft puffs drifting ±60 px (110 s and 70 s, `ease-in-out`, alternate), a far ridge, white spires at
-both edges with a 1.5 px white rim, and a cloud sea at the horizon.
+The `sky-day` backdrop (blue zenith, sun glow, pale horizon) under the `sky-clouds` layer, which covers the
+whole sky and pans one tile (3200 px) every 420 s, masked out below 52–72 % of the height so the horizon stays
+clear; a far skyline (`#c7d6e8`) and a near skyline of towers, spires and antennas (white gradient, 1.5 px
+white rim), lower in the centre where the tower stands; a cloud sea along the horizon.
 
 ### 3.2 Dark
-Sky `#050507` → `#0d0507` → `#3d070a` (horizon) → `#050507`, 150 stars (28 twinkle, 3–7 s, opacity
-.25 ↔ 1), a faint diagonal star band, the crimson horizon glow, the same ridge and spires in near-black with
-a red rim (`--color-energy` at 38 %).
+The `sky-night` backdrop: stars across the whole sky (denser along a diagonal star band, a few with halos,
+three colour temperatures), dark dust lanes, faint crimson nebula, and a crimson glow at the horizon; 28
+vector stars on top that twinkle (3–7 s, opacity .25 ↔ 1); the same skylines in near-black with red rims
+(`--color-energy` at 18 % far, 42 % near) and about 100 warm window lights.
 
 ### 3.3 The switch
 Both scenes are present; each layer's opacity follows the theme (`--scene-light` / `--scene-dark` = 0 or 1)
@@ -256,7 +265,7 @@ motion, no layout shift, `motion` for FLIP and odometer. Amended (the OD of §12
 ## 9. Performance budget
 
 60 fps on a mid-range laptop and phone in both themes; first view under 2.5 s LCP on the production URL;
-the three PNGs total about 0.85 MB and load after the first paint (`loading="lazy"`/`fetchpriority="low"`
+the scene images total about 0.72 MB (WebP, JPEG and the lossless sphere map) and load after the first paint (`loading="lazy"`/`fetchpriority="low"`
 or CSS after hydration), the map never waits for them; blurred glows are static; the page pauses every loop
 when hidden; on devices without `backdrop-filter` the glass falls back to `--color-surface`. If the evidence
 shows the sphere filter dropping frames on the runner, the fallback is the flat strip without displacement
@@ -293,3 +302,25 @@ One change request ("Design v3: tower map, light and dark themes, scene"), plann
   `docs/design/v3/assets/` to `public/scene/`;
 - the open UI rows after it (usage view, project page, import, sign-in retrofit) are written against v3; the
   sign-in retrofit uses the scene and planet as its atmosphere.
+
+## 13. Realistic art with Grok (in Cursor)
+
+The builder is Grok in Cursor, and Cursor's agent has a built-in image tool. The new task uses it to replace
+the procedural baseline with more realistic art, under these rules:
+
+- **What:** `sky-night` (2400×1350), `sky-day` (2400×1350, without clouds), `sky-clouds` (3200×1100 with
+  transparency, seamless left-right), `planet-land`, `planet-clouds` and `planet-lights` (1360×680,
+  equirectangular 2:1, seamless left-right; lights only on land). Same names, sizes and roles as the baseline,
+  so nothing else in the page changes. Skylines, tower and blades stay vector.
+- **Prompts** describe an original sci-fi planet, sky and stars. They never name or imitate a film, game,
+  franchise, character, ship or brand, and the task does not use a reference image from one.
+- **Checks** before an image replaces the baseline (a small script in the task): exact size and ratio; the
+  left and right edges match (mean difference under a threshold) for every seamless image; the planet
+  strip's poles are uniform enough not to pinch; WebP or JPEG under the §9 budget.
+- **Fallback:** if the image tool is not available in the automated run, or an image fails a check, the
+  baseline stays and the report says so. It never blocks the task.
+- **Review:** the reviewer looks at every generated image and at the scene screenshots in both themes, and
+  can keep the baseline for any image that is worse, off-style or not original.
+
+If the automated run has no image tool, the owner can generate the same six images in Cursor's editor with the
+prompts from the task's script and commit them through a pull request; the checks above still apply.
