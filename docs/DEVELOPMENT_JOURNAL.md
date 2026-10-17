@@ -90,3 +90,10 @@ session (no behaviour of the method changed beyond these targets):
 Kept on purpose: the inactive R2 and Firebase module code and rules (they switch on only when their
 files exist; the engine stays byte-close to the pilot for M4 `upgrade`), and the method handbook's
 NEL history. `pnpm guards` after the change: all PASS.
+
+## 2026-10-17 — T02 schema and ingestion (builder, attempt 2)
+
+Reissue after `docs/reviews/T02-a1.md`. The a1 migration, down file and seed are unchanged. Generated
+types, the contract parser, OIDC verification (`jose@6.2.12`), `POST /api/ingest`, the `/api/ingest`
+proxy exemption, pgTAP, unit and e2e tests, and carry-forwards CF-001…CF-007. Awaiting the verdict
+and G-Tower-Ingest.
