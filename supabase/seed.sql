@@ -1,0 +1,2 @@
+-- Synthetic seed only. The owner allow-list stays empty: the single row is inserted
+-- out of band, never from a file, an environment variable, or a secret.

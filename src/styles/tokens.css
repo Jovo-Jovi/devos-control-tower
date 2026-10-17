@@ -1,0 +1,36 @@
+:root {
+  /* surfaces and ink */
+  --color-ink: #1b1f27;
+  --color-ink-muted: #5d6473;
+  --color-paper: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-line: #e1e4ea;
+  --color-line-strong: #c3c8d2;
+  --color-accent: #1f4fd1;        /* links, focus ring, primary action */
+  --color-accent-ink: #ffffff;
+
+  /* step status (text on bg; every pair ≥ 4.5:1) */
+  --color-pass: #1a7f4b;     --color-pass-bg: #e6f4ec;
+  --color-fail: #b42318;     --color-fail-bg: #fbeae7;
+  --color-waiting: #9a6700;  --color-waiting-bg: #fff4d6;
+  --color-revise: #6f42c1;   --color-revise-bg: #efe8fb;
+  --color-skipped: #6b7280;  --color-skipped-bg: #eef0f3;
+  --color-started: #0b63b6;  --color-started-bg: #e3f0fb;
+  --color-stale: #7c4a03;    --color-stale-bg: #fdf0e1;
+
+  /* origin (shape carries the meaning; colour only supports it) */
+  --color-origin-verified: #1b1f27;
+  --color-origin-imported: #9aa1ad;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px;
+
+  --radius-1: 4px; --radius-2: 8px;
+
+  --font-body: var(--font-sans), system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --text-0: 0.75rem; --text-1: 0.875rem; --text-2: 1rem; --text-3: 1.25rem; --text-4: 1.5rem; --text-5: 2rem;
+  --leading: 1.5;
+
+  --content-max: 1200px;
+}

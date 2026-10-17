@@ -49,3 +49,24 @@ Owner choices recorded before the bootstrap commit:
   No Git link at B0. Deployment Protection is Standard. Protection Bypass entries: 0.
 - The pilot's own Supabase project is paused: restore it (free plan: within 90 days) or set the
   pilot's repository variable `DEVOS_SUPABASE=false` before PM01 merges, or the pilot deploy fails.
+
+## 2026-10-17 — T01 skeleton (builder, attempt 1)
+
+Next.js 16.4.2 app shell with the Supabase module: `owner_allowlist` (RLS on, no policy, no grants
+to `anon` or `authenticated`) and `public.is_owner()` (`security definer`, empty `search_path`),
+proven by pgTAP including fixture identities `424242` (false, then true once the row exists) and
+`999` (false). GitHub is the only enabled auth provider; email sign-up is off. Sign-in has the three
+states; the denied state is HTTP 403 via `forbidden()`. The header baseline is on every route, with
+a per-request CSP nonce. `/` redirects an anonymous request to `/sign-in`; `/api/projects` answers
+401 without a session. No product tables, webhook, or portfolio. Awaiting the verdict and
+G-Tower-Auth.
+
+## 2026-10-17 — T01 skeleton (builder, attempt 2)
+
+Reissue. Sign-out `POST` answers 303 through `NextResponse.redirect`. An anonymous request to any page except `/sign-in`, the auth routes, `/api/`, `/_next/` and `/favicon.ico` is `302 /sign-in`. Production `style-src` is `'self'` and the per-request nonce. The focus offset is `calc(var(--space-1) / 2)`. `DocumentLocale` is removed.
+
+S3 halts. `forbidden()` before streaming, including a static page whose only call is `forbidden()`, is HTTP 403 on Next's `<html id="__next_error__">`, which has no `lang` or `dir`. The root layout's `lang` and `dir` are in the Flight payload. `<Suspense>` around the check keeps those attributes and answers 200. `await connection()` in the root layout is not what strips them. No documented path yields both the 403 and the document locale.
+
+## 2026-10-17 — T01 skeleton (builder, attempt 3)
+
+Reissue after `docs/reviews/T01-a2.md`. The 403 stays on Next's error shell. `signIn.denied` is now the design-system sentence. The request test checks that sentence on the 403 body, and checks `lang="en" dir="ltr"` in the server HTML of `/sign-in` and `/sign-in?reason=auth_error`. The browser test checks `lang="en"` and `dir="ltr"` on all three states. The scaffold, the proxy, sign-out, the root layout and the Supabase module are unchanged. Awaiting the verdict and G-Tower-Auth.

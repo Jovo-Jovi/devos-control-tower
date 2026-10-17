@@ -1,0 +1,26 @@
+{
+  "site": {
+    "productName": "DEV_OS Control Tower",
+    "tagline": "A private ledger of what your projects report."
+  },
+  "signIn": {
+    "title": "Sign in",
+    "body": "The Tower admits one GitHub account: its owner.",
+    "button": "Continue with GitHub",
+    "denied": "This GitHub account is not the owner. Signed out.",
+    "error": "Sign-in did not complete: {reason}. Try again.",
+    "authErrorReason": "no session was returned",
+    "retry": "Try again"
+  },
+  "header": {
+    "signOut": "Sign out"
+  },
+  "home": {
+    "signedInAs": "Signed in as {login}"
+  },
+  "state": {
+    "loading": "Loading the record.",
+    "empty": "Nothing is recorded yet.",
+    "error": "This could not be shown."
+  }
+}

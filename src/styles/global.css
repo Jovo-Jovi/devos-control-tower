@@ -1,0 +1,34 @@
+@import "./tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-2);
+  line-height: var(--leading);
+}
+
+body {
+  margin: 0;
+  min-block-size: 100vh;
+}
+
+:focus-visible {
+  outline: var(--color-accent);
+  outline-style: solid;
+  outline-offset: calc(var(--space-1) / 2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto;
+  }
+}
