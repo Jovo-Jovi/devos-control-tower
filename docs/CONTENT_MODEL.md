@@ -25,12 +25,12 @@ state, login (owner or bot only). They are shown verbatim in `--font-mono` where
 | Route | Page | Task |
 |---|---|---|
 | `/sign-in` | sign-in (states: signed-out, denied, error) | T01 |
-| `/` | portfolio | T04 |
-| `/projects/new` | register a project | T04 |
+| `/` | overview: the shell and page head (T04), the tower map (T05, OD-08) | T04, T05 |
+| `/projects/new` | register a project | T05 |
 | `/projects/[key]/usage` | usage view | T06 |
 | `/projects/[key]` | project page | T07 |
 | `/projects/[key]/import` | history import | T10 |
-| `/api/projects` | read API (owner session) | T04 |
+| `/api/projects` | read API (owner session): 401/403 since T01, the `Portfolio` answer from T05 | T05 |
 | `/api/ingest` | machine route, contract events | T02 |
 | `/api/github/webhook` | machine route, App deliveries | T03 |
 | `/projects/[key]/keys`, `/scope`, `/api/github/reconcile` | M2 / M5 | later |

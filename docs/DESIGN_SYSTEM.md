@@ -1,81 +1,168 @@
-# TOWER — Design system v2 ("Night-shift control room")
+# TOWER — Design system v3 ("Energy-blade control tower")
 
-**Status:** approved **direction** (OD-06, amendment A1, 2026-10-17). Precedence 8. Supersedes v1
-("Control-room ledger"). Each UI fence carries a Design specification that refines this direction for its
-pages and states; the reviewer verifies screenshots **and motion filmstrips** against both. `guard:design`
-applies unchanged (logical properties only, tokens only, no raw colour or px outside
-`src/styles/tokens.css`); durations and easings outside the tokens are a review finding until the guard
-checks them.
+**Status:** approved **direction** (OD-08, DRAFT until the owner merges the intake PR of issue #13; OD-06 A1
+for v2). Precedence 8. Supersedes v2 ("Night-shift control room"). The approved design folder
+`docs/design/v3/` (README, mockup, assets, screens) ranks with this file. Where this file says "README §n", that
+section of `docs/design/v3/README.md` is binding as written; where the two differ, **this file holds**, because it
+records the intake decisions (§1 font names, §3 image location, §10 sizes). Each UI fence carries a Design
+specification that refines this direction for its pages and states; the reviewer verifies screenshots **and
+motion filmstrips in both themes** against both. `guard:design` applies unchanged (logical properties only, tokens
+only, no raw colour or px outside `src/styles/tokens.css`); durations and easings outside the tokens are a review
+finding until the guard checks them.
 
-References the owner chose: **Raycast** as catalogued by Refero Styles ("midnight command center, coral
-neon": near-black surfaces, hairline borders, one warm accent, Inter + Geist Mono) for the look; the
-**prompt-motion.com** gallery (Product UI, Charts, Kinetic type) for the ambition of the motion. Neither is
-copied: no Raycast logo, artwork, wording or layout is reproduced; the Tower keeps its own name, content
-and compositions.
+Nothing is copied from a film, game or brand: the scene, tower, planet and textures are original. No character,
+ship, logo or title of any franchise appears, and none may be added. v2's references (Raycast as catalogued by
+Refero Styles, the prompt-motion.com gallery) stay what they were: inspiration, never copied.
 
 ## 0. Idea
 
-A night-shift control room: **dark, quiet surfaces where the only light is information.** Everything the
-Tower knows arrives, settles and ages on screen the way it does in the system it watches — an event
-*lands*, a status *changes*, a project *goes quiet*. Motion is how the Tower tells time and causality;
-it is never decoration.
+A control tower that stands in a world which turns from day to night. **Light** is a bright sky with drifting
+clouds, white spires and azure energy; **dark** is a crimson night with stars, a lit horizon and red energy. Every
+project is a card around the tower, joined to it by a **light blade** whose look tells the state of that link.
 
-Three rules carry over from v1 unchanged and outrank everything below:
+Three rules carry over from v1 and v2 unchanged and outrank everything below:
 
 1. **Truthfulness.** Every fact shows its origin (reported · observed · verified · imported) and its age.
    `unavailable` is `—` with a legend, never `0`. No progress claim the data lacks.
 2. **Meaning never by colour alone** — words and shape first, colour and motion support them.
-3. **Motion never lies.** A number never counts up from 0 to a value it did not pass through; a bar never
-   grows past what is known; a "live" pulse appears only while an event stream is actually connected.
+3. **Motion never lies.** A number never counts up from 0 to a value it did not pass through; a bar never grows
+   past what is known; a "live" mark, a particle or a hum appears only while the Tower's poll is answering.
 
 ## 1. Tokens (`src/styles/tokens.css` — the only file with raw values)
 
-Variable names are v1's where the role is the same, so a theme swap is a value change, not a refactor.
+Two themes, one set of names (v2's kept, so components do not change). `:root` is **light**; the dark values are
+declared twice, for **Auto** under `prefers-color-scheme: dark` and for the switch's `data-theme="dark"`; with
+`data-theme="light"` the `:root` values hold. The UI tokens change at once; the scene and the planet carry the
+transition (§5 A). Scene colours are not themed: both scenes are always drawn, and `--scene-light` /
+`--scene-dark` (0 or 1) choose which one shows. The font variables are `--font-inter` and `--font-geist-mono`
+(the `next/font` variables), so `--font-mono` no longer refers to itself (carry-forward (d) of
+`docs/reviews/T03-a1.md`).
 
 ```css
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  /* surfaces (darkest → lightest) and ink */
-  --color-canvas: #040506;        /* page background, the only one */
-  --color-paper: #040506;         /* v1 name kept: alias of canvas */
-  --color-surface: #0b0c0e;       /* cards, panels, table bodies */
-  --color-raised: #111214;        /* inputs, pressed, popovers */
-  --color-badge: #1b1c1e;         /* neutral chip fill */
-  --color-line: #1f2023;          /* hairline separators */
-  --color-line-strong: #6a6b6c;   /* chip and input borders (3.66:1 on surface) */
-  --color-ink: #f4f4f5;           /* text (17.8:1 on surface) */
-  --color-ink-muted: #9c9c9d;     /* secondary text (7.1:1 on surface) */
-  --color-ink-faint: #6a6b6c;     /* non-text marks only, never body copy */
+  /* theme position (0 or 1): the scene's layers follow it */
+  --scene-light: 1;
+  --scene-dark: 0;
 
-  --color-accent: #ff6363;        /* coral: focus ring, live mark, brand mark, links (6.7:1) */
-  --color-accent-ink: #0b0c0e;
-  --color-accent-wash: #452324;   /* warm surface behind accent content */
-  --color-action: #e6e6e6;        /* primary button fill (no chromatic CTA) */
-  --color-action-ink: #0b0c0e;    /* 15.7:1 on action */
+  /* surfaces and ink: light */
+  --color-canvas: #eef4fb;        /* page ground under the scene */
+  --color-paper: #eef4fb;         /* v1 name kept: alias of canvas */
+  --color-surface: #f7f9fc;       /* solid fallback for --glass */
+  --color-raised: #ffffff;        /* inputs, popovers, detail panel */
+  --color-badge: #e6edf5;         /* neutral chip fill */
+  --color-line: #d8e2ee;          /* hairlines */
+  --color-line-strong: #66748a;   /* chip and input borders */
+  --color-ink: #13202f;           /* text */
+  --color-ink-muted: #4c5a6a;     /* secondary text */
+  --color-ink-faint: #8693a2;     /* non-text marks only */
+  --color-accent: #0d57bf;        /* links, focus ring */
+  --color-accent-ink: #ffffff;
+  --color-accent-wash: #e3edfb;
+  --color-action: #13202f;        /* primary button fill */
+  --color-action-ink: #ffffff;
+  --color-energy: #2f8cff;        /* blade edge, seam, LEDs, glows: never text */
+  --color-energy-core: #ffffff;   /* blade core, particles */
+  --color-energy-wash: rgb(47 140 255 / 0.16);
 
-  /* step status: text on tinted bg, every pair ≥ 6.6:1 (computed) */
-  --color-pass: #59d499;     --color-pass-bg: #0e2419;
-  --color-fail: #ff7a6e;     --color-fail-bg: #2a1211;
-  --color-waiting: #f5c451;  --color-waiting-bg: #2a2108;
-  --color-revise: #b69cff;   --color-revise-bg: #1d1631;
-  --color-skipped: #a1a1aa;  --color-skipped-bg: #18181b;
-  --color-started: #63a1ff;  --color-started-bg: #0c1a33;
-  --color-stale: #e0a458;    --color-stale-bg: #261a0b;
+  /* step status: text on tinted bg */
+  --color-started: #0b5cad;  --color-started-bg: #e3eefb;
+  --color-revise: #6b3fbf;   --color-revise-bg: #eee7fb;
+  --color-pass: #136b41;     --color-pass-bg: #e3f3ea;
+  --color-skipped: #55524c;  --color-skipped-bg: #ecebe7;
+  --color-waiting: #865600;  --color-waiting-bg: #fbf0d2;
+  --color-fail: #b3261e;     --color-fail-bg: #fbe9e6;
+  --color-stale: #7a4806;    --color-stale-bg: #fbeedd;
 
   /* origin (shape carries the meaning) */
-  --color-origin-verified: #f4f4f5;
-  --color-origin-imported: #8a8b8f;
+  --color-origin-verified: #13202f;
+  --color-origin-imported: #66748a;
 
-  /* atmosphere: the one place gradients are allowed (sign-in, empty portfolio) */
-  --glow-accent: radial-gradient(60% 50% at 50% 0%, rgb(255 99 99 / 0.16), transparent 70%);
-  --glow-cool: radial-gradient(50% 40% at 80% 10%, rgb(99 161 255 / 0.10), transparent 70%);
-  --glass: rgb(11 12 14 / 0.72);  /* header bar, with --blur-glass */
-  --blur-glass: 24px;
+  /* glass and elevation */
+  --glass: rgb(255 255 255 / 0.55);
+  --glass-strong: rgb(255 255 255 / 0.82);
+  --edge: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 0 0 1px rgb(30 123 255 / 0.16);
+  --edge-hover: inset 0 1px 0 rgb(255 255 255 / 0.95), 0 0 0 1px rgb(30 123 255 / 0.32);
+  --lift: 0 14px 36px rgb(19 32 47 / 0.12), 0 2px 6px rgb(19 32 47 / 0.06);
 
-  /* elevation: hairline + inner light instead of drop shadows */
-  --edge: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 0 0 1px var(--color-line);
-  --edge-hover: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px var(--color-line-strong);
+  /* tower map: light */
+  --track: rgb(19 32 47 / 0.1);
+  --hatch: rgb(19 32 47 / 0.2);
+  --tower-1: #ffffff;
+  --tower-2: #c3d1e3;
+  --module: rgb(255 255 255 / 0.72);
+  --slot: #d3dde9;
+
+  /* planet position: light */
+  --planet-turn-x: 0px;
+  --planet-night-x: 118%;
+  --planet-lights-mask-position: 316px -85px;
+  --planet-lights-delay: 0ms;
+  --planet-atmo-opacity: 1;
+
+  /* scene colours (not themed) */
+  --scene-day-far: rgb(199 214 232 / 0.85);
+  --scene-day-near-start: #f4f8fc;
+  --scene-day-near-end: #c9d7e8;
+  --scene-day-rim: #ffffff;
+  --scene-day-cloud: #ffffff;
+  --scene-day-ground: rgb(238 244 251 / 0.9);
+  --scene-night-far: #0c0709;
+  --scene-night-near: #050304;
+  --scene-night-far-rim: rgb(255 43 43 / 0.18);
+  --scene-night-near-rim: rgb(255 43 43 / 0.42);
+  --scene-night-window: rgb(255 179 138 / 0.75);
+  --scene-night-star: #ffffff;
+  --scene-night-ground: #050304;
+  --scene-star-dim: 0.25;
+  --mask-sky-clouds: linear-gradient(180deg, #000 0 52%, transparent 72%);
+
+  /* planet layers (not themed) */
+  --planet-night: radial-gradient(circle at 50% 50%, rgb(3 2 6 / 0.95) 0 49%, rgb(30 10 8 / 0.78) 55%, rgb(150 70 40 / 0.28) 61%, rgb(255 160 110 / 0.08) 65%, transparent 69%);
+  --planet-rim: radial-gradient(circle at 8% 50%, rgb(255 43 43 / 0.4), transparent 30%);
+  --planet-shade: radial-gradient(circle at 36% 30%, rgb(255 255 255 / 0.22), transparent 30%), radial-gradient(circle at 50% 50%, transparent 55%, rgb(0 0 0 / 0.28) 76%, rgb(0 0 0 / 0.62) 100%);
+  --planet-atmo: radial-gradient(circle, transparent 64%, rgb(170 210 255 / 0.18) 68%, rgb(190 222 255 / 0.55) 71%);
+  --planet-glow-day: 0 0 0 1px rgb(255 255 255 / 0.35), 0 0 36px rgb(150 195 255 / 0.65), 0 0 110px rgb(150 195 255 / 0.3);
+  --planet-glow-night: 0 0 0 1px rgb(255 90 90 / 0.22), 0 0 36px rgb(255 43 43 / 0.32), 0 0 120px rgb(255 43 43 / 0.16);
+  --mask-planet-lights: radial-gradient(circle, #000 0 44%, transparent 56%);
+
+  /* geometry: scene, planet, shell */
+  --scene-block-size: 1040px;
+  --scene-cloud-tile-inline: 3200px;
+  --scene-cloud-tile-block: 1100px;
+  --planet-size: 340px;
+  --planet-tile-inline: 680px;
+  --planet-tile-block: 340px;
+  --planet-inset-block-start: 34px;
+  --planet-inset-inline-end: 4%;
+  --planet-phone-scale: 0.62;
+  --planet-night-scale: 1.5;
+  --planet-lights-mask-size: 510px;
+  --sidebar-inline-size: 220px;
+  --shell-max: 1500px;
+  --nav-bar: 3px;
+
+  /* geometry: tower map (T05) */
+  --map-inline-size: 1200px;
+  --map-block-size: 660px;
+  --map-scale-1: 0.86;
+  --map-scale-2: 0.74;
+  --map-scale-3: 0.66;
+  --map-card-inline-size: 288px;
+  --tower-inline-size: 172px;
+  --tower-block-size: 444px;
+  --blade-glow: 12px;
+  --blade-glow-blur: 5px;
+  --blade-edge: 3.2px;
+  --blade-core: 1.2px;
+  --blade-off: 1.6px;
+  --blade-draw: 460;
+  --dash-waiting: 3 7;
+  --dash-gate: 12 6;
+  --dash-down: 4 6;
+  --dash-stale: 1 8;
+  --dash-silent: 1 6;
 
   /* space (8-based, v1 names kept) */
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
@@ -83,184 +170,320 @@ Variable names are v1's where the role is the same, so a theme swap is a value c
 
   --radius-1: 6px;   /* chips */
   --radius-2: 8px;   /* inputs, buttons */
-  --radius-3: 16px;  /* cards */
+  --radius-3: 16px;  /* cards, sidebar, top bar */
   --radius-pill: 9999px;
+  --blur-glass: 20px;
 
-  --font-body: var(--font-sans), system-ui, sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --text-0: 0.6875rem; --text-1: 0.8125rem; --text-2: 0.9375rem; --text-3: 1.25rem;
   --text-4: 1.5rem;    --text-5: 2rem;      --text-6: 3.5rem;
   --leading: 1.5; --leading-tight: 1.15;
+  --tracking-title: 0.02em;
+  --tracking-eyebrow: 0.08em;
 
   --content-max: 1200px;
 
-  /* motion — see §5. Durations and easings live only here. */
+  /* motion: see §5. Durations and easings live only here. */
   --dur-instant: 90ms;    /* press, toggle, focus */
-  --dur-quick: 160ms;     /* hover, chip state change, tooltip */
+  --dur-quick: 160ms;     /* hover, chip state change, tooltip, reduced-motion tint */
   --dur-base: 240ms;      /* enter/exit of a component */
-  --dur-slow: 420ms;      /* page-level choreography, shared element */
-  --dur-ambient: 2400ms;  /* live pulse, skeleton sheen; loops only */
+  --dur-slow: 420ms;      /* page-level choreography, shared element, bars */
+  --dur-ambient: 2400ms;  /* live pulse, skeleton sheen, waiting pulse; loops only */
+  --dur-scene: 1800ms;    /* the theme switch: scene and planet (amendment A) */
   --stagger: 40ms;        /* per item in a list entrance; total capped at 320ms */
+  --dur-planet-lights: 1000ms;
+  --dur-planet-rim: 1200ms;
+  --delay-planet-rim: 600ms;
+  --dur-planet-land: 160s;
+  --dur-planet-clouds: 105s;
+  --dur-sky-clouds: 420s;
+  --dur-twinkle-1: 3.1s;  --delay-twinkle-1: -0.7s;
+  --dur-twinkle-2: 4.2s;  --delay-twinkle-2: -2.3s;
+  --dur-twinkle-3: 5.4s;  --delay-twinkle-3: -3.9s;
+  --dur-twinkle-4: 6.8s;  --delay-twinkle-4: -5.6s;
+  --dur-ignite: 720ms;
+  --stagger-ignite: 70ms;
+  --dur-particle-active: 1500ms;
+  --dur-particle-steady: 2600ms;
+  --dur-particle-revise: 3400ms;
+  --dur-particle-waiting: 8000ms;
+  --dur-tile-flash: 650ms;
+  --dur-signal: 620ms;
+  --dur-module-flash: 520ms;
+  --delay-module-flash: 560ms;
+  --stagger-signal: 120ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);      /* entrances: fast start, soft landing */
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);       /* exits */
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);  /* moves and morphs */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);  /* moves, morphs, the theme switch */
   --ease-spring: linear(0, 0.36 9%, 0.84 22%, 1.04 33%, 1.01 45%, 1 100%); /* settles with a hint of overshoot */
   --rise: 8px;            /* entrance travel distance */
 }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --scene-light: 0;
+    --scene-dark: 1;
+    --color-canvas: #050507;
+    --color-paper: #050507;
+    --color-surface: #0e0a0c;
+    --color-raised: #181113;
+    --color-badge: #21171a;
+    --color-line: #2a1c1e;
+    --color-line-strong: #75605f;
+    --color-ink: #f4f1ee;
+    --color-ink-muted: #aaa3a1;
+    --color-ink-faint: #6f6766;
+    --color-accent: #ff6b62;
+    --color-accent-ink: #0e0a0c;
+    --color-accent-wash: #452324;
+    --color-action: #e6e6e6;
+    --color-action-ink: #0e0a0c;
+    --color-energy: #ff2b2b;
+    --color-energy-core: #fff0ee;
+    --color-energy-wash: rgb(255 43 43 / 0.16);
+    --color-started: #63a1ff;  --color-started-bg: #0c1a33;
+    --color-revise: #b69cff;   --color-revise-bg: #1d1631;
+    --color-pass: #59d499;     --color-pass-bg: #0e2419;
+    --color-skipped: #a1a1aa;  --color-skipped-bg: #18181b;
+    --color-waiting: #f5c451;  --color-waiting-bg: #2a2108;
+    --color-fail: #ff7a6e;     --color-fail-bg: #2a1211;
+    --color-stale: #e0a458;    --color-stale-bg: #261a0b;
+    --color-origin-verified: #f4f1ee;
+    --color-origin-imported: #8a8380;
+    --glass: rgb(16 11 13 / 0.58);
+    --glass-strong: rgb(24 16 18 / 0.86);
+    --edge: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px rgb(255 59 59 / 0.22);
+    --edge-hover: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(255 59 59 / 0.4);
+    --lift: 0 18px 44px rgb(0 0 0 / 0.6), 0 0 24px rgb(255 43 43 / 0.06);
+    --track: rgb(255 255 255 / 0.1);
+    --hatch: rgb(255 255 255 / 0.2);
+    --tower-1: #2a1c1e;
+    --tower-2: #050405;
+    --module: rgb(255 255 255 / 0.04);
+    --slot: #2c2022;
+    --planet-turn-x: -340px;
+    --planet-night-x: 20%;
+    --planet-lights-mask-position: -17px -85px;
+    --planet-lights-delay: 500ms;
+    --planet-atmo-opacity: 0.35;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --scene-light: 0;
+  --scene-dark: 1;
+  --color-canvas: #050507;
+  --color-paper: #050507;
+  --color-surface: #0e0a0c;
+  --color-raised: #181113;
+  --color-badge: #21171a;
+  --color-line: #2a1c1e;
+  --color-line-strong: #75605f;
+  --color-ink: #f4f1ee;
+  --color-ink-muted: #aaa3a1;
+  --color-ink-faint: #6f6766;
+  --color-accent: #ff6b62;
+  --color-accent-ink: #0e0a0c;
+  --color-accent-wash: #452324;
+  --color-action: #e6e6e6;
+  --color-action-ink: #0e0a0c;
+  --color-energy: #ff2b2b;
+  --color-energy-core: #fff0ee;
+  --color-energy-wash: rgb(255 43 43 / 0.16);
+  --color-started: #63a1ff;  --color-started-bg: #0c1a33;
+  --color-revise: #b69cff;   --color-revise-bg: #1d1631;
+  --color-pass: #59d499;     --color-pass-bg: #0e2419;
+  --color-skipped: #a1a1aa;  --color-skipped-bg: #18181b;
+  --color-waiting: #f5c451;  --color-waiting-bg: #2a2108;
+  --color-fail: #ff7a6e;     --color-fail-bg: #2a1211;
+  --color-stale: #e0a458;    --color-stale-bg: #261a0b;
+  --color-origin-verified: #f4f1ee;
+  --color-origin-imported: #8a8380;
+  --glass: rgb(16 11 13 / 0.58);
+  --glass-strong: rgb(24 16 18 / 0.86);
+  --edge: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 0 0 1px rgb(255 59 59 / 0.22);
+  --edge-hover: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(255 59 59 / 0.4);
+  --lift: 0 18px 44px rgb(0 0 0 / 0.6), 0 0 24px rgb(255 43 43 / 0.06);
+  --track: rgb(255 255 255 / 0.1);
+  --hatch: rgb(255 255 255 / 0.2);
+  --tower-1: #2a1c1e;
+  --tower-2: #050405;
+  --module: rgb(255 255 255 / 0.04);
+  --slot: #2c2022;
+  --planet-turn-x: -340px;
+  --planet-night-x: 20%;
+  --planet-lights-mask-position: -17px -85px;
+  --planet-lights-delay: 500ms;
+  --planet-atmo-opacity: 0.35;
+}
 ```
 
-`docs/DESIGN_SYSTEM.md` §1 is the source of these values; the task that lands them copies them byte for
-byte. One theme (dark). A light theme is a later scope amendment.
+`docs/DESIGN_SYSTEM.md` §1 is the source of these values; the task that lands them copies the block above byte
+for byte. A later task that needs a new raw value appends it **after** this block in `tokens.css`, under a comment
+naming the task, and never redefines a name above; its fence states the additions and the reviewer checks them.
+
+Contrast (WCAG relative luminance, computed at intake with the README §1 method: the glass composited over the
+canvas and over the darkest scene colour behind a card — light `#c4d4e7` and `#a7c7ee`, dark `#3d070a`): light ink
+12.98, muted 5.56, accent 5.28, line-strong 3.74; dark ink 16.73, muted 7.58, accent 6.75, line-strong 3.22.
+Status text on its own background: light 5.53 (waiting) to 6.66 (stale); dark 6.66 (started) to 9.77 (waiting).
+Accent-ink on accent: light 6.70, dark 7.06; action-ink on action: light 16.47, dark 15.76. The task that lands §1
+recomputes every pair in a unit test and the reviewer reads the result.
 
 ## 2. Type
 
-- **Inter** 400/500/600 for text (`--font-sans`), **Geist Mono** 400/500 for ids, shas, run keys, seq,
-  counts, times and eyebrows (`--font-mono`), both through `next/font/google` (self-hosted at build).
-- Scale: display `--text-6` 500 (sign-in only) · page title `--text-4` 600 · section `--text-3` 600 ·
-  body `--text-2` · table and chip `--text-1` · meta (age, origin, alias) `--text-0` · eyebrow
-  `--text-0` mono uppercase, letter-spacing 0.08em.
+- **Inter** 400/500/600/700 for text (`--font-inter`), **Geist Mono** 400/500 for ids, shas, run keys, seq,
+  counts, times and eyebrows (`--font-geist-mono`), both through `next/font/google` (self-hosted at build).
+- Scale: display `--text-6` 500 (sign-in only) · page title `--text-5` 700 with `--tracking-title` · section
+  `--text-3` 600 · body `--text-2` · table and chip `--text-1` · meta (age, origin, alias) `--text-0` · eyebrow
+  `--text-0` mono uppercase, `--tracking-eyebrow`.
 - Numbers: `tabular-nums`, right-aligned, `Intl.NumberFormat`; missing = `—`.
-- Times: relative in text ("4 min ago"), absolute ISO in `title` and in mono table columns. Relative
-  ages re-render every 30 s without moving the layout.
+- Times: relative in text ("4 min ago"), absolute ISO in `title` and in mono table columns. Relative ages
+  re-render every 30 s without moving the layout.
 
 ## 3. Components
 
-All v1 components remain with their v1 meaning; v2 changes their look and adds the motion column.
+All v1/v2 components keep their meaning; v3 changes their look to glass on the scene and adds the shell, the scene
+and the map. Glass = `--glass` with `backdrop-filter: blur(var(--blur-glass)) saturate(1.6)` and `--edge`,
+`--lift`; without `backdrop-filter` support it falls back to `--color-surface`.
 
 | Component | Look | Motion (tokens from §1, rules from §5) |
 |---|---|---|
-| `AppHeader` | glass bar (`--glass` + blur), product mark left, avatar + login right, sign-out | on scroll > 8px the bottom hairline fades in (`--dur-quick`); never hides |
-| `LiveMark` | 6px coral dot + "live" word, only while the realtime channel is open | ambient pulse (scale 1→1.6, opacity 0.6→0, `--dur-ambient`); disconnected → dot turns `--color-ink-faint`, word "offline", no pulse |
-| `StatusChip` | tinted pill `--radius-1`, word first (`verdict · pass`) | status change = **crossfade + 1-frame tint flash** (`--dur-quick`); `started` has a breathing dot (`--dur-ambient`) |
-| `OriginChip` | reported outlined · observed dotted · verified filled ink · imported filled grey; always the word | becoming *verified* = the outline fills from the start edge (`--dur-base`, `--ease-in-out`) — the one "stamp" moment |
-| `AgeText` | muted meta | none; text swaps in place |
-| `FreshnessLabel` | fresh / stale pair | going stale: the row's ink transitions to muted over `--dur-slow` and the label slides in from the end edge |
-| `HealthBanner` | full-width fail-tinted bar under the header | slides down `--dur-base`; numeric regions under it crossfade to `StateBlock error` |
-| `StateBlock` | loading / empty / error in words, fixed min-height | loading = 3 hairline rows with a left-to-right sheen (`--dur-ambient`); loaded = crossfade, **no layout shift** |
-| `ProjectRow` | surface card row, hairline edge, hover `--edge-hover` | list entrance: rise `--rise` + fade, staggered; new project = slides in at its sorted position, others move (FLIP, `--ease-in-out`) |
-| `Timeline` / `EventRow` | vertical rail with seq ticks, mono seq | **a new event lands**: rail extends, row rises into place, its chip appears last (`--dur-base` + 1 stagger); older rows shift down by FLIP; never re-animates rows already seen |
-| `EvidenceLink` | mono, start-truncated path | hover: underline draws from start edge (`--dur-quick`) |
-| `Counter` (new) | a number with its unit | value changes roll per digit (odometer, `--dur-slow`) **only between two real values**; first render = fade in, no count-up |
-| `Bar` (new, Usage only) | thin bar for measured share | grows from 0 to its value once on first view (`--dur-slow`, `--ease-out`); `unavailable` = hatched empty bar, never animated |
-| `UsageTable` / `CoverageLine` | v1 rules | coverage line first; table rows stagger in on first view only |
-| `OwnerForm` | inset inputs (`--color-raised`), labels above | focus ring draws in (`--dur-instant`); invalid field = 2-cycle horizontal nudge (4px, `--dur-base`) + error text reveal; submit button morphs into its pending state, then into ✓ text |
-| `Toast` (new) | bottom-start, surface + edge | in: rise + fade `--dur-base`; out: fade `--dur-quick`; auto-dismiss 5 s; pausable on hover/focus |
-| `ImportResult` | plain table | counts appear row by row (stagger), no progress bar |
+| `Scene` | README §3: sky backdrops, cloud layer, skylines, stars, windows, ground; `aria-hidden`, `pointer-events: none`, behind every page | layer opacity follows `--scene-light`/`--scene-dark` over `--dur-scene`; ambient loops (cloud pan, twinkle) per §5 B |
+| `Planet` | README §3.4: globe (land, clouds) through the sphere filter, night disc, night lights, rim, shade, atmosphere; top end corner; × `--planet-phone-scale` at ≤ 760 px | the switch turns the globe half a turn while the night disc sweeps (`--dur-scene`); spin loops per §5 B; glow = two layers crossfading by opacity, never an animated shadow |
+| `ThemeSwitch` (new) | segmented **Auto · Light · Dark**, `aria-pressed`, in the top bar | the pressed segment's wash moves `--dur-quick`; the theme itself changes at once (§5 A) |
+| `AppSidebar` (new) | README §2: glass, product mark, "DEV_OS", links to routes that exist only; current link `--color-energy-wash` + `--nav-bar` energy bar at the start edge; a strip above the content at ≤ 980 px | none |
+| `AppHeader` (top bar) | glass, "Control Tower", `LiveMark` (from T05), `ThemeSwitch`, avatar (alt = login), login in `<bdi>`, sign-out | none |
+| `LiveMark` | 6 px energy dot + "live" word **while the latest poll of `/api/projects` answered 200**; "offline" and a faint dot otherwise (the browser never calls Supabase, `DATA_MODEL.md` §1; carry-forward (c) of `docs/reviews/T03-a1.md`) | ambient pulse (`--dur-ambient`) while live; none offline |
+| `StatusChip` | tinted pill `--radius-1`, word first (`verdict · pass`) | crossfade + one-frame tint flash (`--dur-quick`); `started` breathing dot (`--dur-ambient`) |
+| `OriginChip` | reported outlined · observed dotted · verified filled ink · imported filled grey; always the word | becoming verified = the outline fills from the start edge (`--dur-base`) |
+| `AgeText`, `FreshnessLabel`, `HealthBanner`, `StateBlock`, `Counter`, `Bar`, `Toast`, `OwnerForm`, `EvidenceLink`, `Timeline`/`EventRow`, `UsageTable`/`CoverageLine`, `ImportResult` | as v2, on glass; `StateBlock` loading = hairline skeletons with a sheen | as v2 |
+| Tower map (T05): tower, project card, blade, detail panel, filter, list, phone tower card, counts card, Tower panel, System overview, Recent activity, Ingestion health | README §4–§7 | README §4.3–§4.4 and §5 below |
 
 ## 4. Compositions and their choreography
 
-Every page has a **first-paint choreography** (≤ `--dur-slow` + 320ms stagger in total), designed
-**states**, and **transitions** between them. Route changes use the View Transitions API (Next.js
-`ViewTransition` / CSS `view-transition-name`) with a crossfade + `--rise` default and named shared
-elements listed below.
+Every page has a first-paint choreography (≤ `--dur-slow` + 320 ms of stagger), designed states, and transitions
+between them, in **both themes**. Route changes use the View Transitions API with a crossfade + `--rise` default.
 
-### 4.1 Sign-in `/sign-in` (retrofit of T01)
-
-- **Layout:** canvas with `--glow-accent` + `--glow-cool` atmosphere; centred card (`--radius-3`,
-  `--edge`), product mark, display line "Control Tower", one sentence, the GitHub button
-  (`--color-action`).
-- **First paint:** atmosphere fades in (`--dur-slow`); card rises (`--rise`, `--ease-out`); title,
-  sentence, button stagger in.
-- **Press → redirecting:** button compresses (scale 0.98, `--dur-instant`), label crossfades to
-  "Opening GitHub…" with a 3-dot sequence; the card stays put (no layout change).
-- **Returning from GitHub (`/auth/callback`):** an interstitial "Checking your access…" with a hairline
-  progress sweep — truthful: it runs only while the callback request is pending.
-- **Success:** the product mark is a **shared element** — it travels from the card into the header's mark
-  position while the card dissolves and the portfolio's first paint begins (`--dur-slow`).
-- **Denied (`not_owner`):** card nudges (2 cycles, 4px, `--dur-base`); the message "This GitHub account is
-  not the owner. Signed out." reveals under the button; the button reads "Use another account".
-- **Error (`auth_error`):** the reason in words reveals with a fail-tinted hairline at the card's top
-  edge; "Try again" button.
-- **Signed out (from the header):** header and content fade (`--dur-base`), sign-in card rises.
-
-### 4.2 Portfolio `/`
-
-- Totals line as `Counter`s (projects · tasks passed / total · measured attempts) with `LiveMark`;
-  `ProjectRow` list; "Register project".
-- **First paint:** header in place (no animation), totals fade, rows stagger.
-- **Live:** a new event for a project → that row's latest `StatusChip` changes (§3) and the row's age
-  resets; if the sort order changes, the row moves by FLIP. A project going stale → §3 `FreshnessLabel`.
-- **States:** loading (skeleton rows, sheen) · empty (atmosphere + "No project yet. Register the first
-  one." + button, rises in) · error (`HealthBanner` + `StateBlock error`) · stale rows.
-- **To project page:** the clicked row's name is a shared element into the project header.
-
-### 4.3 Register `/projects/new`
-
-- `OwnerForm` (key, repository, stale window). Submit → pending morph → success toast + navigation to
-  the project page (shared name). Invalid → field nudge + error text.
-
-### 4.4 Project `/projects/[key]`
-
-- Header (shared name, repo, freshness, `LiveMark`); phases as segmented rail (tasks as ticks coloured by
-  latest status — word on hover/focus and in a list below for screen readers); runs as `Timeline`s.
-- **First paint:** header settles, phase rail draws from start edge (`--dur-slow`), newest run's events
-  stagger.
-- **Live:** a new event lands (§3 `EventRow`); a run's verdict *pass* makes its rail segment fill; a
-  newly verified fact plays the `OriginChip` stamp once.
-
-### 4.5 Usage `/projects/[key]/usage`
-
-- `CoverageLine` first, then totals (`Counter`s) by agent and by model with `Bar`s, `UsageTable`,
-  failed-attempts table, legend.
-- **First paint:** coverage line, then counters fade, bars grow once, table rows stagger.
-
-### 4.6 Import `/projects/[key]/import`
-
-- Idle (drop zone with dashed edge; drag-over = edge brightens, `--dur-quick`) · uploading (truthful
-  byte progress only if the browser reports it; otherwise indeterminate sweep with the word
-  "Uploading…") · result (`ImportResult` rows stagger) · error.
+- **4.1 Shell (T04).** README §2. `/` shows the shell and the page head (eyebrow "Discover · Monitor · Trace ·
+  Verify", `h1` "Overview", one sentence); T05 adds the counts card and the map under it.
+- **4.2 Sign-in `/sign-in` (T04 look, T09 retrofit).** T04: the scene and planet behind T01's card, which becomes
+  glass; nothing else changes. T09: v2's §4.1 states and choreography (first paint, redirecting "Opening
+  GitHub…", "Checking your access…" on `/auth/callback`, the shared product mark, denied nudge, error hairline,
+  signed-out crossfade), with the scene and planet as the atmosphere instead of v2's gradients.
+- **4.3 Overview `/` as the tower map (T05).** README §4 (map ≥ 761 px, tower, up to eight nodes, blades and link
+  states, ignition, live changes, filters and list, phone ≤ 760 px), §5 (panels), §6 (values, all from existing
+  tables) and §7 (states: loading, map, list, selected, empty, error, offline, reduced motion; each in both themes).
+  The sidebar gains **Register project** (`/projects/new`) when T05 creates that route.
+- **4.4 Register `/projects/new` (T05).** `OwnerForm` (key, repository, stale window) on glass. Submit → pending
+  morph → success toast + navigation to `/`. Invalid → field nudge + error text.
+- **4.5 Project `/projects/[key]` (T07), Usage `/projects/[key]/usage` (T06), Import `/projects/[key]/import`
+  (T10).** v2 §4.4–§4.6 compositions on glass over the scene, in both themes.
+- **4.6 Not found (T04).** A glass card on the scene: title, one sentence, a link back to `/`.
 
 ## 5. Motion rules
 
-1. **Purpose test.** Every animation answers one of: *what just arrived*, *what changed*, *where did it
-   go*, *what is waiting*, or *what is stale*. If it answers none, it is removed.
-2. **Only `transform` and `opacity`** (plus `clip-path` for the draw/fill effects). Never animate
-   layout properties, `filter` on large areas, or box-shadow.
-3. **Durations from tokens only**; nothing interactive above `--dur-slow`; total first-paint
-   choreography ≤ 740ms; ambient loops only for `LiveMark`, `started` and skeleton sheen.
-4. **Never block reading or input.** Content is interactive from its first frame; entrances never delay
-   a click target by more than `--dur-base`.
-5. **Animate once.** Entrances play on first view of a page; returning to a page, refreshing data, or
-   re-rendering does not replay them. Live changes animate only the thing that changed.
-6. **`prefers-reduced-motion: reduce`:** every entrance, move and stagger becomes an opacity crossfade of
-   `--dur-quick` or nothing; ambient loops stop (static dot); odometers swap values; shared elements
-   crossfade. Meaning is identical with motion off.
-7. **Performance:** 60 fps on a mid-range phone; no CLS from animation (`layout-shift` = 0 in the
-   evidence); JavaScript motion only where CSS cannot do it (FLIP, odometer, shared elements).
-8. **Library:** CSS transitions/keyframes and the View Transitions API first; **Motion** (`motion`
-   package, `motion/react`) for FLIP lists, odometer and gesture-driven pieces. No other animation
-   library, no Lottie, no canvas/WebGL backgrounds.
+v2's rules, with the amendments OD-08 signs (README §8):
+
+1. **Purpose test.** Every animation answers one of: *what just arrived*, *what changed*, *where did it go*, *what
+   is waiting*, or *what is stale*. If it answers none, it is removed. The scene loops of B answer "the Tower is
+   watching, now" and are bound by B.
+2. **Animated properties:** `transform`, `opacity`, `clip-path`, and (amendment **C**) `stroke-dashoffset`,
+   `offset-distance` and `mask-position`. `filter` and `box-shadow` are never animated. Static blur is allowed on
+   its own elements only: the blades' glow path, the cloud sea's SVG blur, and the 340 px globe's sphere
+   displacement.
+3. **Durations from tokens only.** Nothing interactive above `--dur-slow`, except (amendment **A**) the theme
+   switch: `--dur-scene` (1.8 s, `--ease-in-out`) for the scene and the planet; it answers *what changed* and blocks
+   nothing. Total first-paint choreography ≤ 740 ms.
+4. **Never block reading or input.** Content is interactive from its first frame.
+5. **Animate once.** Entrances play on first view of a document; refreshes, polls and returns never replay them.
+6. **Loops (amendment B).** Allowed loops: `LiveMark`, `started`, skeleton sheen (v2), and the scene's: planet
+   spin, cloud pan, star twinkle, blade hum and particles, module LEDs, the seam beam. All are slow and
+   low-contrast, and **all stop** under `prefers-reduced-motion: reduce` and while `document.visibilityState` is
+   `hidden`. (README §8 B also names an in-app "Reduce motion" control; §2 places none, so the system setting
+   governs: OD-08 "Does not decide".)
+7. **Reduced motion (amendment E).** The theme switches instantly; the planet stands still in its theme's position;
+   blades are drawn, static, without particles or hum; signals become a `--dur-quick` tint on the card; entrances
+   become an opacity crossfade of `--dur-quick` or nothing; meaning is unchanged.
+8. **Gradients and the second accent (amendment D).** One **text** accent (`--color-accent`), one **energy** colour
+   for light only (never text); gradients only in the scene, the tower and the planet.
+9. **Performance:** README §9 — 60 fps, LCP < 2.5 s on production, no layout shift from animation (0 in the
+   evidence), images after the first paint, every loop paused when hidden.
+10. **Library:** CSS transitions/keyframes and the View Transitions API first; **Motion** (`motion`,
+    `motion/react`) for FLIP, odometer and gesture-driven pieces. No other animation library, no Lottie, no
+    canvas or WebGL.
 
 ## 6. Quality floor
 
-v1's floor, re-measured on the dark palette: text ≥ 4.5:1 (every pair in §1 computed ≥ 6.6:1), chip and
-input borders ≥ 3:1; focus ring 2px `--color-accent` with 2px offset, drawn in `--dur-instant`; keyboard
-reachable in reading order; no colour-only or motion-only meaning; tables become stacked label/value rows
-at 390 with no horizontal scroll; no layout shift; avatar alt = login; third-party hosts only as
-`guard:design` allows.
+v2's floor, in **both themes**: text ≥ 4.5:1 and chip/input borders ≥ 3:1 on the glass over the canvas and over the
+darkest scene colour behind it (§1 backdrops); focus ring 2 px `--color-accent` with 2 px offset; keyboard reachable
+in reading order; no colour-only or motion-only meaning; at 390 no horizontal scroll (the scene is clipped to the
+viewport); no layout shift; avatar alt = login; third-party hosts only as `guard:design` allows (fonts are
+self-hosted by `next/font` at build).
 
 ## 7. How the reviewer checks it
 
-Per page and state in the fence, at **1280 and 390**:
+Per page and state in the fence, at **1280 and 390**, in **light and dark**:
 
-1. **Screenshots** of the settled state (`.devos/screens/`).
-2. **Motion filmstrip:** frames at 0, 80, 160, 320 and 640 ms after the trigger (first paint, and each
-   interaction the fence names), so timing and order are visible in still images.
-3. **Reduced-motion screenshot** of the same state, proving equal meaning.
-4. **Layout-shift value** from Playwright (`PerformanceObserver` `layout-shift`) = 0.
+1. Screenshots of the settled state (`.devos/screens/`).
+2. Motion filmstrip at 0, 80, 160, 320, 640 ms after the trigger (first paint and each named interaction).
+3. **Theme-switch filmstrip** at 0, 450, 900, 1350, 1800 ms after pressing the switch, light → dark and back.
+4. Reduced-motion screenshot of the same state, proving equal meaning.
+5. Layout-shift value = 0.
+6. The contrast of §1, recomputed.
 
-Then the design ledger (seven rows): hierarchy · consistency with this document · accessibility ·
-responsiveness · craft · **motion** (purpose test, tokens, once-only, reduced motion) · **truthfulness**.
-A correct page that fails the ledger does not pass. The owner's look at the deployed page is the final
-check of motion *feel* at each UI gate.
+Then the design ledger (seven rows): hierarchy · consistency with this document and `docs/design/v3/` ·
+accessibility · responsiveness · craft · **motion** (purpose test, tokens, once-only, loops stop, reduced motion) ·
+**truthfulness**. A correct page that fails the ledger does not pass. The owner's look at the deployed page is the
+final check of motion feel at each UI gate.
 
 ## 8. Do / Don't
 
-- Do animate arrivals, changes, moves, waits and staleness. Don't animate anything else.
-- Do keep one accent (coral) and let status colours carry state. Don't add a second accent or gradients
-  outside the sign-in and empty-portfolio atmosphere.
+- Do let the scene carry the theme change. Don't animate the UI's colours.
+- Do keep one text accent and let status colours carry state; energy is for blades, seams and glows. Don't put
+  energy on text or add gradients outside the scene, tower and planet.
+- Do stop every loop under reduced motion and while hidden. Don't add a loop that answers no §5 question.
 - Do roll a number between two real values. Don't count up from zero or animate an estimate.
-- Do play entrances once. Don't replay them on refresh, polling or navigation back.
-- Do design loading, empty, error, stale and offline states with their own motion. Don't use a lone
-  spinner.
-- Do say origin and age beside every fact. Don't let motion stand in for a word.
+- Do show particles only while the poll answers. Don't let them stand for real traffic.
+- Do say origin and age beside every fact. Don't let motion or light stand in for a word.
+
+## 9. Images
+
+The scene's images are bundled with the code, not served from `public/`: every path outside `/_next/`, `/api/`
+and the sign-in and auth routes is behind the sign-in proxy (`src/proxy.ts`), so a `public/scene/` file could not
+reach `/sign-in` without a proxy change. They live in `src/components/scene/assets/` under the baseline names and
+are referenced from the scene's CSS modules (and the sphere map through a static import), so they are served from
+`/_next/static/media/`.
+
+| File | Size | Alpha | Seamless in x | Role |
+|---|---|---|---|---|
+| `sky-day.jpg` | 1600×900 | no | no | day backdrop (cover, top centre) |
+| `sky-night.jpg` | 2400×1350 | no | no | night backdrop |
+| `sky-clouds.webp` | 3200×1100 | yes | yes | cloud layer, one tile per `--dur-sky-clouds` |
+| `planet-land.webp` | 1360×680 | no | yes | surface strip (shown at 680×340) |
+| `planet-clouds.webp` | 1360×680 | yes | yes | cloud strip |
+| `planet-lights.webp` | 1360×680 | yes | yes | night lights, on land only |
+| `planet-sphere-map.png` | 340×340 | no | — | displacement map, lossless, never replaced |
+
+The sizes are the baseline's as committed (README §13 lists `sky-day` at 2400×1350; the committed baseline is
+1600×900 and holds, "same sizes as the baseline"). Budget: each file at most twice its baseline's bytes, and the
+seven together at most 1 048 576 bytes (baseline 722 875).
+
+## 10. Realistic art (README §13)
+
+The builder (Grok in Cursor) may replace the six non-map images with more realistic art from Cursor's image tool,
+under README §13's rules: original prompts only (never a film, game, franchise, character, ship or brand, and no
+reference image from one); a check script (exact size, format and alpha as §9; seam and pole checks; the byte
+budget) before any image replaces the baseline; the baseline stays when the tool is not available or an image fails
+a check, and that never blocks the task; the reviewer looks at every replaced image and at the scene screenshots in
+both themes and can keep the baseline for any image that is worse, off-style or not original. The owner can generate
+the same images by hand in Cursor's editor with the prompts the task commits, through a pull request; the checks
+still apply.
+
+## 11. What this system does not decide
+
+README §11: theme persistence (D1: the switch lasts for the open document only, nothing is stored); pages that do
+not exist (D2); instances, lifecycle and ledger totals the event contract does not carry (D3); observed-only
+repositories (D4). Also: an in-app "Reduce motion" control (§5.6); a guard for durations and easings.
