@@ -7,12 +7,8 @@
 | Step | What | State |
 |---|---|---|
 | B0 | Bootstrap: method files copied from the pilot (`AUTOMATION.md` §11), the Tower's documents (brief, glossary, scope, decisions, data/security/boundary models, design direction, i18n/content models, `PHASES.md`, `devos/setup.json`), Tower ADR-001…004, fence T01, the two configuration deviations (`B0-BOOTSTRAP.md` §4) | committed by the owner (signs OD-01 to OD-06) |
+| T01 | Skeleton: Next.js app, Supabase module, owner-only GitHub sign-in, header baseline, Tower ADRs | built — awaiting verdict |
 
 ## Next action
 
-Run `devos-cycle` on **T01** once the setup issue shows every `blocks: cycle` item present
-(`CURSOR_API_KEY`, a Claude credential) and the owner has created the Supabase project (GitHub provider
-on, everything else off), the Vercel project (Standard protection) and inserted the single
-`owner_allowlist` row in the SQL editor after T01's migration is applied. T01 ends at gate
-`G-Tower-Auth`: the owner reviews the sign-in screenshots (1280/390, three states), the Advisors
-screenshot and the forged-metadata proof before merging.
+Deep review of T01, then gate **G-Tower-Auth**. The owner merges after the gate checks: the sign-in screenshots (1280 and 390, signed-out, denied, error), the Supabase Advisors security screenshot, and the forged-metadata proof. The single `owner_allowlist` row is inserted in the SQL editor after this migration is applied; it is not in the repository.

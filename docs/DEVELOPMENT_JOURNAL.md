@@ -49,3 +49,14 @@ Owner choices recorded before the bootstrap commit:
   No Git link at B0. Deployment Protection is Standard. Protection Bypass entries: 0.
 - The pilot's own Supabase project is paused: restore it (free plan: within 90 days) or set the
   pilot's repository variable `DEVOS_SUPABASE=false` before PM01 merges, or the pilot deploy fails.
+
+## 2026-10-17 — T01 skeleton (builder, attempt 1)
+
+Next.js 16.4.2 app shell with the Supabase module: `owner_allowlist` (RLS on, no policy, no grants
+to `anon` or `authenticated`) and `public.is_owner()` (`security definer`, empty `search_path`),
+proven by pgTAP including fixture identities `424242` (false, then true once the row exists) and
+`999` (false). GitHub is the only enabled auth provider; email sign-up is off. Sign-in has the three
+states; the denied state is HTTP 403 via `forbidden()`. The header baseline is on every route, with
+a per-request CSP nonce. `/` redirects an anonymous request to `/sign-in`; `/api/projects` answers
+401 without a session. No product tables, webhook, or portfolio. Awaiting the verdict and
+G-Tower-Auth.
