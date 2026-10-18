@@ -5,7 +5,8 @@
 }
 
 .shared {
-  view-transition-name: product-mark;
+  --product-mark: product-mark;
+  view-transition-name: var(--product-mark);
 }
 
 .wash {

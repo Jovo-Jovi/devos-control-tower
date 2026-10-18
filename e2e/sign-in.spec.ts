@@ -248,32 +248,6 @@ async function untilLive<T>(page: Page, expression: string, ready: (value: T) =>
   throw new Error(`timed out reading the page: ${JSON.stringify(latest)}`);
 }
 
-type ControlBoxes = {
-  button: { x: number; y: number; width: number; height: number };
-  card: { x: number; y: number; width: number; height: number };
-  status: string;
-  hidden: string | null;
-  busy: string | null;
-  disabled: boolean;
-};
-
-const redirectingExpression = `(() => {
-  const button = document.querySelector("[data-sign-in-button]");
-  const card = document.querySelector("[data-sign-in-card]");
-  const status = document.querySelector("[data-sign-in-button] [role='status']");
-  if (!button || !card) return null;
-  const buttonBox = button.getBoundingClientRect();
-  const cardBox = card.getBoundingClientRect();
-  return {
-    button: { x: buttonBox.x, y: buttonBox.y, width: buttonBox.width, height: buttonBox.height },
-    card: { x: cardBox.x, y: cardBox.y, width: cardBox.width, height: cardBox.height },
-    status: status ? status.textContent ?? "" : "",
-    hidden: status ? status.getAttribute("aria-hidden") : null,
-    busy: button.getAttribute("aria-busy"),
-    disabled: button.hasAttribute("disabled"),
-  };
-})()`;
-
 async function openChecking(page: Page) {
   let release = () => {};
   const gate = new Promise<void>((resolve) => {
@@ -295,8 +269,10 @@ async function showChecking(page: Page) {
   await expect(page.getByText("Checking your access…")).toBeVisible();
 }
 
-async function readBoxes(page: Page) {
-  return readLive<ControlBoxes | null>(page, redirectingExpression);
+async function boxOf(locator: ReturnType<Page["locator"]>) {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("sign-in controls are missing");
+  return { x: box.x, y: box.y, width: box.width, height: box.height };
 }
 
 async function showRedirecting(page: Page) {
@@ -318,22 +294,27 @@ async function showRedirecting(page: Page) {
     await route.abort().catch(() => undefined);
     finished();
   });
-  const before = await readBoxes(page);
-  if (!before) throw new Error("sign-in controls are missing");
-  await readLive(page, `(() => { document.querySelector("[data-sign-in-button]")?.click(); return true; })()`);
-  const after = await untilLive<ControlBoxes | null>(page, redirectingExpression, (value) =>
-    Boolean(
-      value &&
-        value.hidden !== "true" &&
-        value.status.includes("Opening GitHub") &&
-        value.busy === "true" &&
-        value.disabled,
-    ),
-  );
-  if (!after) throw new Error("redirecting controls disappeared");
+  const button = page.locator("[data-sign-in-button]");
+  const card = page.locator("[data-sign-in-card]");
+  const before = { button: await boxOf(button), card: await boxOf(card) };
+  await button.click({ noWaitAfter: true, timeout: 8_000 });
+  const status = button.locator("[role='status']");
+  await expect(status).not.toHaveAttribute("aria-hidden", "true");
+  await expect(status).toContainText("Opening GitHub…");
+  await expect(button).toHaveAttribute("aria-busy", "true");
+  await expect(button).toBeDisabled();
+  const after = {
+    ...before,
+    button: await boxOf(button),
+    card: await boxOf(card),
+    status: (await status.textContent()) ?? "",
+    hidden: await status.getAttribute("aria-hidden"),
+    busy: await button.getAttribute("aria-busy"),
+    disabled: await button.isDisabled(),
+  };
   await Promise.race([
     held,
-    new Promise((_, reject) => setTimeout(() => reject(new Error("authorize route was not held")), 8_000)),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("authorize route was not held")), 8_000)),
   ]);
   return {
     release: async () => {
@@ -595,6 +576,14 @@ test("Evidence", async ({ browser }) => {
           animation.pause();
           (animation as Animation & { held?: boolean }).held = true;
         }
+        const hold = () => {
+          for (const animation of document.getAnimations()) {
+            if ((animation as Animation & { held?: boolean }).held) continue;
+            if (animation.playState === "running") animation.pause();
+          }
+          requestAnimationFrame(hold);
+        };
+        requestAnimationFrame(hold);
       });
       const pressed = await showRedirecting(pressPage);
       for (const time of FILM_TIMES) {
