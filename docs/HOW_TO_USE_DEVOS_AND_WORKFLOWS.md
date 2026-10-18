@@ -113,7 +113,8 @@ A `ci` result that appears after the merge belongs to `main`, not to the PR.
   - 🟡 **quiet**: nothing changed for 15 minutes or more. This is still allowed.
   - ⏱️ **time slice used up**: the work was saved and a fresh run continues it.
   - 🔌 **lost connection**: Cursor's connection dropped. The run restarts once, then waits.
-  - 🔴 **stuck**: nothing changed for 30 minutes, so the run was stopped.
+  - 🔴 **stuck**: no file change, no output and no computing for 30 minutes, so the run was stopped. The comment names what it was doing.
+  - Every update also shows the builder's **last action** (for example `running shell: pnpm e2e`).
   - ✅ **finished**: next come the checks and the review.
 - **Time slices:** a long build is split into slices of 72 minutes, up to 4 slices
   (`builder.max_time_slices`). Each slice commits its work with "(time slice k)" in the commit
