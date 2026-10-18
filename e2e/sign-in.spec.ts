@@ -99,8 +99,8 @@ function holdAnimations(context: BrowserContext) {
   });
 }
 
-function watchTransitions(context: BrowserContext) {
-  return context.addInitScript(() => {
+function watchTransitions(context: BrowserContext, paintTicks = 3) {
+  return context.addInitScript((need: number) => {
     window.addEventListener("pagereveal", (event) => {
       const transition = (
         event as Event & { viewTransition?: { ready: Promise<void>; skipTransition: () => void } | null }
@@ -118,7 +118,29 @@ function watchTransitions(context: BrowserContext) {
         return;
       }
       void transition.ready.then(
-        () => {
+        async () => {
+          // `ready` fires when the pseudo tree exists, before Chromium has painted the
+          // snapshot textures. Pausing there freezes an empty texture: every seek is the
+          // canvas colour even though the new document is already in the DOM. Wait until
+          // a view-transition animation has produced a frame, then pause.
+          const started = () =>
+            document.getAnimations().some((animation) => {
+              const effect = animation.effect;
+              const pseudo = effect && "pseudoElement" in effect ? (effect as KeyframeEffect).pseudoElement : null;
+              return Boolean(pseudo?.includes("view-transition")) && Number(animation.currentTime) > 0;
+            });
+          // The first tick can still precede the snapshot upload, and the dark scene's
+          // snapshot is slower than the light one. Keep waiting for more frames, but stay
+          // inside the shorter crossfade so the animations are still recorded.
+          let ticks = 0;
+          const start = performance.now();
+          const budget = need > 3 ? 180 : 90;
+          while (ticks < need && performance.now() - start < budget) {
+            await new Promise<void>((resolve) => {
+              requestAnimationFrame(() => resolve());
+            });
+            if (started()) ticks += 1;
+          }
           const names: string[] = [];
           const durations: { pseudo: string; duration: number }[] = [];
           for (const animation of document.getAnimations()) {
@@ -152,36 +174,7 @@ function watchTransitions(context: BrowserContext) {
         },
       );
     });
-  });
-}
-
-// The overview document is chunked. A snapshot taken on the first chunk is the canvas
-// colour, and pausing inside `ready` freezes that empty texture. Deliver the whole
-// document before the browser paints it.
-async function bufferDocuments(context: BrowserContext) {
-  await context.route("**/*", async (route) => {
-    const request = route.request();
-    const pathname = new URL(request.url()).pathname;
-    // Only the overview is streamed in pieces. Buffering /sign-in stalls the sign-out redirect.
-    if (request.resourceType() !== "document" || request.method() !== "GET" || pathname !== "/") {
-      await route.continue();
-      return;
-    }
-    const response = await route.fetch();
-    if (response.status() !== 200) {
-      await route.fulfill({ response });
-      return;
-    }
-    const headers = { ...response.headers() };
-    delete headers["transfer-encoding"];
-    delete headers["content-encoding"];
-    delete headers["content-length"];
-    await route.fulfill({
-      status: response.status(),
-      headers,
-      body: await response.body(),
-    });
-  });
+  }, paintTicks);
 }
 
 async function releaseTransition(page: Page) {
@@ -816,8 +809,7 @@ test("Evidence", async ({ browser }) => {
       const cookies = await sessionCookies("fixture-sign-in-owner@example.test");
       const context = await browser.newContext({ colorScheme: theme, viewport });
       await armShift(context);
-      await watchTransitions(context);
-      await bufferDocuments(context);
+      await watchTransitions(context, 8);
       await context.addCookies(cookies.map((cookie) => ({ ...cookie, domain: "localhost" })));
       const page = await context.newPage();
       await page.goto("http://localhost:3000/sign-in", { waitUntil: "load" });
@@ -922,22 +914,35 @@ async function filmHeld(page: Page, prefix: string, navigate: () => Promise<void
   let note = "";
   for (let attempt = 0; attempt < 6; attempt += 1) {
     try {
+      await page.evaluate(() => {
+        Object.assign(window, { __vtReady: false });
+      });
       await navigate();
       const recorded = await readTransition(page);
       if (recorded.missing) {
-        note = `${prefix} attempt ${attempt + 1}: missing`;
+        note = `${prefix} attempt ${attempt + 1}: missing names=${recorded.names.join("|")}`;
+        console.log(note);
         await releaseTransition(page);
         continue;
       }
       const frames: { time: number; data: Buffer }[] = [];
+      const seeks: string[] = [];
       for (const time of FILM_TIMES) {
         await seek(page, time);
-        frames.push({ time, data: await page.screenshot({ type: "png" }) });
+        const pseudos = await page.evaluate(() =>
+          document.getAnimations().flatMap((animation) => {
+            const effect = animation.effect;
+            const pseudo = effect && "pseudoElement" in effect ? (effect as KeyframeEffect).pseudoElement : null;
+            return pseudo?.includes("view-transition") ? [`${pseudo}@${String(animation.currentTime)}`] : [];
+          }),
+        );
+        seeks.push(`${time}:${pseudos.join(",")}`);
+        frames.push({ time, data: await page.screenshot({ type: "png", animations: "allow" }) });
       }
       const sizes = frames.map((frame) => frame.data.length);
-      note = `${prefix} attempt ${attempt + 1}: bytes=${sizes.join(",")}`;
-      // A flat canvas in these viewports is under 30KB. 20 458 bytes still clears 20 000.
-      if (frames.some((frame) => frame.data.length <= 30_000)) {
+      note = `${prefix} attempt ${attempt + 1}: bytes=${sizes.join(",")} names=${recorded.names.join("|")} seeks=${seeks.join(";")}`;
+      if (frames.some((frame) => frame.data.length <= 20_000)) {
+        console.log(note);
         await releaseTransition(page);
         continue;
       }
@@ -948,9 +953,12 @@ async function filmHeld(page: Page, prefix: string, navigate: () => Promise<void
       if (prefix.includes("t09-to-success")) {
         expect(await productMarks(page)).toEqual([{ inCard: false, inNav: true }]);
       }
+      console.log(note);
       return;
     } catch (error) {
       note = error instanceof Error ? error.message.split("\n")[0] : String(error);
+      console.log(`${prefix} attempt ${attempt + 1}: ${note}`);
+      await releaseTransition(page).catch(() => undefined);
     }
   }
   throw new Error(note);

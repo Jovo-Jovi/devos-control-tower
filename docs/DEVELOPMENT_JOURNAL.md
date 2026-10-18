@@ -262,3 +262,11 @@ the claim path and the headers stay. CF-021 is closed with the layout-shift sour
 is open for the human: Next's router payload carries the request URL. Playwright's Chromium was
 installed once so `pnpm e2e` could launch. Awaiting the verdict. A PASS stops at gate G-Design-v2
 for the owner.
+
+## 2026-10-18 — T09 Sign-in retrofit (attempt 2)
+
+Attempt 2 keeps the attempt-1 tree. The error hairline sits inset on the card's top edge, and the
+checking hairline has a track. The success film was a blank canvas because the capture paused the
+view-transition snapshots before Chromium had painted them; the new page was already in the document.
+The film now waits for those frames, then seeks. Every transition frame shows the page. Awaiting the
+verdict. A PASS stops at gate G-Design-v2 for the owner.
