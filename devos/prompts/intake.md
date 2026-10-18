@@ -22,6 +22,10 @@ Exactly one of three outcomes, then the structured answer the output schema requ
    with an honest Risk (3 for anything touching headers, auth, data protection or the boundary) and
    a Gate value on the last task of the request (name it `G-<short name>`), so the human signs it
    off. Add a "Phase outlines" bullet per task.
+   **Size every new task (PR-38)** with the `devos-fence-writing` skill. Planning is where a big
+   piece of work becomes several ledger rows: one task per coherent, reviewable piece (about one to
+   three builder runs each), rather than one huge row. Within a task, split further into
+   `- Stages: N` when its fence would not fit one builder run.
 5. Write the complete, self-contained fence for the **first** new task in `docs/fences/{{NEXT_ID}}.md`
    in the format of `docs/fences/T01.md`, including the builder line
    `- Builder: grok-4.7 · Effort: <low|medium|high|xhigh> · Fast: <yes|no>` chosen for the work.

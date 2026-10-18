@@ -44,6 +44,13 @@ gate model) plans it on `intake/issue-N`: draft OD, scope row, PHASES rows, firs
 `docs/requests/issue-N.md`, settings in `docs/setup-items.json` → intake PR (`devos:intake`) → your
 merge signs the OD → `devos-advance` dispatches `devos-cycle`.
 
+**Staged fences (PR-38).** Before writing a fence the reviewer (or intake) judges its size with the
+`devos-fence-writing` skill; a fence that does not fit one builder run gets `- Stages: N` and
+`### Stage k` blocks. The cycle builds one stage per run: the stage is read back from the attempt's
+last builder commit ("(stage k of N done)" → k+1; "(stage k of N)" → continue k), a finished stage
+makes `builder-status.mjs` return `continue` (unless its report says `STATUS: HALT`), and the review
+runs once, after the last stage. Intake splits big work into separate ledger rows.
+
 **One task attempt** (`devos-cycle`, one run = one attempt of one task):
 1. `resolve`: `next-task.mjs` picks the task (method fixes first, PR-28); `setup-check.mjs --for
    cycle` stops a run that has no credentials (PR-27); `heavy.mjs` announces or holds heavy runs (PR-20).
@@ -130,7 +137,7 @@ workflow may start late.
 | `progress.sh` | live builder progress for the owner: one comment per run on the open `devos:notices` issue, edited every 5 minutes (working · quiet · finished · time slice used · stuck), with the minutes, files changed, the builder's last action (from `.devos/builder-last-action`), the `builder-report.mjs` report and a link to the run |
 | `supervisor.mjs` · `devos-supervisor.yml` | the supervisor: after every Dev OS workflow, every 30 minutes and on `/devos approve <id>` / `/devos reject <id>` (on the issue labelled `devos:supervisor`), it finds what has stopped (a failed cycle run — from the run's event, and on every scan the latest finished cycle run, because runs dispatched with the built-in token fire no event — a failed `ci` on main — re-run when an outside service such as Google Fonts caused it — or a failed production deploy, which it only reports and never re-runs, a halted or overdue parked task, a rescue branch, nothing running while a task waits), explains it with fixed rules (Claude Opus with the prompt `devos/prompts/supervisor.md`, read-only, only when none fits; at most `supervisor.max_ai_per_day`), fixes what is safe (re-run, resume, continue from the branch, recover a rescue branch, start the next task; at most `supervisor.max_auto_per_key` times per cause, then `devos:needs-you`), and turns the rest into a method-fix issue, a change request, a proposal to approve, or setup steps. One comment per incident on the "Dev OS: supervisor" issue, posted once (a reported key that was not acted on is never reported again; a halt the owner answered with `/devos revise` is skipped) with the built-in token, so its comments start no workflow; skipped or cancelled runs do not wake it (PR-36). Never merges, pushes to main or handles a secret value; off with `DEVOS_SUPERVISOR=off`. `supervisor.mjs classify --run <id>` shows how the rules read a past run |
 | `rescue.sh` | the supervisor's recovery of a rescue branch: merges the task branch and main into it (journal by union), pushes it to the task branch without force, deletes the rescue branch; a real conflict stops with nothing pushed |
-| `builder-status.mjs` | ok / continue (next time slice) / quota park (usage limit or `devos-stall:`) / halt after the build |
+| `builder-status.mjs` | ok / continue (next time slice, or the next stage of a staged fence) / quota park (usage limit or `devos-stall:`) / halt after the build |
 | `run-checks.mjs` | module checks, then guards, typecheck, lint, test, build, e2e → `.devos/ci-results.json` |
 | `checks-status.sh` | posts `devos/checks` |
 | `vercel-deploy.sh` | git-less prebuilt upload, prints only a real URL |
@@ -171,6 +178,7 @@ A UI fence carries a header line `- Screens: \`<name> <path>[ click|hover|focus 
 | | MCP: `.cursor/mcp.example.json` in the IDE; `devos/ci/mcp.ci.json` in runs |
 | Reviewer | rules in `CLAUDE.md`; permissions in `.claude/settings.json` (reviews and fences only) |
 | | interactive Claude Code commands in `.claude/commands/`: `/devos-review`, `/devos-new-project`, `/devos-method` |
+| | helper agents in `.claude/agents/` (read-only, they report and the reviewer decides): `fence-auditor` (every fence written), `design-inspector` (UI captures), `security-auditor` (deep reviews); skill `.claude/skills/devos-fence-writing` (size rules and staging, PR-38). The reviewer, intake and revise runs may use them (`Task`, `Agent`, `Skill` tools) |
 | Issue forms | `.github/ISSUE_TEMPLATE/`: `devos-request.yml` ("Dev OS change request"), `devos-method-fix.yml` ("Dev OS method fix") |
 
 ## 7. State the runner keeps
