@@ -197,11 +197,11 @@
 }
 
 .enter.reveal {
-  animation-name: enter-rise, sentence-reveal;
-  animation-duration: var(--dur-base), var(--dur-base);
-  animation-timing-function: var(--ease-out), var(--ease-out);
-  animation-delay: calc(var(--stagger) * 3), var(--dur-slow);
-  animation-fill-mode: both, both;
+  animation-name: sentence-reveal;
+  animation-duration: var(--dur-base);
+  animation-timing-function: var(--ease-out);
+  animation-delay: var(--dur-slow);
+  animation-fill-mode: both;
 }
 
 @supports not (backdrop-filter: blur(1px)) {

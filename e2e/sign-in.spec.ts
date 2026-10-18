@@ -263,18 +263,23 @@ async function readBoxes(page: Page) {
 }
 
 async function showRedirecting(page: Page) {
-  let release = () => {};
+  let openGate = () => {};
   const gate = new Promise<void>((resolve) => {
-    release = resolve;
+    openGate = resolve;
   });
-  let settled = () => {};
-  const finished = new Promise<void>((resolve) => {
-    settled = resolve;
+  let arrived = () => {};
+  const held = new Promise<void>((resolve) => {
+    arrived = resolve;
+  });
+  let finished = () => {};
+  const aborted = new Promise<void>((resolve) => {
+    finished = resolve;
   });
   await page.route("**/auth/v1/authorize**", async (route) => {
+    arrived();
     await gate;
     await route.abort().catch(() => undefined);
-    settled();
+    finished();
   });
   const before = await readBoxes(page);
   if (!before) throw new Error("sign-in controls are missing");
@@ -289,12 +294,18 @@ async function showRedirecting(page: Page) {
     ),
   );
   if (!after) throw new Error("redirecting controls disappeared");
-  release();
   await Promise.race([
-    finished,
+    held,
     new Promise((_, reject) => setTimeout(() => reject(new Error("authorize route was not held")), 8_000)),
   ]);
-  return { release: () => undefined, before, after };
+  return {
+    release: async () => {
+      openGate();
+      await aborted;
+    },
+    before,
+    after,
+  };
 }
 
 test("unsigned visitors are sent to sign-in and the read API refuses them", async ({ request }) => {
@@ -403,7 +414,7 @@ test("Redirecting and checking", async ({ page }) => {
   expect(pressed.after.disabled).toBe(true);
   expectSameBox(pressed.before.button, pressed.after.button);
   expectSameBox(pressed.before.card, pressed.after.card);
-  pressed.release();
+  await pressed.release();
 
   const release = await openChecking(page);
   const seen = await untilLive<{ state: string; text: string; name: string }>(
@@ -500,7 +511,7 @@ test("Evidence", async ({ browser }) => {
             bucket.value = 0;
             bucket.entries = [];
           }).catch(() => undefined);
-          await captureState(page, state);
+          const release = await captureState(page, state);
           if (reduced) {
             const text = await page.evaluate(() => document.body.innerText);
             for (const line of expectedLines(state)) expect(text).toContain(line);
@@ -517,6 +528,7 @@ test("Evidence", async ({ browser }) => {
           await page.screenshot({ path: `.devos/screens/t09-${key}.png` });
           shifts[key] = await readShift(page);
           shiftSources[key] = await readShiftSources(page);
+          await release();
         }
         await context.close();
       }
@@ -559,7 +571,7 @@ test("Evidence", async ({ browser }) => {
           path: `.devos/screens/t09-redirecting-${theme}-${viewport.width}-film-${String(time).padStart(3, "0")}.png`,
         });
       }
-      pressed.release();
+      await pressed.release();
       await press.close();
     }
   }
@@ -611,29 +623,35 @@ function expectedLines(state: (typeof STATES)[number]): string[] {
   return ["Control Tower", "Sign-in did not complete: no session was returned. Try again.", "Try again"];
 }
 
-async function captureState(page: Page, state: (typeof STATES)[number], options?: { film?: boolean }) {
+async function captureState(
+  page: Page,
+  state: (typeof STATES)[number],
+  options?: { film?: boolean },
+): Promise<() => Promise<void>> {
   if (state === "signed-out" || state === "redirecting") {
     await page.goto("/sign-in", { waitUntil: "load" });
-    if (options?.film) return;
+    if (options?.film) return async () => undefined;
     await settle(page);
     if (state === "redirecting") {
-      await showRedirecting(page);
+      const pressed = await showRedirecting(page);
       await settle(page);
+      return pressed.release;
     }
-    return;
+    return async () => undefined;
   }
   if (state === "denied") {
     await page.goto("/sign-in?reason=not_owner", { waitUntil: "load" });
     if (!options?.film) await settle(page);
-    return;
+    return async () => undefined;
   }
   if (state === "error") {
     await page.goto("/sign-in?reason=auth_error", { waitUntil: "load" });
     if (!options?.film) await settle(page);
-    return;
+    return async () => undefined;
   }
   await showChecking(page);
   if (!options?.film) await settle(page);
+  return async () => undefined;
 }
 
 async function readTransition(page: Page) {
