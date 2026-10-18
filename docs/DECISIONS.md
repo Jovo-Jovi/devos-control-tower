@@ -207,3 +207,41 @@ column a schema change); pages that do not exist (D2); instances, lifecycle and 
 change); observed-only repositories (D4); an in-app "Reduce motion" control (README §8 B names one, §2 places
 none); self-hosted fonts through `next/font/local` (PR-24's permanent fix, its own small change); a guard for
 durations and easings.
+
+### OD-09 — Design v3.1: the owner's backgrounds and planet in the product
+**Status:** DRAFT — signed when the human merges the intake PR
+**Amends:** OD-08 §7 (the bundled image set) and §8 (realistic art becomes the owner's v3.1 set; the builder's
+image step ends). OD-08 §1–§6 and §9–§11 stand.
+**Requested by:** issue #18
+**1.** The owner's v3.1 art (`docs/design/v3/README.md` §3.4 and §14, merged in PR #16) replaces the procedural
+scene: the plates `bg-day.webp`, `bg-night.webp` and the portrait pair (≤ 760 px) replace the sky backdrops, the
+vector skylines, the window lights, the cloud layer and the ground; the 28 twinkling stars stay in dark, cut to the
+27 of the upper half; the globe strips `planet-day.webp` and `planet-crimson.webp` replace `planet-land`,
+`planet-clouds` and `planet-lights`, with the night disc and rim removed; the crimson globe is revealed by the
+moving mask disc on the switch; `planet-sphere-map.png` is replaced by the v3.1 map and the `feDisplacementMap`
+`scale` becomes 300. The files are copied byte for byte from `docs/design/v3/assets/v3.1/` into
+`src/components/scene/assets/` (OD-08 §7 unchanged in substance: bundled, served from `/_next/static/media/`).
+**2.** `docs/DESIGN_SYSTEM.md` is amended as the intake PR writes it: §1 (the v3.1 token block: the procedural
+layers' tokens removed, the crimson mask, `--dur-planet-spin`, `--dur-scene-drift`, `--scene-drift-scale`, the dark
+atmosphere at 25 %), §3 (`Scene` and `Planet`), §5.2 and §5.6 (the cloud sea and cloud pan go; the day plate's slow
+scale, 1 → 1.04 over 60 s alternate, joins the loops of amendment B and stops under reduced motion and while hidden),
+§9 (the seven files, their sizes and bytes, the sphere map "replaced once" instead of "never replaced", the budget of
+1 048 576 bytes against 1 009 318, and the loading rule: only the theme's plate and globe strip before the first
+paint) and §10 (no task generates scene images; `scripts/scene/art.mjs` checks the bundled set against v3.1).
+**3.** Placement: the request asked for T05's scope, but T05 passed (`docs/reviews/T05-a5.md`) and the owner merged
+it (PR #17) before this intake, signing G-Design-v3. A ticked row is never reopened, so the work is a new row,
+**T11** (risk 2), with its own gate **G-Design-v3.1**: on the preview at 1280 and 390, in light and dark, the plates
+are the owner's, the planet spins and its crimson night side rolls over it on the switch, the poles are round (no
+flat bands), and the scene does not move when the page scrolls. The ledger runs rows in id order and ids must
+ascend (`scripts/devos/next-task.mjs`, `guard:phases`), so T11 runs after T10 unless the owner renumbers the open
+rows on `main`, as for issue #13 (`1792346`); intake may not renumber. If the open rows change before T11 starts,
+the reviewer who passes the row before it reissues `docs/fences/T11.md` against that tree.
+**4.** No data, route, header or dependency change: `img-src 'self'` covers the bundled images; `src/proxy.ts`,
+`next.config.ts` and the CSP stay. The boundary is unchanged (no form, cookie, storage, tracker or third party), so
+the `devos:boundary` line does not change. No setting outside the repository (`docs/setup-items.json` not needed).
+**5.** The §1 contrast pairs keep their stated reference backdrops and the token test does not change; the plates'
+readability behind the glass is judged on the screenshots in both themes at G-Design-v3.1.
+**Does not decide:** a contrast test measured on the plates themselves; removing the v3 baseline images from
+`docs/design/v3/assets/` (they stay as the design record); the method manuals' description of `art.mjs`
+(`docs/method/AUTOMATION.md` §6, "prints the scene-art prompts"), which a method task corrects; the order of T11
+against T06–T10 (the owner's renumbering, §3).
