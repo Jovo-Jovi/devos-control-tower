@@ -34,6 +34,7 @@ Where this guide and the manual disagree, the manual is correct and this guide m
 | Secrets and settings | [9](#9-secrets-variables-and-settings) |
 | Statuses (`devos/checks`, `devos/verdict`, `devos/gate`) | [16](#16-labels-statuses-and-branches) |
 | Stuck or quiet builder | [5](#5-watch-progress), [13](#13-when-something-goes-wrong) |
+| Stages (big tasks split in parts) | [5](#5-watch-progress) |
 | Time slices (long builds) | [5](#5-watch-progress) |
 | Usage limits | [10](#10-usage-limits-and-accounts) |
 | Variables | [9](#9-secrets-variables-and-settings) |
@@ -115,6 +116,8 @@ A `ci` result that appears after the merge belongs to `main`, not to the PR.
   - 🔌 **lost connection**: Cursor's connection dropped. The run restarts once, then waits.
   - 🔴 **stuck**: no file change, no output and no computing for 30 minutes, so the run was stopped. The comment names what it was doing.
   - Every update also shows the builder's **last action** (for example `running shell: pnpm e2e`).
+  - Under that: the builder's **plan** (its own to-do list, ✅ done · 🔄 now · ⬜ left), its **latest note**, and **one line for every 10 minutes**: how much it read, searched, ran and edited, which files it edited and which commands it ran.
+  - When a run ends a time slice, parks or halts, the same report is posted on the task's PR.
   - ✅ **finished**: next come the checks and the review.
 - **Time slices:** a long build is split into slices of 72 minutes, up to 4 slices
   (`builder.max_time_slices`). Each slice commits its work with "(time slice k)" in the commit
@@ -123,6 +126,15 @@ A `ci` result that appears after the merge belongs to `main`, not to the PR.
 - **Actions tab:** **Actions → devos-cycle** shows every run and its steps. You never need the logs,
   but they are there.
 - **The PR itself:** labels and comments show where a task stands (section 16).
+
+- **Stages (big tasks):** before writing a task's instructions, Claude judges how big it is. A task
+  too big for one run is split into **2–4 stages** (for example: server, then screens, then motion,
+  then tests). Each stage is one builder run that leaves the code working, and it is checked when it
+  finishes. Claude reviews the whole task once, after the last stage. A PR comment says
+  "stage k of N done". Quality comes first: big tasks get split; they never get less effort.
+- **Helpers:** Claude's review uses three read-only helper agents. The **fence auditor** checks every
+  set of task instructions before it is used, the **design inspector** checks the screenshots against
+  the design, and the **security auditor** reads every risky line. Claude still makes the decision.
 
 ## 6. Run, re-run or revise a task
 

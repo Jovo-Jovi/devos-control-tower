@@ -283,11 +283,30 @@ jobs:
           case "$prev" in *"(time slice "*) DEVOS_SLICE=$(( $(printf '%s' "$prev" | sed -n 's/.*(time slice \([0-9]*\)).*/\1/p') + 1 ));; esac
           export DEVOS_SLICE; echo "slice=$DEVOS_SLICE" >> "$GITHUB_OUTPUT"; echo "max_slices=$DEVOS_MAX_SLICES" >> "$GITHUB_OUTPUT"
           echo "time slice $DEVOS_SLICE of $DEVOS_MAX_SLICES"
+          # PR-38: a big fence is split by the reviewer into stages (`- Stages: N`); one builder run builds
+          # one stage. The stage is read back from this attempt's last builder commit: "(stage k of N done)"
+          # moves on to k+1, "(stage k of N)" (a time slice or a restart) continues stage k.
+          DEVOS_STAGES=$(sed -n 's/^- Stages: *\([0-9][0-9]*\).*/\1/p' "docs/fences/$TASK.md" 2>/dev/null | head -1); DEVOS_STAGES=${DEVOS_STAGES:-1}
+          DEVOS_STAGE=1
+          case "$prev" in
+            *"(stage "*" done)"*) DEVOS_STAGE=$(( $(printf '%s' "$prev" | sed -n 's/.*(stage \([0-9]*\) of [0-9]* done).*/\1/p') + 1 ));;
+            *"(stage "*) DEVOS_STAGE=$(printf '%s' "$prev" | sed -n 's/.*(stage \([0-9]*\) of [0-9]*).*/\1/p');;
+          esac
+          [ "$DEVOS_STAGE" -gt "$DEVOS_STAGES" ] && DEVOS_STAGE=$DEVOS_STAGES
+          export DEVOS_STAGE DEVOS_STAGES; echo "stage=$DEVOS_STAGE" >> "$GITHUB_OUTPUT"; echo "stages=$DEVOS_STAGES" >> "$GITHUB_OUTPUT"
+          [ "$DEVOS_STAGES" -gt 1 ] && echo "stage $DEVOS_STAGE of $DEVOS_STAGES"
           [ -n "$accounts" ] || { echo "::error::no Cursor key: set secret CURSOR_API_KEY (and optionally CURSOR_API_KEY_2)"; exit 1; }
           # Every active module's local names and throwaway keys (PR-17, PR-26).
           for f in .devos/*.env; do [ -f "$f" ] && { set -a; . "$f"; set +a; }; done
           echo "builder: $MODEL (effort ${DEVOS_BUILDER_EFFORT}, fast ${DEVOS_BUILDER_FAST}, from ${{ steps.bm.outputs.source }}) ${{ steps.bm.outputs.note }} · Cursor accounts in order: $accounts"
           node scripts/devos/render-prompt.mjs builder "$TASK" "$ATTEMPT" --out .devos/builder-prompt.md
+          if [ "$DEVOS_STAGES" -gt 1 ]; then
+            if [ "$DEVOS_STAGE" -lt "$DEVOS_STAGES" ]; then
+              printf '\n\n**This fence is built in %s stages, and this run builds Stage %s only** (the `### Stage %s` block of the fence). Earlier stages are done and committed on this branch: verify them, never redo them. Do only Stage %s'"'"'s steps, prove the Done-when items it names, and leave the tree green (typecheck, lint and the tests it touches pass). Do not start the next stage. Finish by appending `## Attempt %s · Stage %s of %s` to `docs/reports/%s.md` with that stage'"'"'s evidence; its first line is `STATUS: DONE` or `STATUS: HALT`.\n' "$DEVOS_STAGES" "$DEVOS_STAGE" "$DEVOS_STAGE" "$DEVOS_STAGE" "$ATTEMPT" "$DEVOS_STAGE" "$DEVOS_STAGES" "$TASK" >> .devos/builder-prompt.md
+            else
+              printf '\n\n**This fence is built in %s stages, and this run builds the last one, Stage %s.** Earlier stages are done and committed on this branch: verify them, never redo them. Build Stage %s, then run **every** Done-when command of the whole fence and write the full `## Attempt %s` report section as the fence asks.\n' "$DEVOS_STAGES" "$DEVOS_STAGE" "$DEVOS_STAGE" "$ATTEMPT" >> .devos/builder-prompt.md
+            fi
+          fi
           if [ "$DEVOS_SLICE" -gt 1 ]; then
             printf '\n\n**This is time slice %s of this attempt.** The earlier slice ran out of time while working; everything it did is committed on this branch (`git diff --stat origin/main...HEAD`, `git log`). Read it, verify it against the fence, and finish only what is still missing or failing. Do not start over, redo or duplicate anything.\n' "$DEVOS_SLICE" >> .devos/builder-prompt.md
           fi
@@ -361,6 +380,11 @@ jobs:
           if [ "$REVIEW_ONLY" != "true" ]; then
             git add -A
             slice_tag=""; [ "${{ steps.builder.outputs.exit }}" = "124" ] && slice_tag=" (time slice ${{ steps.builder.outputs.slice }})"
+            # PR-38: the stage tag. A stage the builder finished (exit 0) is "done"; anything else continues it.
+            ST="${{ steps.builder.outputs.stage || 1 }}"; STS="${{ steps.builder.outputs.stages || 1 }}"
+            if [ "$STS" -gt 1 ]; then
+              if [ "${{ steps.builder.outputs.exit }}" = "0" ]; then slice_tag=" (stage $ST of $STS done)"; else slice_tag=" (stage $ST of $STS)$slice_tag"; fi
+            fi
             git commit --allow-empty -m "$TASK a$ATTEMPT: builder (${{ steps.bm.outputs.model }}, effort ${{ steps.bm.outputs.effort }}, fast ${{ steps.bm.outputs.fast }})$slice_tag"
             bash scripts/devos/sync-main.sh "$REMOTE"
             if ! git push "$REMOTE" "HEAD:refs/heads/$BR" 2> .devos/push.err; then
@@ -421,7 +445,7 @@ jobs:
 
       - name: Builder outcome (PR-12)
         id: bs
-        run: node scripts/devos/builder-status.mjs --task "$TASK" --attempt "$ATTEMPT" --exit "${{ steps.builder.outputs.exit }}" --review-only "$REVIEW_ONLY" --slice "${{ steps.builder.outputs.slice || 1 }}" --max-slices "${{ steps.builder.outputs.max_slices || 4 }}" --changed "${{ steps.builder.outputs.changed || 0 }}"
+        run: node scripts/devos/builder-status.mjs --task "$TASK" --attempt "$ATTEMPT" --exit "${{ steps.builder.outputs.exit }}" --review-only "$REVIEW_ONLY" --slice "${{ steps.builder.outputs.slice || 1 }}" --max-slices "${{ steps.builder.outputs.max_slices || 4 }}" --changed "${{ steps.builder.outputs.changed || 0 }}" --stage "${{ steps.builder.outputs.stage || 1 }}" --stages "${{ steps.builder.outputs.stages || 1 }}"
 
       - name: Continue (next time slice), park (usage limit) or halt (builder error) without spending a review
         if: steps.bs.outputs.state != 'ok'
@@ -430,11 +454,15 @@ jobs:
           STATE: ${{ steps.bs.outputs.state }}
         run: |
           if [ -f .devos/accounts.md ]; then printf '\n\n**Accounts (PR-29)**\n%s\n' "$(cat .devos/accounts.md)" >> .devos/builder-summary.md; fi
+          if [ -f .devos/builder.json.stream.jsonl ]; then
+            rep=$(timeout 20 node scripts/devos/builder-report.mjs .devos/builder.json.stream.jsonl .devos/builder-timeline.json 2>/dev/null || true)
+            [ -n "$rep" ] && printf '\n\n### What the builder did in this run\n\n%s\n' "$rep" >> .devos/builder-summary.md
+          fi
           gh pr comment "$PRN" --repo "$REPO" --body-file .devos/builder-summary.md
           cat .devos/builder-summary.md >> "$GITHUB_STEP_SUMMARY"
           if [ "$STATE" = "continue" ]; then
             gh workflow run devos-cycle.yml --repo "$REPO" --ref main -f task="$TASK" -f attempt="$ATTEMPT" -f revision="${{ inputs.revision || false }}"
-            echo "::notice title=Dev OS::$TASK attempt $ATTEMPT: time slice used up while working; the next slice is queued and continues from the branch."
+            echo "::notice title=Dev OS::$TASK attempt $ATTEMPT: the next time slice or stage is queued and continues from the branch."
           elif [ "$STATE" = "quota" ]; then
             gh pr edit "$PRN" --repo "$REPO" --add-label "devos:quota-wait"
             echo "::warning title=Dev OS::$TASK parked (Cursor usage limit or lost connection); it resumes on its own. See the PR comment."
@@ -569,7 +597,7 @@ jobs:
               --output-format json \
               --json-schema "$(cat devos/schemas/verdict.schema.json)" \
               --permission-mode dontAsk \
-              --allowedTools "Read,Glob,Grep,Write,Edit,Bash" \
+              --allowedTools "Read,Glob,Grep,Write,Edit,Bash,Task,Agent,Skill" \
               --disallowedTools "Bash(git push *),Bash(git commit *),Bash(git checkout *),Bash(git reset *),Bash(gh *),Bash(curl *),Bash(wget *)" \
               --max-turns "$TURNS" > .devos/reviewer.json 2> .devos/reviewer.err
             rc=$?

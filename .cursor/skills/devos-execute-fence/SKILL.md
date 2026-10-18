@@ -24,3 +24,13 @@ description: Execute a Dev OS fence (docs/fences/Tnn.md) as the builder — prec
    tick `docs/PHASES.md`.
 9. **Report** with the `devos-task-report` skill.
 10. Automated runs: stop there. Do not commit, push or open a PR.
+
+## Staged fences (PR-38)
+
+A fence with `- Stages: N` is built one stage per run; the runner's prompt says which stage this run
+builds. Read the whole fence for context, then do **only that stage's** `### Stage k` block: its steps,
+its files, its Done-when items. Earlier stages are committed on the branch: verify them, never redo
+them. Leave the tree green (typecheck, lint, the tests you touched). Append
+`## Attempt A · Stage k of N` to the report with that stage's evidence (`STATUS: DONE` or
+`STATUS: HALT` first). On the last stage, run every Done-when command of the whole fence and write the
+full report.

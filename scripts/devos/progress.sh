@@ -20,6 +20,7 @@ if [ -z "$issue" ]; then
 fi
 run="${GITHUB_SERVER_URL:-https://github.com}/$REPO/actions/runs/${GITHUB_RUN_ID:-}"
 slice="${DEVOS_SLICE:-1}/${DEVOS_MAX_SLICES:-4}"
+[ "${DEVOS_STAGES:-1}" -gt 1 ] && slice="$slice · stage ${DEVOS_STAGE:-1} of ${DEVOS_STAGES}"
 if [ -n "$final" ]; then
   line="$final"
 elif [ "$idle" -ge 15 ]; then
@@ -29,8 +30,11 @@ else
 fi
 act=$(tr -d '`' < "$dir/builder-last-action" 2>/dev/null | head -c 200)
 actline=""; [ -n "$act" ] && actline="- Last action: \`$act\`"$'\n'
-body=$(printf '### Dev OS %s · attempt %s · builder · time slice %s\n\n%s\n\n- Running for **%s min** · **%s** file(s) changed so far in this slice\n%s- Updated %s UTC · [run log](%s)\n' \
-  "${TASK:-?}" "${ATTEMPT:-?}" "$slice" "$line" "$elapsed" "$files" "$actline" "$(date -u +%H:%M)" "$run")
+# What the builder has done: its plan, its latest note and a line per 10 minutes (builder-report.mjs).
+report=$(timeout 20 node scripts/devos/builder-report.mjs "${DEVOS_BUILDER_STREAM:-$dir/builder.json}" "$dir/builder-timeline.json" 2>/dev/null || true)
+body=$(printf '### Dev OS %s · attempt %s · builder · time slice %s\n\n%s\n\n- Running for **%s min** · **%s** file(s) changed so far in this slice\n%s- Updated %s UTC · [run log](%s)\n%s' \
+  "${TASK:-?}" "${ATTEMPT:-?}" "$slice" "$line" "$elapsed" "$files" "$actline" "$(date -u +%H:%M)" "$run" "${report:+
+$report}")
 id=$(cat "$dir/progress-comment" 2>/dev/null || true)
 if [ -n "$id" ]; then
   gh api -X PATCH "repos/$REPO/issues/comments/$id" -f body="$body" >/dev/null 2>&1 || true
