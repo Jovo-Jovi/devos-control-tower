@@ -69,7 +69,7 @@ function collect() {
   const rescues = (Array.isArray(rescueRefs) ? rescueRefs : []).map((r) => ({ ref: r.ref.replace("refs/heads/", ""), sha: r.object.sha }));
   const facts = {
     at: new Date().toISOString(), repo: REPO,
-    event: { name: process.env.EVENT_NAME || "", workflow: process.env.WF_NAME || "", run: process.env.WF_RUN_ID || "", conclusion: process.env.WF_CONCLUSION || "" },
+    event: { name: process.env.EVENT_NAME || "", workflow: (process.env.WF_PATH || "").split("/").pop().replace(/\.ya?ml$/, "") || process.env.WF_NAME || "", run: process.env.WF_RUN_ID || "", conclusion: process.env.WF_CONCLUSION || "" },
     next_task: next ? { task: next.task, name: next.name, phase: next.phase } : null,
     runs, active: active.map((r) => r.id), task_prs: taskPrs, intake_prs: intakePrs.map((p) => p.number), rescues,
   };
@@ -122,6 +122,11 @@ function detect(facts) {
     const r = facts.runs.find((x) => String(x.id) === String(facts.event.run));
     if (r) failedRuns.push(r);
   }
+  // Every scan: the latest finished cycle run failed and nothing came after it. A run dispatched with
+  // the built-in token (the wait and resume jobs) fires no workflow_run event, so its failure is only
+  // ever seen here.
+  const latest = facts.runs.find((x) => x.status === "completed");
+  if (latest && latest.conclusion === "failure" && minutesSince(latest.updated) < 24 * 60 && !failedRuns.some((x) => x.id === latest.id)) failedRuns.push(latest);
   // 1b. The checks (ci) or the production deploy failed on main. An outside failure of ci (network,
   // Google Fonts) is re-run; a deploy is never re-run by the supervisor, only reported.
   if (["ci", "devos-deploy"].includes(facts.event.workflow) && facts.event.conclusion === "failure" && facts.event.run) {
@@ -140,7 +145,12 @@ function detect(facts) {
     const later = facts.runs.find((x) => taskOf(x.title) === task && new Date(x.created) > new Date(r.created));
     if (later) continue;
     const f = failingStep(r.id);
-    const base = { kind: "runner-failure", task, attempt, run: r.id, url: r.url, step: f.step, evidence: f.tail.slice(-6000) };
+    const base = { kind: "runner-failure", task, attempt, run: r.id, url: r.url, step: f.step, evidence: f.tail.slice(-6000), review_only: /review only/i.test(r.title) };
+    if (/exceeds max_attempts/.test(f.tail)) {
+      // A resume that lost its revision flag (fixed in next-task.mjs; kept as a rule for old runs).
+      add({ ...base, key: `${task}:a${attempt}:attempt-limit:${r.id}`, cause: "the resumed run lost its revision flag and was refused as an attempt over max_attempts", action: "redispatch" });
+      continue;
+    }
     const rescue = (f.tail.match(/saved on branch (rescue\/\S+?)[ .(]/) || [])[1];
     if (/conflicts with this task's work/.test(f.tail)) {
       add({ ...base, key: `${task}:a${attempt}:push-conflict`, cause: "main changed during the run and the push conflicted", action: rescue ? "recover-rescue" : "redispatch", rescue });
@@ -244,7 +254,7 @@ function dispatch(fields) {
 const AUTO = {
   "redispatch": (i, facts) => {
     if (facts.active.length) return { done: false, note: "a cycle run is active; it will be re-checked on the next scan" };
-    return { done: true, note: dispatch({ task: i.task, attempt: String(i.attempt || 1), revision: "true" }) };
+    return { done: true, note: dispatch({ task: i.task, attempt: String(i.attempt || 1), revision: "true", ...(i.review_only ? { review_only: "true" } : {}) }) };
   },
   "dispatch-next": (i) => ({ done: true, note: dispatch({ task: i.task, attempt: "1" }) }),
   "rerun-failed": (i) => {
