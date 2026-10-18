@@ -89,7 +89,33 @@ async function store(
     await admin.from("webhook_deliveries").delete().eq("delivery_id", delivery);
     return empty(500);
   }
+  try {
+    await verifyReported(admin, project.data.id, observation);
+  } catch {
+    // The observation stays stored. A reported event stays reported.
+  }
   return json(202, { stored: true });
+}
+
+const VERIFIABLE = new Set(["devos/checks", "devos/verdict", "devos/gate"]);
+
+async function verifyReported(admin: AdminClient, projectId: string, observation: WebhookObservation): Promise<void> {
+  if (observation.kind !== "status" || observation.context === null || !VERIFIABLE.has(observation.context)) return;
+  const step = observation.context.slice("devos/".length);
+  const matched = await admin
+    .from("events")
+    .select("run_id")
+    .eq("project_id", projectId)
+    .eq("origin", "reported")
+    .eq("step", step)
+    .like("evidence", `%@${observation.sha.slice(0, 7)}%`);
+  if (matched.error || !matched.data) return;
+  const runs = new Set<string>();
+  for (const row of matched.data) runs.add(row.run_id);
+  for (const run of runs) {
+    const verified = await admin.rpc("verify_reported_events", { run });
+    if (verified.error) return;
+  }
 }
 
 export function createWebhookHandler(): (request: Request) => Promise<Response> {

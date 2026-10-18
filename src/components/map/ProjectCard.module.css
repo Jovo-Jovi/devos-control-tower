@@ -149,6 +149,18 @@
   font-size: var(--text-0);
 }
 
+.factText {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fact > :not(.factText) {
+  flex: none;
+}
+
 @keyframes tile {
   0%,
   100% {

@@ -233,3 +233,22 @@ Attempt 2 keeps the attempt-1 tree. The corrected D5 pattern matches the generat
 usage head renders `AgeText` only when `lastContactAt` is not null, so QUIET shows "No contact yet"
 once, from `FreshnessLabel`. The task-group header spans all ten columns. Awaiting the verdict. A
 PASS waits for the human (schema change).
+
+## 2026-10-18 — T07 Project page (attempt 1)
+
+`/projects/[key]` shows phases and tasks, each run's step events in `seq` order, and what GitHub
+observed. `verify_reported_events` is the only writer of `verified`: it runs inside `ingest_event` and
+after a matching status observation. A disagreeing state, a non-result step, a different commit, a
+`waiting` gate and an import all stay as stored. The seed adds `TRACE` and moves its runs back so
+`FIXTURE` stays the newest project on the map. CF-018 is closed, CF-012 is accepted, and CF-009 and
+CF-011 are retargeted. Playwright's Chromium was installed once so `pnpm e2e` could launch. Awaiting
+the verdict. A PASS waits for the human (schema change).
+
+## 2026-10-18 — T07 Project page (attempt 2)
+
+Attempt 2 keeps the attempt-1 tree. The rail and the evidence underline scale from
+`transform-origin: 0 0`, so the computed origin begins at the inline start. The project head is
+capped with the planet tokens so its box ends before the globe wherever the two share vertical
+space; below 40rem the head sits under the scaled globe and keeps the column width. Each task
+row passes `still` to `StatusChip`, so a past `started` does not breathe in the rail. Awaiting
+the verdict. A PASS waits for the human (schema change).

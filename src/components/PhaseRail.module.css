@@ -1,0 +1,70 @@
+.rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  transform-origin: 0 0;
+  animation: draw var(--dur-slow) var(--ease-out) both;
+}
+
+.segment,
+.task {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.tick {
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-ink-muted);
+}
+
+.tick[data-status="started"] {
+  background: var(--color-started);
+}
+
+.tick[data-status="pass"] {
+  background: var(--color-pass);
+}
+
+.tick[data-status="fail"] {
+  background: var(--color-fail);
+}
+
+.tick[data-status="revise"] {
+  background: var(--color-revise);
+}
+
+.tick[data-status="waiting"] {
+  background: var(--color-waiting);
+}
+
+.tick[data-status="skipped"] {
+  background: var(--color-skipped);
+}
+
+.tasks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@keyframes draw {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}

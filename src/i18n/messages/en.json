@@ -93,7 +93,25 @@
     "fact": "Last fact",
     "recent": "Recent step events",
     "repository": "Open repository",
-    "usage": "Usage"
+    "usage": "Usage",
+    "project": "Project page"
+  },
+  "project": {
+    "eyebrow": "Project",
+    "lead": "What this project reported, what GitHub observed, and what the Tower verified, run by run in seq order.",
+    "lastActivity": "Last activity",
+    "lastContact": "Last contact",
+    "phases": "Phases and tasks",
+    "runs": "Runs",
+    "observed": "Observed on GitHub",
+    "noObserved": "No observation yet.",
+    "empty": "No step event recorded yet.",
+    "gap": "Missing before seq {seq}: {count}",
+    "running": "running",
+    "unfinished": "unfinished",
+    "atRange": "Sender clock: {from} to {to}",
+    "seq": "seq",
+    "legend": "reported: sent by the project's runner · observed: seen on GitHub · verified: a reported result that an observed commit status confirms · imported: loaded from history. Ages count from when the Tower received each fact."
   },
   "usage": {
     "title": "Usage",
