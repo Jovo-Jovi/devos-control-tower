@@ -105,6 +105,7 @@ function watchTransitions(context: BrowserContext) {
       const transition = (
         event as Event & { viewTransition?: { ready: Promise<void>; skipTransition: () => void } | null }
       ).viewTransition;
+      const at = performance.timeOrigin + performance.now();
       if (!transition) {
         Object.assign(window, {
           __viewTransition: null,
@@ -112,6 +113,7 @@ function watchTransitions(context: BrowserContext) {
           __vtDurations: [],
           __vtNull: true,
           __vtReady: true,
+          __vtAt: at,
         });
         return;
       }
@@ -135,6 +137,7 @@ function watchTransitions(context: BrowserContext) {
             __vtDurations: durations,
             __vtNull: false,
             __vtReady: true,
+            __vtAt: at,
           });
         },
         () => {
@@ -144,6 +147,7 @@ function watchTransitions(context: BrowserContext) {
             __vtDurations: [],
             __vtNull: true,
             __vtReady: true,
+            __vtAt: at,
           });
         },
       );
@@ -151,28 +155,69 @@ function watchTransitions(context: BrowserContext) {
   });
 }
 
-async function releaseTransition(page: Page) {
-  await page.evaluate(() => {
-    for (const animation of document.getAnimations()) {
-      const effect = animation.effect;
-      if (!effect || !("pseudoElement" in effect)) continue;
-      const pseudo = (effect as KeyframeEffect).pseudoElement;
-      if (!pseudo?.includes("view-transition")) continue;
-      const duration = effect.getTiming().duration;
-      if (typeof duration === "number") animation.currentTime = duration;
-      animation.play();
-      try {
-        animation.finish();
-      } catch {
-        // The animation has already ended.
-      }
+// The overview document is chunked. A snapshot taken on the first chunk is the canvas
+// colour, and pausing inside `ready` freezes that empty texture. Deliver the whole
+// document before the browser paints it.
+async function bufferDocuments(context: BrowserContext) {
+  await context.route("**/*", async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    // Only the overview is streamed in pieces. Buffering /sign-in stalls the sign-out redirect.
+    if (request.resourceType() !== "document" || request.method() !== "GET" || pathname !== "/") {
+      await route.continue();
+      return;
     }
-    const transition = (window as unknown as { __viewTransition?: { skipTransition: () => void } | null })
-      .__viewTransition;
-    try {
-      transition?.skipTransition();
-    } catch {
-      // The transition has already finished.
+    const response = await route.fetch();
+    if (response.status() !== 200) {
+      await route.fulfill({ response });
+      return;
+    }
+    const headers = { ...response.headers() };
+    delete headers["transfer-encoding"];
+    delete headers["content-encoding"];
+    delete headers["content-length"];
+    await route.fulfill({
+      status: response.status(),
+      headers,
+      body: await response.body(),
+    });
+  });
+}
+
+async function releaseTransition(page: Page) {
+  await page.evaluate(async () => {
+    const pending = () =>
+      document.getAnimations().filter((animation) => {
+        const effect = animation.effect;
+        const pseudo = effect && "pseudoElement" in effect ? (effect as KeyframeEffect).pseudoElement : null;
+        return Boolean(pseudo?.includes("view-transition"));
+      });
+    const skip = () => {
+      for (const animation of pending()) {
+        const effect = animation.effect;
+        const duration = effect && "getTiming" in effect ? effect.getTiming().duration : null;
+        if (typeof duration === "number") animation.currentTime = duration;
+        try {
+          animation.finish();
+        } catch {
+          // The animation has already ended.
+        }
+      }
+      const transition = (window as unknown as { __viewTransition?: { skipTransition: () => void } | null })
+        .__viewTransition;
+      try {
+        transition?.skipTransition();
+      } catch {
+        // The transition has already finished.
+      }
+    };
+    const deadline = performance.now() + 1500;
+    skip();
+    while (pending().length > 0 && performance.now() < deadline) {
+      skip();
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
     }
   });
   await page.evaluate(
@@ -772,25 +817,39 @@ test("Evidence", async ({ browser }) => {
       const context = await browser.newContext({ colorScheme: theme, viewport });
       await armShift(context);
       await watchTransitions(context);
+      await bufferDocuments(context);
       await context.addCookies(cookies.map((cookie) => ({ ...cookie, domain: "localhost" })));
       const page = await context.newPage();
       await page.goto("http://localhost:3000/sign-in", { waitUntil: "load" });
       await settle(page);
-      await page.evaluate(() => {
-        location.assign("/");
+      await filmHeld(page, `t09-to-success-${theme}-${viewport.width}`, async () => {
+        if (new URL(page.url()).pathname !== "/sign-in") {
+          await page.goto("http://localhost:3000/sign-in", { waitUntil: "load" });
+          await settle(page);
+        }
+        await page.evaluate(() => {
+          location.assign("/");
+        });
+        await page.waitForURL(/\/$/);
       });
-      await page.waitForURL(/\/$/);
-      await filmTransition(page, `t09-to-success-${theme}-${viewport.width}`);
       const successKey = `to-success-${theme}-${viewport.width}`;
       shifts[successKey] = await readShift(page);
       shiftSources[successKey] = await readShiftSources(page);
       await releaseTransition(page);
 
-      await Promise.all([
-        page.waitForURL(/\/sign-in$/, { waitUntil: "commit", timeout: 20_000 }),
-        page.getByRole("button", { name: "Sign out" }).click({ noWaitAfter: true }),
-      ]);
-      await filmTransition(page, `t09-to-signed-out-${theme}-${viewport.width}`);
+      await filmHeld(page, `t09-to-signed-out-${theme}-${viewport.width}`, async () => {
+        if (new URL(page.url()).pathname !== "/") {
+          const fresh = await sessionCookies("fixture-sign-in-owner@example.test");
+          await context.addCookies(fresh.map((cookie) => ({ ...cookie, domain: "localhost" })));
+          await page.goto("http://localhost:3000/", { waitUntil: "load", timeout: 20_000 });
+          await settle(page);
+          await releaseTransition(page);
+        }
+        await Promise.all([
+          page.waitForURL(/\/sign-in$/, { waitUntil: "commit", timeout: 20_000 }),
+          page.getByRole("button", { name: "Sign out" }).click({ noWaitAfter: true, timeout: 10_000 }),
+        ]);
+      });
       const signedOutKey = `to-signed-out-${theme}-${viewport.width}`;
       shifts[signedOutKey] = await readShift(page);
       shiftSources[signedOutKey] = await readShiftSources(page);
@@ -859,11 +918,40 @@ async function readTransition(page: Page) {
   });
 }
 
-async function filmTransition(page: Page, prefix: string) {
-  const recorded = await readTransition(page);
-  expect(recorded.missing).toBe(false);
-  for (const time of FILM_TIMES) {
-    await seek(page, time);
-    await page.screenshot({ path: `.devos/screens/${prefix}-${String(time).padStart(3, "0")}.png` });
+async function filmHeld(page: Page, prefix: string, navigate: () => Promise<void>) {
+  let note = "";
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      await navigate();
+      const recorded = await readTransition(page);
+      if (recorded.missing) {
+        note = `${prefix} attempt ${attempt + 1}: missing`;
+        await releaseTransition(page);
+        continue;
+      }
+      const frames: { time: number; data: Buffer }[] = [];
+      for (const time of FILM_TIMES) {
+        await seek(page, time);
+        frames.push({ time, data: await page.screenshot({ type: "png" }) });
+      }
+      const sizes = frames.map((frame) => frame.data.length);
+      note = `${prefix} attempt ${attempt + 1}: bytes=${sizes.join(",")}`;
+      // A flat canvas in these viewports is under 30KB. 20 458 bytes still clears 20 000.
+      if (frames.some((frame) => frame.data.length <= 30_000)) {
+        await releaseTransition(page);
+        continue;
+      }
+      for (const frame of frames) {
+        writeFileSync(`.devos/screens/${prefix}-${String(frame.time).padStart(3, "0")}.png`, frame.data);
+        expect(frame.data.length).toBeGreaterThan(20_000);
+      }
+      if (prefix.includes("t09-to-success")) {
+        expect(await productMarks(page)).toEqual([{ inCard: false, inNav: true }]);
+      }
+      return;
+    } catch (error) {
+      note = error instanceof Error ? error.message.split("\n")[0] : String(error);
+    }
   }
+  throw new Error(note);
 }
