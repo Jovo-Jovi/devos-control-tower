@@ -5,9 +5,13 @@
   },
   "signIn": {
     "title": "Sign in",
+    "display": "Control Tower",
     "body": "The Tower admits one GitHub account: its owner.",
     "button": "Continue with GitHub",
+    "redirecting": "Opening GitHub…",
+    "checking": "Checking your access…",
     "denied": "This GitHub account is not the owner. Signed out.",
+    "anotherAccount": "Use another account",
     "error": "Sign-in did not complete: {reason}. Try again.",
     "authErrorReason": "no session was returned",
     "retry": "Try again"

@@ -34,6 +34,7 @@ function isSessionExempt(pathname: string): boolean {
   return (
     pathname === "/sign-in" ||
     pathname === "/auth/callback" ||
+    pathname === "/auth/confirm" ||
     pathname === "/auth/sign-out" ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||

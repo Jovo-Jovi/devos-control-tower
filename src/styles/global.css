@@ -100,4 +100,42 @@ body {
   ::view-transition-new(.route) {
     animation-name: view-fade-in;
   }
+
+  ::view-transition-group(*) {
+    animation: none !important;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: var(--dur-quick) !important;
+    animation-timing-function: var(--ease-out);
+    animation-name: view-fade;
+  }
+
+  ::view-transition-new(*) {
+    animation-name: view-fade-in;
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur-base);
+  animation-timing-function: var(--ease-out);
+}
+
+::view-transition-old(root) {
+  animation-name: view-fade;
+}
+
+::view-transition-new(root) {
+  animation-name: view-fade-in;
+}
+
+::view-transition-group(product-mark) {
+  animation-duration: var(--dur-slow);
+  animation-timing-function: var(--ease-in-out);
 }

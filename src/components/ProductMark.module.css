@@ -4,6 +4,11 @@
   flex: none;
 }
 
+.shared {
+  --mark-transition: product-mark;
+  view-transition-name: var(--mark-transition);
+}
+
 .wash {
   stroke: var(--color-energy-wash);
 }
