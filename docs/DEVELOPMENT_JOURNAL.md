@@ -225,3 +225,11 @@ Playwright's Chromium was installed once so `pnpm e2e` could launch. The attempt
 D5: `supabase gen types` quotes `"usage_by_attempt"`, so the fence's unquoted search cannot print 1
 and still match a fresh generation. Awaiting the reviewer's ruling on that check. A PASS, if the
 reviewer gives one, waits for the human (schema change).
+
+## 2026-10-18 — T06 Usage view (attempt 2)
+
+Attempt 2 keeps the attempt-1 tree. The corrected D5 pattern matches the generated
+`"usage_by_attempt"` key once, and a fresh `supabase gen types` matches the committed file. The
+usage head renders `AgeText` only when `lastContactAt` is not null, so QUIET shows "No contact yet"
+once, from `FreshnessLabel`. The task-group header spans all ten columns. Awaiting the verdict. A
+PASS waits for the human (schema change).

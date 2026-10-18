@@ -224,7 +224,9 @@ export default async function UsagePage({ params }: { params: Promise<{ key: str
                 stale={copy.stale}
                 none={copy.noContact}
               />
-              <AgeText at={report.lastContactAt} empty={copy.noContact} />
+              {report.lastContactAt !== null ? (
+                <AgeText at={report.lastContactAt} empty={copy.noContact} />
+              ) : null}
             </p>
           )}
         </header>

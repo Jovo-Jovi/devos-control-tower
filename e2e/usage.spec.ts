@@ -207,6 +207,7 @@ test("States", async ({ browser }) => {
   await expect(page.locator("[data-coverage='builder']")).toHaveText("builder: 0 of 0 attempts measured");
   await expect(page.getByText("No usage recorded yet.")).toBeVisible();
   await expect(page.locator("[data-usage-table]")).toHaveCount(0);
+  await expect(page.getByText("No contact yet", { exact: true })).toHaveCount(1);
 
   try {
     query("revoke select on public.usage_by_attempt from authenticated");

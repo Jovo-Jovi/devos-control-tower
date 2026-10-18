@@ -44,7 +44,7 @@ export function UsageTable({ attempts, copy }: { attempts: readonly UsageAttempt
       previous = group;
       rows.push(
         <tr key={`group-${group}`} className={`${styles.rise} ${styles.group}`} data-task-group="">
-          <th scope="colgroup">{groupTitle(row, copy)}</th>
+          <th scope="colgroup" colSpan={10}>{groupTitle(row, copy)}</th>
         </tr>,
       );
     }
