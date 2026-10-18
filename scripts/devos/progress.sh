@@ -20,6 +20,7 @@ if [ -z "$issue" ]; then
 fi
 run="${GITHUB_SERVER_URL:-https://github.com}/$REPO/actions/runs/${GITHUB_RUN_ID:-}"
 slice="${DEVOS_SLICE:-1}/${DEVOS_MAX_SLICES:-4}"
+[ "${DEVOS_STAGES:-1}" -gt 1 ] && slice="$slice · stage ${DEVOS_STAGE:-1} of ${DEVOS_STAGES}"
 if [ -n "$final" ]; then
   line="$final"
 elif [ "$idle" -ge 15 ]; then

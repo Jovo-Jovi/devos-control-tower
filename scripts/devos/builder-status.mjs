@@ -45,6 +45,16 @@ const maxSlices = Number(arg("max-slices", String(config().builder?.max_time_sli
 const changed = Number(arg("changed", "0")) || 0;
 const sliceMin = 72;
 const stallWait = new Date(Date.now() + (config().resume?.stall_wait_minutes ?? 10) * 60000).toISOString().replace(/\.\d{3}Z$/, "Z");
+// PR-38: a staged fence. A stage the builder finished moves on to the next stage in a fresh run, unless
+// the builder reported STATUS: HALT for it (then the attempt goes to review, which judges the halt).
+const stage = Number(arg("stage", "1")) || 1;
+const stages = Number(arg("stages", "1")) || 1;
+const report = readText(`docs/reports/${task}.md`);
+const lastStatus = (report.match(/^STATUS: (DONE|HALT)/gm) || []).pop() || "";
+if (!failed && stages > 1 && stage < stages && lastStatus !== "STATUS: HALT") {
+  state = "continue";
+  reason = `stage ${stage} of ${stages} done`;
+}
 if (failed) {
   state = stalled || looksLikeLimit(out, err) ? "quota" : budgetSpent && changed > 0 && slice < maxSlices ? "continue" : "error";
   reason = `builder exit ${Number.isNaN(exit) ? "unknown" : exit}${detail ? `: ${detail}` : ""}`;
@@ -52,12 +62,17 @@ if (failed) {
 const resumeAt = stalled ? stallWait : waitUntil;
 
 if (state !== "ok") {
-  const head = state === "continue"
-    ? `### Dev OS ${task} · attempt ${attempt} · **time slice ${slice} of ${maxSlices} used, still working** → \`continue\``
+  const stageDone = state === "continue" && !failed;
+  const head = stageDone
+    ? `### Dev OS ${task} · attempt ${attempt} · **stage ${stage} of ${stages} done** → \`continue\``
+    : state === "continue"
+    ? `### Dev OS ${task} · attempt ${attempt} · **time slice ${slice} of ${maxSlices} used, still working${stages > 1 ? ` (stage ${stage} of ${stages})` : ""}** → \`continue\``
     : state === "quota"
     ? `### Dev OS ${task} · attempt ${attempt} · **${stalled ? "Cursor connection lost" : "waiting for Cursor usage"}** → \`quota_wait\``
     : `### Dev OS ${task} · attempt ${attempt} · **${stuck ? "builder stuck" : budgetSpent ? "time budget used up" : "builder error"}** → \`halt\``;
-  const body = state === "continue"
+  const body = stageDone
+    ? `The reviewer split this fence into ${stages} stages (PR-38). Stage ${stage} is built and committed on this branch, no review was spent, and stage ${stage + 1} is queued: it continues from the branch on its own. The review comes after the last stage. Live progress is on the "Dev OS: run notices" issue.`
+    : state === "continue"
     ? `The builder was still changing files when its ${sliceMin}-minute slice ended (${changed} file(s) changed in this slice). Everything is committed on this branch, no review was spent, and slice ${slice + 1} of ${maxSlices} is queued: it continues from the branch on its own. Live progress is on the "Dev OS: run notices" issue.`
     : state === "quota" && stalled
     ? `The Cursor CLI lost its connection and stopped making progress. Whatever it finished is committed on this branch. No review was spent and the attempt was not used up. The runner resumes it after **${resumeAt}** (UTC); remove the \`devos:quota-wait\` label to cancel that.`

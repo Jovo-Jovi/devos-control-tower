@@ -85,12 +85,23 @@ part: a red required check fails the verdict whatever you write (PR-08), and the
    `VERDICT: FAIL`, then the Dev OS verdict format from `CLAUDE.md`. Keep it short: ledger lines cite
    evidence ("pack §Checks: test pass, 57 tests"), they do not repeat it. `Next prompt:` gives the
    path of the fence you write in step 5, or "none".
+   **Helpers (agents and skills).** You may delegate read-only checks with the Task tool and stay the
+   judge: `design-inspector` on the captures of any UI task, `security-auditor` on every deep review,
+   `fence-auditor` on every fence you write. Cite what they found in the verdict. Use any other skill
+   that helps (`/devos-review` steps, `devos-fence-writing`).
 5. Then exactly one of:
    - Every fence you write carries the builder line `- Builder: grok-4.7 · Effort: <low|medium|high|xhigh> · Fast: <yes|no>`:
      **low** for copy and one-line fixes, **medium** for small contained code, **high** (default) for
      features and tests, **xhigh** for risk 3, cross-cutting work, and a reissue after high failed.
      **Fast: yes** only for low/medium mechanical work.
    - A UI fence carries `- Screens: \`<name> <path>[ click|hover|focus <selector>]\` · …` in its header, naming every page, state and interaction to capture.
+   - **Judge its size first and split a big task into stages (PR-38).** Follow the
+     `devos-fence-writing` skill: count steps, files, concerns and Done-when items; when the task does
+     not fit one builder run (about 60 minutes of work), add `- Stages: N` (2–4) and group the steps
+     under `### Stage k — <title>` blocks, each one concern, each leaving the tree green, each naming
+     the Done-when ids it proves; the last stage runs every Done-when. Never lower the effort to save
+     time: split instead. Before the fence is final, run the `fence-auditor` agent on it and fix every
+     BLOCKER and DEFECT it reports.
    - **A fence is a specification, not the code.** Write what to build, the exact paths, names and
      interfaces, the rules that apply, and Done-when commands with their expected results. Give code
      only where an exact text is the requirement (a policy expression, a header value), never whole

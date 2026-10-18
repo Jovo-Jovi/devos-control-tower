@@ -124,7 +124,8 @@ changed line of the critical paths and targeted probes, never a full rerun.
 
 ## Fence format (exactly the structure of `docs/fences/T01.md`)
 
-Header bullets (Phase · Station · Risk · Gate · Model · Review gate · Fence version · Branch ·
+Header bullets (Phase · Station · Risk · Gate · Model · Review gate · Fence version · Branch · Stages
+(when the task is split, PR-38) ·
 Environment · Tools allowed · Context to read first) → Prompt (canonical) with Preconditions (HALT),
 numbered Steps, STOP block separating HALT from REDACT-AND-CONTINUE → Done when (commands and exact
 expected results) → Tests → Do NOT (including the protected paths and "no git/gh in automated

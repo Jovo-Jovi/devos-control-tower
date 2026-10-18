@@ -34,6 +34,7 @@ Where this guide and the manual disagree, the manual is correct and this guide m
 | Secrets and settings | [9](#9-secrets-variables-and-settings) |
 | Statuses (`devos/checks`, `devos/verdict`, `devos/gate`) | [16](#16-labels-statuses-and-branches) |
 | Stuck or quiet builder | [5](#5-watch-progress), [13](#13-when-something-goes-wrong) |
+| Stages (big tasks split in parts) | [5](#5-watch-progress) |
 | Time slices (long builds) | [5](#5-watch-progress) |
 | Usage limits | [10](#10-usage-limits-and-accounts) |
 | Variables | [9](#9-secrets-variables-and-settings) |
@@ -125,6 +126,15 @@ A `ci` result that appears after the merge belongs to `main`, not to the PR.
 - **Actions tab:** **Actions → devos-cycle** shows every run and its steps. You never need the logs,
   but they are there.
 - **The PR itself:** labels and comments show where a task stands (section 16).
+
+- **Stages (big tasks):** before writing a task's instructions, Claude judges how big it is. A task
+  too big for one run is split into **2–4 stages** (for example: server, then screens, then motion,
+  then tests). Each stage is one builder run that leaves the code working, and it is checked when it
+  finishes. Claude reviews the whole task once, after the last stage. A PR comment says
+  "stage k of N done". Quality comes first: big tasks get split; they never get less effort.
+- **Helpers:** Claude's review uses three read-only helper agents. The **fence auditor** checks every
+  set of task instructions before it is used, the **design inspector** checks the screenshots against
+  the design, and the **security auditor** reads every risky line. Claude still makes the decision.
 
 ## 6. Run, re-run or revise a task
 
