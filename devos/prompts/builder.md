@@ -29,6 +29,11 @@ Rules for this run:
   Done-when (including the refusals: what must be denied, rejected or hidden), and run them. The
   reviewer judges your evidence and the runner's checks; it does not redo your work. Evidence you do
   not paste is evidence that does not exist.
+- **Never leave a command waiting.** Do not start a long-lived process in the foreground (`pnpm dev`,
+  `pnpm start`, `next dev`/`next start`, `supabase start`, any watch or UI mode): the scripts that need a
+  server start and stop it themselves (`scripts/devos/probe.mjs`, Playwright's `webServer`). Put
+  `timeout 1200` in front of any long command (`timeout 1200 pnpm e2e`, `timeout 900 pnpm build`). A run
+  in which nothing changes and nothing computes for 30 minutes is stopped as stuck.
 - Before finishing, run every Done-when command yourself and copy its real output into the report.
 - Finish by writing `docs/reports/{{TASK}}.md`: append a section `## Attempt {{ATTEMPT}}` in the
   `devos-task-report` skill's format. Its first line is `STATUS: DONE` or `STATUS: HALT`.
