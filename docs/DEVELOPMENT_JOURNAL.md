@@ -167,6 +167,27 @@ with them in `sync-main.sh`. The runner's checkout was discarded, and the build 
 `docs/DEVELOPMENT_JOURNAL.md` merges by union (`.gitattributes`), so two appended entries never
 conflict, and any other conflict first pushes the run's unmerged work to `rescue/<branch>-<run id>`.
 
+## 2026-10-17 — T05 Overview as the tower map (attempts 1 and 2)
+
+Attempt 1 (`1f76c4a`) landed the portfolio aggregate, the owner read of projects, `GET /api/projects`,
+the register action, the map pieces and the 93-key catalogue, then ran out of budget with no report.
+Attempt 2 kept that work and added the missing styles, the shell (poll status, Overview and Register
+project links, view transitions, the live mark), the overview page, the register page, seven overview
+tests, and the scene fixed to the viewport (`position: fixed`, `100lvh`). Playwright's Chromium was
+installed once so `pnpm e2e` could launch. CF-016 is open for the human at G-Design-v3: ignition of
+eight blades is 1 210 ms, against the 740 ms first-paint cap. Awaiting the verdict, then the owner's gate.
+
+## 2026-10-17 — T05 Overview as the tower map (attempt 3)
+
+Attempt 3 kept the attempt-2 tree and changed only what `docs/reviews/T05-a2.md` failed. The Tower
+panel stays inside its box, skeletons share the card slots and appear in the phone list, glass uses
+the backdrop blur with a solid fallback, bars and the ring move by stroke offset, and counts go
+through `Intl.NumberFormat`. Particles are absent under reduced motion, route motion runs only on
+navigation, and a failed registration puts the trimmed values back in the fields. Settled and reduced
+captures are full page. `syntheticPortfolio` is produced by `aggregatePortfolio`. CF-017 is open for
+the human: the 30 s poll reads every event, run and usage row. Playwright's Chromium was installed
+once in this environment so `pnpm e2e` could launch. Awaiting the verdict, then the owner's gate
+G-Design-v3.
 ## 2026-10-17 — Runner: the Dev OS supervisor (owner request)
 
 The owner asked for the workflow to repair itself and only ask for approvals. `devos-supervisor.yml`
@@ -177,3 +198,18 @@ turns everything else into something the owner approves (a method-fix issue, a c
 proposed revision, or setup steps). Reports go to the "Dev OS: supervisor" issue. On today's
 incidents, the rules read T04 a1 (hung builder) and T05 a2 (push conflict) as "re-dispatch", which
 is what was done by hand. `scripts/devos/rescue.sh` recovers a rescue branch onto its task branch.
+
+## 2026-10-17 — T05 Overview as the tower map (attempt 4)
+
+Attempt 4 kept the attempt-3 tree and changed only what `docs/reviews/T05-a3.md` failed. The bar's
+SVG sits absolutely in its track, so it no longer forces the labels onto two lines, and each map
+card stays inside its slot. BRAVO's fixture carries a half fill (1 of 2). The attempt-3 layout-shift
+paste now includes the three keys it lacked. Awaiting the verdict, then the owner's gate G-Design-v3.
+
+## 2026-10-18 — T05 Overview as the tower map (attempt 5)
+
+Attempt 5 kept the attempt-4 tree and changed only defect (B) of `docs/reviews/T05-a4.md`. The bar SVG
+keeps `position: absolute` and `inset: 0`, and also takes `inline-size: 100%` and `block-size: 100%`,
+so the fill covers the track's full height. Test 3 checks that box at 1280 and 800, and that BRAVO's
+stroke is hit at the top and bottom of its first track. Playwright's Chromium was installed once in
+this environment so `pnpm e2e` could launch. Awaiting the verdict, then the owner's gate G-Design-v3.

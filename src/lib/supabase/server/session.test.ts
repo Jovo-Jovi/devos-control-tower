@@ -62,6 +62,7 @@ describe("U-T01-2 requireOwner", () => {
         user: {
           identities: [
             {
+              id: "700001",
               provider: "github",
               identity_data: {
                 user_name: "tower-owner",
@@ -78,6 +79,7 @@ describe("U-T01-2 requireOwner", () => {
     await expect(requireOwner()).resolves.toEqual({
       login: "tower-owner",
       avatarUrl: "https://avatars.githubusercontent.com/u/1",
+      githubId: "700001",
     });
     expect(signOut).not.toHaveBeenCalled();
   });

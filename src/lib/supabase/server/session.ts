@@ -36,7 +36,7 @@ function identityText(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-export async function requireOwner(): Promise<{ login: string; avatarUrl: string | null }> {
+export async function requireOwner(): Promise<{ login: string; avatarUrl: string | null; githubId: string }> {
   const supabase = await createSessionClient();
   const {
     data: { user },
@@ -53,5 +53,6 @@ export async function requireOwner(): Promise<{ login: string; avatarUrl: string
   const identityData = identity?.identity_data;
   const login = identityText(identityData?.user_name) ?? "";
   const avatarUrl = identityText(identityData?.avatar_url);
-  return { login, avatarUrl };
+  const githubId = identityText(identity?.id) ?? "";
+  return { login, avatarUrl, githubId };
 }

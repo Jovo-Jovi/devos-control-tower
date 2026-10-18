@@ -114,9 +114,10 @@ test("Gate and shell", async ({ browser }) => {
   await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible();
   await expect(page.getByText("Discover · Monitor · Trace · Verify")).toBeVisible();
   const nav = page.getByRole("navigation", { name: "Sections" });
-  await expect(nav.getByRole("link")).toHaveCount(1);
+  await expect(nav.getByRole("link")).toHaveCount(2);
   await expect(nav.getByRole("link", { name: "Overview" })).toHaveAttribute("aria-current", "page");
-  await expect(page.getByText("Control Tower", { exact: true })).toBeVisible();
+  await expect(nav.getByRole("link", { name: "Register project" })).not.toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("banner").getByText("Control Tower", { exact: true })).toBeVisible();
   const theme = page.getByRole("group", { name: "Theme" });
   await expect(theme.getByRole("button", { name: "Auto" })).toHaveAttribute("aria-pressed", "true");
   await expect(theme.getByRole("button", { name: "Light" })).toHaveAttribute("aria-pressed", "false");

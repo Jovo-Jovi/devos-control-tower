@@ -1,0 +1,8 @@
+.age {
+  display: inline-block;
+  min-inline-size: var(--age-inline);
+  color: var(--color-ink-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-0);
+  white-space: nowrap;
+}

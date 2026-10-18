@@ -1,0 +1,50 @@
+.row {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.track {
+  position: relative;
+  flex: 1 1 0;
+  min-inline-size: 0;
+  block-size: var(--space-1);
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--track);
+}
+
+.track[data-empty] {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--track) 0 var(--space-1),
+    var(--hatch) var(--space-1) var(--space-2)
+  );
+}
+
+.meter {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.stroke {
+  stroke: var(--color-energy);
+}
+
+.track[data-move] .stroke {
+  transition: stroke-dashoffset var(--dur-slow) var(--ease-in-out);
+}
+
+.value {
+  flex: none;
+  min-inline-size: var(--bar-value);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-0);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}

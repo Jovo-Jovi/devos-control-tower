@@ -1,0 +1,282 @@
+.field {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.blade[data-dimmed="filter"] {
+  opacity: 0.3;
+}
+
+.blade[data-dimmed="panel"] {
+  opacity: 1;
+}
+
+.field[data-offline] .blade {
+  opacity: 0.5;
+}
+
+.field[data-offline] .hum,
+.field[data-offline] .pulse {
+  animation: none;
+}
+
+.hum,
+.pulse,
+.glow,
+.edge,
+.core {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.hum,
+.glow,
+.pulse {
+  stroke-width: var(--blade-glow);
+}
+
+.hum[data-link-state="active"],
+.glow[data-link-state="active"] {
+  stroke: var(--color-energy);
+  opacity: 1;
+}
+
+.hum[data-link-state="steady"] {
+  stroke: var(--color-energy);
+  opacity: 0.8;
+}
+
+.hum[data-link-state="revise"] {
+  stroke: var(--color-energy);
+  opacity: 0.6;
+}
+
+.glow[data-link-state="gate"] {
+  stroke: var(--color-waiting);
+  opacity: 0.45;
+}
+
+.pulse[data-link-state="waiting"] {
+  stroke: var(--color-waiting);
+  animation: pulse var(--dur-ambient) var(--ease-in-out) infinite;
+}
+
+.hum[data-link-state="active"],
+.hum[data-link-state="steady"],
+.hum[data-link-state="revise"] {
+  animation: hum var(--dur-ambient) var(--ease-in-out) infinite;
+}
+
+.edge[data-link-state="active"],
+.edge[data-link-state="steady"],
+.edge[data-link-state="revise"] {
+  stroke: var(--color-energy);
+  stroke-width: var(--blade-edge);
+  stroke-dasharray: var(--blade-draw);
+  stroke-dashoffset: 0;
+}
+
+.core {
+  stroke: var(--color-energy-core);
+  stroke-width: var(--blade-core);
+  stroke-dasharray: var(--blade-draw);
+  stroke-dashoffset: 0;
+}
+
+.edge[data-ignite],
+.core[data-ignite] {
+  animation-name: ignite;
+  animation-duration: var(--dur-ignite);
+  animation-timing-function: var(--ease-out);
+  animation-fill-mode: both;
+}
+
+.blade[data-slot="1"] .edge[data-ignite],
+.blade[data-slot="1"] .core[data-ignite] {
+  animation-delay: calc(var(--stagger-ignite) * 1);
+}
+
+.blade[data-slot="2"] .edge[data-ignite],
+.blade[data-slot="2"] .core[data-ignite] {
+  animation-delay: calc(var(--stagger-ignite) * 2);
+}
+
+.blade[data-slot="3"] .edge[data-ignite],
+.blade[data-slot="3"] .core[data-ignite] {
+  animation-delay: calc(var(--stagger-ignite) * 3);
+}
+
+.blade[data-slot="4"] .edge[data-ignite],
+.blade[data-slot="4"] .core[data-ignite] {
+  animation-delay: calc(var(--stagger-ignite) * 4);
+}
+
+.blade[data-slot="5"] .edge[data-ignite],
+.blade[data-slot="5"] .core[data-ignite] {
+  animation-delay: calc(var(--stagger-ignite) * 5);
+}
+
+.blade[data-slot="6"] .edge[data-ignite],
+.blade[data-slot="6"] .core[data-ignite] {
+  animation-delay: calc(var(--stagger-ignite) * 6);
+}
+
+.blade[data-slot="7"] .edge[data-ignite],
+.blade[data-slot="7"] .core[data-ignite] {
+  animation-delay: calc(var(--stagger-ignite) * 7);
+}
+
+.edge[data-link-state="waiting"],
+.edge[data-link-state="gate"] {
+  stroke: var(--color-waiting);
+  stroke-width: var(--blade-edge);
+}
+
+.edge[data-link-state="waiting"] {
+  stroke-dasharray: var(--dash-waiting);
+}
+
+.edge[data-link-state="gate"] {
+  stroke-dasharray: var(--dash-gate);
+}
+
+.edge[data-link-state="down"] {
+  stroke: var(--color-fail);
+  stroke-width: var(--blade-off);
+  stroke-dasharray: var(--dash-down);
+}
+
+.edge[data-link-state="stale"],
+.edge[data-link-state="silent"] {
+  stroke: var(--color-ink-faint);
+  stroke-width: var(--blade-off);
+}
+
+.edge[data-link-state="stale"] {
+  stroke-dasharray: var(--dash-stale);
+}
+
+.edge[data-link-state="silent"] {
+  stroke-dasharray: var(--dash-silent);
+}
+
+.port[data-link-state="active"],
+.port[data-link-state="steady"],
+.port[data-link-state="revise"] {
+  fill: var(--color-energy-core);
+}
+
+.port[data-link-state="waiting"],
+.port[data-link-state="gate"] {
+  fill: var(--color-waiting);
+}
+
+.port[data-link-state="down"] {
+  fill: var(--color-fail);
+}
+
+.port[data-link-state="stale"],
+.port[data-link-state="silent"] {
+  fill: var(--color-ink-faint);
+}
+
+.particle,
+.signal {
+  fill: var(--color-energy-core);
+  offset-distance: 0%;
+  animation-name: travel;
+  animation-timing-function: var(--ease-linear);
+}
+
+.particle {
+  animation-iteration-count: infinite;
+}
+
+.particle[data-kind="active"] {
+  animation-duration: var(--dur-particle-active);
+}
+
+.particle[data-kind="steady"] {
+  animation-duration: var(--dur-particle-steady);
+}
+
+.particle[data-kind="revise"] {
+  animation-duration: var(--dur-particle-revise);
+}
+
+.particle[data-kind="waiting"] {
+  animation-duration: var(--dur-particle-waiting);
+}
+
+.particle[data-index="1"] {
+  animation-delay: calc(var(--dur-ambient) * -0.33);
+}
+
+.particle[data-index="2"] {
+  animation-delay: calc(var(--dur-ambient) * -0.66);
+}
+
+.signal {
+  animation-duration: var(--dur-signal);
+  animation-timing-function: var(--ease-in);
+  animation-fill-mode: forwards;
+}
+
+.signal[data-order="1"] {
+  animation-delay: var(--stagger-signal);
+}
+
+.signal[data-order="2"] {
+  animation-delay: calc(var(--stagger-signal) * 2);
+}
+
+.slot0 { offset-path: path("M312 99 C410 99 400 178 498 178"); }
+.slot1 { offset-path: path("M312 245 C410 245 400 270 498 270"); }
+.slot2 { offset-path: path("M312 391 C410 391 400 362 498 362"); }
+.slot3 { offset-path: path("M312 537 C410 537 400 454 498 454"); }
+.slot4 { offset-path: path("M888 99 C790 99 800 178 702 178"); }
+.slot5 { offset-path: path("M888 245 C790 245 800 270 702 270"); }
+.slot6 { offset-path: path("M888 391 C790 391 800 362 702 362"); }
+.slot7 { offset-path: path("M888 537 C790 537 800 454 702 454"); }
+
+@keyframes ignite {
+  from {
+    stroke-dashoffset: var(--blade-draw);
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes travel {
+  to {
+    offset-distance: 100%;
+  }
+}
+
+@keyframes hum {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+
+  50% {
+    opacity: 0.9;
+  }
+}
