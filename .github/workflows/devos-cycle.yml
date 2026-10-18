@@ -156,6 +156,7 @@ jobs:
       park_attempt: ${{ steps.park.outputs.attempt }}
       park_review_only: ${{ steps.park.outputs.review_only }}
       park_not_before: ${{ steps.park.outputs.not_before }}
+      park_revision: ${{ steps.park.outputs.revision }}
       park_pr: ${{ steps.park.outputs.pr }}
       branch: ${{ needs.resolve.outputs.branch }}
     env:
@@ -691,6 +692,7 @@ jobs:
         if: always()
         run: |
           echo "pr=$PRN" >> "$GITHUB_OUTPUT"
+          echo "revision=${{ inputs.revision || false }}" >> "$GITHUB_OUTPUT"
           if [ "${{ steps.bs.outputs.state }}" = "quota" ]; then
             { echo "task=$TASK"; echo "attempt=$ATTEMPT"; echo "review_only=false"; echo "not_before=${{ steps.bs.outputs.not_before }}"; } >> "$GITHUB_OUTPUT"
           elif [ "${{ steps.v.outputs.action }}" = "quota_wait" ]; then
@@ -747,6 +749,7 @@ jobs:
           ATTEMPT: ${{ needs.cycle.outputs.park_attempt }}
           REVIEW_ONLY: ${{ needs.cycle.outputs.park_review_only }}
           NOT_BEFORE: ${{ needs.cycle.outputs.park_not_before }}
+          REVISION: ${{ needs.cycle.outputs.park_revision || 'false' }}
           PR: ${{ needs.cycle.outputs.park_pr || needs.cycle.outputs.branch }}
           IS_PRIVATE: ${{ github.event.repository.private }}
         run: |
@@ -759,7 +762,7 @@ jobs:
             # repository sleeping costs runner minutes, so resume.relay decides.
             relay=$(node -e 'console.log(require("./devos.config.json").resume?.relay ?? "public")')
             if [ "$relay" = "always" ] || { [ "$relay" = "public" ] && [ "$IS_PRIVATE" != "true" ]; }; then
-              gh workflow run devos-wait.yml --repo "$REPO" --ref main -f kind=task -f not_before="$NOT_BEFORE" -f task="$TASK" -f attempt="$ATTEMPT" -f review_only="$REVIEW_ONLY" -f pr="$PR"
+              gh workflow run devos-wait.yml --repo "$REPO" --ref main -f kind=task -f not_before="$NOT_BEFORE" -f task="$TASK" -f attempt="$ATTEMPT" -f review_only="$REVIEW_ONLY" -f revision="$REVISION" -f pr="$PR"
               echo "::notice title=Dev OS::$TASK resets at $NOT_BEFORE; devos-wait keeps waiting and resumes it then."
             else
               echo "::notice title=Dev OS::$TASK resets at $NOT_BEFORE; devos-resume (scheduled, best effort) picks it up, or run devos-resume by hand after that time."
@@ -777,5 +780,5 @@ jobs:
           esac
           gh pr edit "$PR" --repo "$REPO" --remove-label "devos:quota-wait"
           gh workflow run devos-cycle.yml --repo "$REPO" --ref main \
-            -f task="$TASK" -f attempt="$ATTEMPT" -f review_only="$REVIEW_ONLY" -f go=true
+            -f task="$TASK" -f attempt="$ATTEMPT" -f review_only="$REVIEW_ONLY" -f revision="$REVISION" -f go=true
           echo "::notice title=Dev OS::Resumed $TASK attempt $ATTEMPT (review_only=$REVIEW_ONLY)."

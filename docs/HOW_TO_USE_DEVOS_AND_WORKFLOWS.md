@@ -138,6 +138,7 @@ A `ci` result that appears after the merge belongs to `main`, not to the PR.
 - **Revise a task:** comment on its PR:
   `/devos revise <what to change, in plain words>`
   Claude rewrites the fence and Grok builds the next attempt. A revision may go past `max_attempts`.
+  If a usage limit interrupts it, it resumes as the same revision after the reset.
 - **Release a held heavy run:** comment `/devos go` on the "Dev OS: run notices" issue (only when `DEVOS_HEAVY` = hold).
 - **Change a plan before merging it:** comment on the request issue and then `/devos intake`; `/devos revise` works on task PRs only.
 - **Get the gate doctor's opinion:** comment `/devos doctor` on the PR.

@@ -37,6 +37,10 @@ on:
         description: "kind=task: resume as a review-only run"
         required: false
         default: "false"
+      revision:
+        description: "kind=task: the parked attempt is a human revision (may go past max_attempts)"
+        required: false
+        default: "false"
       pr:
         description: "kind=task: the PR number (or branch) carrying the devos:quota-wait label"
         required: false
@@ -68,6 +72,7 @@ jobs:
           TASK: ${{ inputs.task }}
           ATTEMPT: ${{ inputs.attempt }}
           REVIEW_ONLY: ${{ inputs.review_only }}
+          REVISION: ${{ inputs.revision || 'false' }}
           PR: ${{ inputs.pr }}
         run: |
           # Still wanted? The human cancels a wait by removing the label.
@@ -89,7 +94,7 @@ jobs:
             sleep $(( max_min * 60 ))
             still_parked || { echo "The devos:quota-wait label is gone; the wait is cancelled."; exit 0; }
             gh workflow run devos-wait.yml --repo "$REPO" --ref main -f kind="$KIND" -f not_before="$NOT_BEFORE" \
-              -f issue="$ISSUE" -f task="$TASK" -f attempt="$ATTEMPT" -f review_only="$REVIEW_ONLY" -f pr="$PR"
+              -f issue="$ISSUE" -f task="$TASK" -f attempt="$ATTEMPT" -f review_only="$REVIEW_ONLY" -f revision="$REVISION" -f pr="$PR"
             echo "::notice title=Dev OS::Still before $NOT_BEFORE: the wait continues in a new devos-wait run."
             exit 0
           fi
@@ -102,6 +107,6 @@ jobs:
           else
             gh pr edit "$PR" --repo "$REPO" --remove-label "devos:quota-wait"
             gh workflow run devos-cycle.yml --repo "$REPO" --ref main \
-              -f task="$TASK" -f attempt="$ATTEMPT" -f review_only="$REVIEW_ONLY" -f go=true
+              -f task="$TASK" -f attempt="$ATTEMPT" -f review_only="$REVIEW_ONLY" -f revision="$REVISION" -f go=true
             echo "::notice title=Dev OS::Resumed $TASK attempt $ATTEMPT (review_only=$REVIEW_ONLY)."
           fi
