@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Resolve which task the runner works on, and everything the workflow needs to know about it.
 // Usage: node scripts/devos/next-task.mjs [--task T01] [--attempt 1] [--revision true]
+import { execFileSync } from "node:child_process";
 import { parsePhases, nextOpenTask, isHumanGate, isMethodRow, reviewerModel, reviewerEffort, taskAfter, config, emit, fail } from "./lib.mjs";
 
 const arg = (name) => {
@@ -16,10 +17,21 @@ const wanted = /^t?\d{1,2}$/i.test(rawTask) ? `T${rawTask.replace(/^t/i, "").pad
 const attempt = Number(arg("attempt") || "1");
 
 if (!Number.isInteger(attempt) || attempt < 1) fail(`invalid attempt "${arg("attempt")}"`);
-// A human revision (/devos revise, OD-08 §3) may go past max_attempts; automatic retries may not.
-if (attempt > cfg.max_attempts && arg("revision") !== "true") fail(`attempt ${attempt} exceeds max_attempts ${cfg.max_attempts}`);
-
 const row = wanted ? rows.find((r) => r.task === wanted) : nextOpenTask(rows);
+
+// A human revision (/devos revise, OD-08 §3) may go past max_attempts; automatic retries may not.
+// The revision is a fact of the task branch (devos-intake commits "Tnn: fence reissued for human
+// revision (attempt N)"), so a run resumed after a usage limit, a stall or by the supervisor keeps it
+// even when its dispatch did not pass --revision.
+function revisedOnBranch(task, n) {
+  if (!task) return false;
+  try {
+    execFileSync("git", ["fetch", "-q", "--depth=300", "origin", `+refs/heads/task/${task}:refs/remotes/origin/task/${task}`], { stdio: "ignore" });
+    const log = execFileSync("git", ["log", `origin/task/${task}`, "-300", "--format=%s"], { encoding: "utf8" });
+    return log.split("\n").some((s) => s === `${task}: fence reissued for human revision (attempt ${n})`);
+  } catch { return false; }
+}
+if (attempt > cfg.max_attempts && arg("revision") !== "true" && !revisedOnBranch(row?.task, attempt)) fail(`attempt ${attempt} exceeds max_attempts ${cfg.max_attempts}`);
 if (wanted && !row) fail(`task ${wanted} is not in docs/PHASES.md`);
 if (!row) {
   emit({ done: "true", task: "", reason: "every task in docs/PHASES.md is ticked" });

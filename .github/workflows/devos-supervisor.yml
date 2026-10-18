@@ -61,7 +61,9 @@ jobs:
       # Its own reports use the built-in token, whose comments start no workflow: no self-trigger loop.
       REPORT_TOKEN: ${{ github.token }}
       EVENT_NAME: ${{ github.event_name }}
+      # workflow_run.name is the run's title ("devos T05 · attempt 4"); the file names the workflow.
       WF_NAME: ${{ github.event.workflow_run.name }}
+      WF_PATH: ${{ github.event.workflow_run.path }}
       WF_RUN_ID: ${{ github.event.workflow_run.id }}
       WF_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
       DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
