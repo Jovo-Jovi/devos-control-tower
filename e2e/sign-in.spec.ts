@@ -295,8 +295,15 @@ async function openChecking(page: Page) {
 }
 
 async function showChecking(page: Page) {
-  await page.route("**/auth/confirm**", async (route) => {
-    await route.abort("aborted");
+  // Cancel the confirm navigation so the checking document stays scriptable. A held or
+  // aborted document navigation freezes Playwright's evaluate, settle and screenshot.
+  await page.addInitScript(() => {
+    const hold = (event: Event) => {
+      const nav = event as Event & { destination?: { url: string }; cancelable: boolean };
+      if (!nav.destination?.url.includes("/auth/confirm")) return;
+      if (nav.cancelable) event.preventDefault();
+    };
+    (window as unknown as { navigation: { addEventListener: (type: string, fn: (event: Event) => void) => void } }).navigation.addEventListener("navigate", hold);
   });
   await page.goto("/auth/callback?code=t09-synthetic-code", { waitUntil: "commit" });
   await expect(page.getByText("Checking your access…")).toBeVisible();
@@ -308,7 +315,7 @@ async function boxOf(locator: ReturnType<Page["locator"]>) {
   return { x: box.x, y: box.y, width: box.width, height: box.height };
 }
 
-async function showRedirecting(page: Page) {
+async function showRedirecting(page: Page, options?: { stay?: boolean }) {
   let openGate = () => {};
   const gate = new Promise<void>((resolve) => {
     openGate = resolve;
@@ -321,16 +328,18 @@ async function showRedirecting(page: Page) {
   const aborted = new Promise<void>((resolve) => {
     finished = resolve;
   });
-  await page.route("**/auth/v1/authorize**", async (route) => {
-    arrived();
-    await gate;
-    await route.fulfill({
-      status: 200,
-      contentType: "text/html",
-      body: "<!doctype html><title>held</title>",
+  if (!options?.stay) {
+    await page.route("**/auth/v1/authorize**", async (route) => {
+      arrived();
+      await gate;
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<!doctype html><title>held</title>",
+      });
+      finished();
     });
-    finished();
-  });
+  }
   const captured: {
     current: {
       status: string;
@@ -347,7 +356,19 @@ async function showRedirecting(page: Page) {
       captured.current = payload;
     },
   );
-  await page.evaluate(() => {
+  await page.evaluate((stay: boolean) => {
+    if (stay) {
+      const hold = (event: Event) => {
+        const nav = event as Event & { destination?: { url: string }; cancelable: boolean };
+        if (!nav.destination?.url.includes("/auth/v1/authorize")) return;
+        if (nav.cancelable) event.preventDefault();
+      };
+      const nav = (window as unknown as {
+        navigation: { addEventListener: (type: string, fn: (event: Event) => void) => void; removeEventListener: (type: string, fn: (event: Event) => void) => void };
+      }).navigation;
+      nav.addEventListener("navigate", hold);
+      (window as unknown as { __releaseOAuth?: () => void }).__releaseOAuth = () => nav.removeEventListener("navigate", hold);
+    }
     const button = document.querySelector("[data-sign-in-button]");
     if (!(button instanceof HTMLButtonElement)) return;
     const observer = new MutationObserver(() => {
@@ -384,7 +405,7 @@ async function showRedirecting(page: Page) {
       subtree: true,
       attributeFilter: ["aria-busy", "disabled", "aria-hidden"],
     });
-  });
+  }, Boolean(options?.stay));
   const button = page.locator("[data-sign-in-button]");
   const card = page.locator("[data-sign-in-card]");
   const before = { button: await boxOf(button), card: await boxOf(card) };
@@ -394,12 +415,20 @@ async function showRedirecting(page: Page) {
     await new Promise((resolve) => setTimeout(resolve, 40));
   }
   if (!captured.current) throw new Error("redirecting state was not observed");
-  await Promise.race([
-    held,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("authorize route was not held")), 8_000)),
-  ]);
+  if (!options?.stay) {
+    await Promise.race([
+      held,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("authorize route was not held")), 8_000)),
+    ]);
+  }
   return {
     release: async () => {
+      if (options?.stay) {
+        await page.evaluate(() => {
+          (window as unknown as { __releaseOAuth?: () => void }).__releaseOAuth?.();
+        });
+        return;
+      }
       const landed = page.waitForURL(/\/auth\/v1\/authorize/, { waitUntil: "commit", timeout: 8_000 });
       openGate();
       await aborted;
@@ -671,7 +700,7 @@ test("Evidence", async ({ browser }) => {
         };
         requestAnimationFrame(hold);
       });
-      const pressed = await showRedirecting(pressPage);
+      const pressed = await showRedirecting(pressPage, { stay: true });
       for (const time of FILM_TIMES) {
         await pressPage.evaluate((ms) => {
           for (const animation of document.getAnimations()) {
@@ -749,7 +778,7 @@ async function captureState(
     if (options?.film) return async () => undefined;
     await settle(page);
     if (state === "redirecting") {
-      const pressed = await showRedirecting(page);
+      const pressed = await showRedirecting(page, { stay: true });
       await settle(page);
       return pressed.release;
     }
