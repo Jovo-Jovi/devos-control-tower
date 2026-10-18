@@ -430,6 +430,10 @@ jobs:
           STATE: ${{ steps.bs.outputs.state }}
         run: |
           if [ -f .devos/accounts.md ]; then printf '\n\n**Accounts (PR-29)**\n%s\n' "$(cat .devos/accounts.md)" >> .devos/builder-summary.md; fi
+          if [ -f .devos/builder.json.stream.jsonl ]; then
+            rep=$(timeout 20 node scripts/devos/builder-report.mjs .devos/builder.json.stream.jsonl .devos/builder-timeline.json 2>/dev/null || true)
+            [ -n "$rep" ] && printf '\n\n### What the builder did in this run\n\n%s\n' "$rep" >> .devos/builder-summary.md
+          fi
           gh pr comment "$PRN" --repo "$REPO" --body-file .devos/builder-summary.md
           cat .devos/builder-summary.md >> "$GITHUB_STEP_SUMMARY"
           if [ "$STATE" = "continue" ]; then
