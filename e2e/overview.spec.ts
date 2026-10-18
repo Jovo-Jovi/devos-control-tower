@@ -131,6 +131,36 @@ async function assertBarTracksWide(page: Page) {
   expect(widths.every((width) => width >= 16)).toBe(true);
 }
 
+async function assertBarFillsTrack(page: Page) {
+  const fill = await page.evaluate(() => {
+    const svgs = Array.from(document.querySelectorAll("[data-map-card] [data-bar-track] svg"));
+    const boxes = svgs.map((svg) => {
+      const parent = svg.parentElement?.getBoundingClientRect();
+      const box = svg.getBoundingClientRect();
+      return {
+        height: parent ? Math.abs(box.height - parent.height) <= 0.5 : false,
+        width: parent ? Math.abs(box.width - parent.width) <= 0.5 : false,
+      };
+    });
+    const track = document.querySelector('[data-map-card][data-project="BRAVO"] [data-bar-track]');
+    const line = track?.querySelector("line") ?? null;
+    const t = track?.getBoundingClientRect();
+    const x = t ? t.left + t.width * 0.25 : 0;
+    const top = t ? document.elementsFromPoint(x, t.top + 0.5) : [];
+    const bottom = t ? document.elementsFromPoint(x, t.bottom - 0.5) : [];
+    return {
+      count: svgs.length,
+      boxes,
+      topHasLine: line !== null && top.includes(line),
+      bottomHasLine: line !== null && bottom.includes(line),
+    };
+  });
+  expect(fill.count).toBe(14);
+  expect(fill.boxes.every((box) => box.height && box.width)).toBe(true);
+  expect(fill.topHasLine).toBe(true);
+  expect(fill.bottomHasLine).toBe(true);
+}
+
 async function seek(page: Page, time: number) {
   await page.evaluate((ms) => {
     for (const animation of document.getAnimations()) {
@@ -304,6 +334,7 @@ test("Link states and overflow", async ({ browser }) => {
   await assertMapCardsFit(page);
   await assertLabelsOnOneLine(page, "[data-map-card]", 32);
   await assertBarTracksWide(page);
+  await assertBarFillsTrack(page);
   const bravo = page.locator('[data-map-card][data-project="BRAVO"]');
   await expect(bravo.getByText("1 / 2", { exact: true })).toHaveCount(2);
   await expect(bravo.locator("line").first()).toHaveAttribute("stroke-dashoffset", "50");
@@ -312,6 +343,7 @@ test("Link states and overflow", async ({ browser }) => {
   await assertMapCardsFit(page);
   await assertLabelsOnOneLine(page, "[data-map-card]", 32);
   await assertBarTracksWide(page);
+  await assertBarFillsTrack(page);
   await expect(bravo.getByText("1 / 2", { exact: true })).toHaveCount(2);
   await expect(bravo.locator("line").first()).toHaveAttribute("stroke-dashoffset", "50");
   await expect(page.locator('[data-map-card][data-project="ALPHA"] line').first()).toHaveAttribute("stroke-dashoffset", "100");

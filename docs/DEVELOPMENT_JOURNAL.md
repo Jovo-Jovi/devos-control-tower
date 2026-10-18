@@ -205,3 +205,11 @@ Attempt 4 kept the attempt-3 tree and changed only what `docs/reviews/T05-a3.md`
 SVG sits absolutely in its track, so it no longer forces the labels onto two lines, and each map
 card stays inside its slot. BRAVO's fixture carries a half fill (1 of 2). The attempt-3 layout-shift
 paste now includes the three keys it lacked. Awaiting the verdict, then the owner's gate G-Design-v3.
+
+## 2026-10-18 — T05 Overview as the tower map (attempt 5)
+
+Attempt 5 kept the attempt-4 tree and changed only defect (B) of `docs/reviews/T05-a4.md`. The bar SVG
+keeps `position: absolute` and `inset: 0`, and also takes `inline-size: 100%` and `block-size: 100%`,
+so the fill covers the track's full height. Test 3 checks that box at 1280 and 800, and that BRAVO's
+stroke is hit at the top and bottom of its first track. Playwright's Chromium was installed once in
+this environment so `pnpm e2e` could launch. Awaiting the verdict, then the owner's gate G-Design-v3.
