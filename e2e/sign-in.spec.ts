@@ -242,10 +242,17 @@ async function hasViewTransitionRule(page: Page) {
 }
 
 async function openChecking(page: Page) {
-  const seen: { current: { state: string; text: string; name: string } | null } = { current: null };
+  // A held /auth/confirm navigation freezes Playwright's evaluate. The track is read here,
+  // in the page, and reported through the binding the test already uses.
+  const seen: {
+    current: { state: string; text: string; name: string; backgroundColor: string; width: number } | null;
+  } = { current: null };
   await page.exposeBinding(
     "checkingSeen",
-    (_source, payload: { state: string; text: string; name: string }) => {
+    (
+      _source,
+      payload: { state: string; text: string; name: string; backgroundColor: string; width: number },
+    ) => {
       seen.current = payload;
     },
   );
@@ -255,7 +262,8 @@ async function openChecking(page: Page) {
       if (performance.now() - started > 8_000) return;
       const card = document.querySelector("[data-sign-in-card]");
       const mark = card?.querySelector("svg");
-      if (!(card instanceof HTMLElement) || !(mark instanceof SVGElement)) {
+      const line = card?.querySelector("[data-checking-line]");
+      if (!(card instanceof HTMLElement) || !(mark instanceof SVGElement) || !(line instanceof HTMLElement)) {
         requestAnimationFrame(look);
         return;
       }
@@ -269,11 +277,24 @@ async function openChecking(page: Page) {
         requestAnimationFrame(look);
         return;
       }
+      const box = line.getBoundingClientRect();
       (
         window as unknown as {
-          checkingSeen: (payload: { state: string; text: string; name: string }) => void;
+          checkingSeen: (payload: {
+            state: string;
+            text: string;
+            name: string;
+            backgroundColor: string;
+            width: number;
+          }) => void;
         }
-      ).checkingSeen({ state: "checking", text, name });
+      ).checkingSeen({
+        state: "checking",
+        text,
+        name,
+        backgroundColor: getComputedStyle(line).backgroundColor,
+        width: box.width,
+      });
     };
     requestAnimationFrame(look);
   });
@@ -527,6 +548,7 @@ test("sign-in renders its three states and the header baseline", async ({ page }
   await expect(page.getByRole("button", { name: "Use another account" })).toBeVisible();
   await expect(page.getByText("This GitHub account is not the owner. Signed out.")).toBeVisible();
 
+  await page.setViewportSize({ width: 1280, height: 720 });
   const errored = await page.goto("/sign-in?reason=auth_error");
   expect(errored?.status()).toBe(200);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
@@ -534,6 +556,28 @@ test("sign-in renders its three states and the header baseline", async ({ page }
   await expect(page.getByRole("heading", { name: "Control Tower" })).toBeVisible();
   await expect(page.getByText("Sign-in did not complete: no session was returned. Try again.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  expect(page.viewportSize()?.width).toBe(1280);
+  const errorLine = await page.evaluate(() => {
+    const card = document.querySelector("[data-sign-in-card]");
+    const line = document.querySelector("[data-error-line]");
+    if (!(card instanceof HTMLElement) || !(line instanceof HTMLElement)) return null;
+    const cardBox = card.getBoundingClientRect();
+    const lineBox = line.getBoundingClientRect();
+    const style = getComputedStyle(card);
+    const startRadius = Number.parseFloat(style.borderStartStartRadius);
+    const endRadius = Number.parseFloat(style.borderStartEndRadius);
+    return {
+      lineStart: lineBox.left,
+      lineEnd: lineBox.right,
+      minStart: cardBox.left + startRadius - 0.5,
+      maxEnd: cardBox.right - endRadius + 0.5,
+      overflow: style.overflow,
+    };
+  });
+  if (!errorLine) throw new Error("error hairline is missing");
+  expect(errorLine.lineStart).toBeGreaterThanOrEqual(errorLine.minStart);
+  expect(errorLine.lineEnd).toBeLessThanOrEqual(errorLine.maxEnd);
+  expect(errorLine.overflow).toBe("visible");
   expect(cspMessages).toEqual([]);
 });
 
@@ -549,11 +593,15 @@ test("Redirecting and checking", async ({ page }) => {
   expectSameBox(pressed.before.card, pressed.after.card);
   await pressed.release();
 
+  await page.setViewportSize({ width: 1280, height: 720 });
   const checking = await openChecking(page);
   expect(checking.seen.state).toBe("checking");
   expect(checking.seen.text).toContain("Checking your access…");
   expect(checking.seen.text).not.toContain("t09-synthetic-code");
   expect(checking.seen.name).toBe("product-mark");
+  expect(page.viewportSize()?.width).toBe(1280);
+  expect(checking.seen.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  expect(checking.seen.width).toBeGreaterThanOrEqual(200);
   checking.release();
   await page.waitForURL(/\/sign-in\?reason=auth_error$/);
 });

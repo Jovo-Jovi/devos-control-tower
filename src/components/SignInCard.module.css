@@ -143,7 +143,7 @@
 .errorLine {
   position: absolute;
   inset-block-start: 0;
-  inset-inline: 0;
+  inset-inline: var(--radius-3);
   block-size: 1px;
   background: var(--color-fail);
   border-start-start-radius: var(--radius-3);
@@ -159,6 +159,7 @@
   display: block;
   overflow: hidden;
   block-size: 1px;
+  background: var(--color-line);
 }
 
 .segment {
