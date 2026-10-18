@@ -1,6 +1,6 @@
 # TOWER — Session context
 
-**Phase:** P02 (Tower v1 pages) · **Last verdict:** T07 FAIL a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019…CF-021
+**Phase:** P02 (Tower v1 pages) · **Last verdict:** T07 PASS a2 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022
 
 ## Done steps
 
@@ -14,8 +14,9 @@
 | T04 | Design v3 foundation: light and dark themes, theme switch, scene and planet, app shell, not-found page, sign-in on the v3 tokens | PASS a1 |
 | T05 | Overview as the tower map: projects and link states, panels, list and phone views, register project, Tower-health banner | PASS a5 |
 | T06 | Usage view: totals, by phase/task/attempt/agent/model/alias, coverage, failed attempts separate | PASS a2 |
-| T07 | Project page: phases, run timeline by seq, origin labels and age, evidence links, verification | built a2 — awaiting verdict |
+| T07 | Project page: phases, run timeline by seq, origin labels and age, evidence links, verification | PASS a2 |
+| T09 | Sign-in retrofit to design v2: first paint, redirecting, checking-access interstitial, shared mark, denied, error, signed out | built a1 — awaiting verdict |
 
 ## Next action
 
-Review of T07 attempt 2; a PASS waits for the human (schema change).
+Review of T09 attempt 1; a PASS stops at gate G-Design-v2 for the owner.

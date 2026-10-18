@@ -120,11 +120,11 @@ function watchTransitions(context: BrowserContext) {
           const names: string[] = [];
           const durations: { pseudo: string; duration: number }[] = [];
           for (const animation of document.getAnimations()) {
-            animation.pause();
             const effect = animation.effect;
             if (!effect || !("pseudoElement" in effect)) continue;
             const pseudo = (effect as KeyframeEffect).pseudoElement;
-            if (!pseudo) continue;
+            if (!pseudo?.includes("view-transition")) continue;
+            animation.pause();
             names.push(pseudo);
             const duration = effect.getTiming().duration;
             durations.push({ pseudo, duration: typeof duration === "number" ? duration : -1 });
@@ -153,6 +153,20 @@ function watchTransitions(context: BrowserContext) {
 
 async function releaseTransition(page: Page) {
   await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      const effect = animation.effect;
+      if (!effect || !("pseudoElement" in effect)) continue;
+      const pseudo = (effect as KeyframeEffect).pseudoElement;
+      if (!pseudo?.includes("view-transition")) continue;
+      const duration = effect.getTiming().duration;
+      if (typeof duration === "number") animation.currentTime = duration;
+      animation.play();
+      try {
+        animation.finish();
+      } catch {
+        // The animation has already ended.
+      }
+    }
     const transition = (window as unknown as { __viewTransition?: { skipTransition: () => void } | null })
       .__viewTransition;
     try {
@@ -161,6 +175,12 @@ async function releaseTransition(page: Page) {
       // The transition has already finished.
     }
   });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
 }
 
 function expectSameBox(
@@ -221,34 +241,42 @@ async function hasViewTransitionRule(page: Page) {
   });
 }
 
-async function readLive<T>(page: Page, expression: string): Promise<T> {
-  const session = await page.context().newCDPSession(page);
-  try {
-    const response = await session.send("Runtime.evaluate", {
-      expression,
-      returnByValue: true,
-    });
-    if (response.exceptionDetails) {
-      throw new Error(response.exceptionDetails.text ?? "page read failed");
-    }
-    return response.result.value as T;
-  } finally {
-    await session.detach();
-  }
-}
-
-async function untilLive<T>(page: Page, expression: string, ready: (value: T) => boolean): Promise<T> {
-  const deadline = Date.now() + 8_000;
-  let latest: T | undefined;
-  while (Date.now() < deadline) {
-    latest = await readLive<T>(page, expression);
-    if (ready(latest)) return latest;
-    await new Promise((resolve) => setTimeout(resolve, 40));
-  }
-  throw new Error(`timed out reading the page: ${JSON.stringify(latest)}`);
-}
-
 async function openChecking(page: Page) {
+  const seen: { current: { state: string; text: string; name: string } | null } = { current: null };
+  await page.exposeBinding(
+    "checkingSeen",
+    (_source, payload: { state: string; text: string; name: string }) => {
+      seen.current = payload;
+    },
+  );
+  await page.addInitScript(() => {
+    const started = performance.now();
+    const look = () => {
+      if (performance.now() - started > 8_000) return;
+      const card = document.querySelector("[data-sign-in-card]");
+      const mark = card?.querySelector("svg");
+      if (!(card instanceof HTMLElement) || !(mark instanceof SVGElement)) {
+        requestAnimationFrame(look);
+        return;
+      }
+      const name = getComputedStyle(mark).viewTransitionName;
+      const text = document.body?.innerText ?? "";
+      if (
+        card.getAttribute("data-state") !== "checking" ||
+        name !== "product-mark" ||
+        !text.includes("Checking your access")
+      ) {
+        requestAnimationFrame(look);
+        return;
+      }
+      (
+        window as unknown as {
+          checkingSeen: (payload: { state: string; text: string; name: string }) => void;
+        }
+      ).checkingSeen({ state: "checking", text, name });
+    };
+    requestAnimationFrame(look);
+  });
   let release = () => {};
   const gate = new Promise<void>((resolve) => {
     release = resolve;
@@ -258,7 +286,12 @@ async function openChecking(page: Page) {
     await route.continue();
   });
   await page.goto("/auth/callback?code=t09-synthetic-code", { waitUntil: "commit" });
-  return release;
+  const deadline = Date.now() + 8_000;
+  while (!seen.current && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+  if (!seen.current) throw new Error("checking state was not observed");
+  return { release, seen: seen.current };
 }
 
 async function showChecking(page: Page) {
@@ -291,38 +324,90 @@ async function showRedirecting(page: Page) {
   await page.route("**/auth/v1/authorize**", async (route) => {
     arrived();
     await gate;
-    await route.abort().catch(() => undefined);
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: "<!doctype html><title>held</title>",
+    });
     finished();
+  });
+  const captured: {
+    current: {
+      status: string;
+      hidden: string | null;
+      busy: string;
+      disabled: boolean;
+      button: { x: number; y: number; width: number; height: number };
+      card: { x: number; y: number; width: number; height: number };
+    } | null;
+  } = { current: null };
+  await page.exposeBinding(
+    "signInPressed",
+    (_source, payload: NonNullable<(typeof captured)["current"]>) => {
+      captured.current = payload;
+    },
+  );
+  await page.evaluate(() => {
+    const button = document.querySelector("[data-sign-in-button]");
+    if (!(button instanceof HTMLButtonElement)) return;
+    const observer = new MutationObserver(() => {
+      if (button.getAttribute("aria-busy") !== "true") return;
+      const card = document.querySelector("[data-sign-in-card]");
+      const status = button.querySelector("[role='status']");
+      const box = (element: Element | null) => {
+        if (!element) return { x: 0, y: 0, width: 0, height: 0 };
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      };
+      void (
+        window as unknown as {
+          signInPressed: (payload: {
+            status: string;
+            hidden: string | null;
+            busy: string;
+            disabled: boolean;
+            button: { x: number; y: number; width: number; height: number };
+            card: { x: number; y: number; width: number; height: number };
+          }) => void;
+        }
+      ).signInPressed({
+        status: status?.textContent ?? "",
+        hidden: status?.getAttribute("aria-hidden") ?? null,
+        busy: button.getAttribute("aria-busy") ?? "",
+        disabled: button.disabled,
+        button: box(button),
+        card: box(card),
+      });
+    });
+    observer.observe(button, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["aria-busy", "disabled", "aria-hidden"],
+    });
   });
   const button = page.locator("[data-sign-in-button]");
   const card = page.locator("[data-sign-in-card]");
   const before = { button: await boxOf(button), card: await boxOf(card) };
   await button.click({ noWaitAfter: true, timeout: 8_000 });
-  const status = button.locator("[role='status']");
-  await expect(status).not.toHaveAttribute("aria-hidden", "true");
-  await expect(status).toContainText("Opening GitHub…");
-  await expect(button).toHaveAttribute("aria-busy", "true");
-  await expect(button).toBeDisabled();
-  const after = {
-    ...before,
-    button: await boxOf(button),
-    card: await boxOf(card),
-    status: (await status.textContent()) ?? "",
-    hidden: await status.getAttribute("aria-hidden"),
-    busy: await button.getAttribute("aria-busy"),
-    disabled: await button.isDisabled(),
-  };
+  const deadline = Date.now() + 8_000;
+  while (!captured.current && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+  if (!captured.current) throw new Error("redirecting state was not observed");
   await Promise.race([
     held,
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error("authorize route was not held")), 8_000)),
   ]);
   return {
     release: async () => {
+      const landed = page.waitForURL(/\/auth\/v1\/authorize/, { waitUntil: "commit", timeout: 8_000 });
       openGate();
       await aborted;
+      await landed;
+      await page.unroute("**/auth/v1/authorize**");
     },
     before,
-    after,
+    after: captured.current,
   };
 }
 
@@ -428,31 +513,19 @@ test("Redirecting and checking", async ({ page }) => {
   await settle(page);
   const pressed = await showRedirecting(page);
   expect(pressed.after.status).toContain("Opening GitHub…");
+  expect(pressed.after.hidden).not.toBe("true");
   expect(pressed.after.busy).toBe("true");
   expect(pressed.after.disabled).toBe(true);
   expectSameBox(pressed.before.button, pressed.after.button);
   expectSameBox(pressed.before.card, pressed.after.card);
   await pressed.release();
 
-  const release = await openChecking(page);
-  const seen = await untilLive<{ state: string; text: string; name: string }>(
-    page,
-    `(() => {
-      const card = document.querySelector("[data-sign-in-card]");
-      const mark = card ? card.querySelector("svg") : null;
-      return {
-        state: card ? card.getAttribute("data-state") ?? "" : "",
-        text: document.body.innerText,
-        name: mark ? getComputedStyle(mark).viewTransitionName : "",
-      };
-    })()`,
-    (value) => value.state === "checking" && value.text.includes("Checking your access"),
-  );
-  expect(seen.state).toBe("checking");
-  expect(seen.text).toContain("Checking your access…");
-  expect(seen.text).not.toContain("t09-synthetic-code");
-  expect(seen.name).toBe("product-mark");
-  release();
+  const checking = await openChecking(page);
+  expect(checking.seen.state).toBe("checking");
+  expect(checking.seen.text).toContain("Checking your access…");
+  expect(checking.seen.text).not.toContain("t09-synthetic-code");
+  expect(checking.seen.name).toBe("product-mark");
+  checking.release();
   await page.waitForURL(/\/sign-in\?reason=auth_error$/);
 });
 
@@ -460,9 +533,12 @@ test("Shared mark and transitions", async ({ browser }) => {
   const cookies = await sessionCookies("fixture-sign-in-owner@example.test");
   const context = await browser.newContext();
   await watchTransitions(context);
-  await context.addCookies(cookies);
+  // Next's sign-out Location uses the server host `localhost`. Playwright's base URL is
+  // `127.0.0.1`, and Chrome aborts that cross-origin redirect. Stay on `localhost` so the
+  // unchanged 303 is same-origin and the view transition can run.
+  await context.addCookies(cookies.map((cookie) => ({ ...cookie, domain: "localhost" })));
   const page = await context.newPage();
-  await page.goto("/sign-in");
+  await page.goto("http://localhost:3000/sign-in");
   await settle(page);
   const onCard = await productMarks(page);
   expect(onCard).toEqual([{ inCard: true, inNav: false }]);
@@ -479,9 +555,19 @@ test("Shared mark and transitions", async ({ browser }) => {
   expect(onOverview).toEqual([{ inCard: false, inNav: true }]);
   expect(await hasViewTransitionRule(page)).toBe(true);
   await releaseTransition(page);
+  const stillThere = await page.evaluate(() =>
+    document.getAnimations().flatMap((animation) => {
+      const effect = animation.effect;
+      const pseudo = effect && "pseudoElement" in effect ? (effect as KeyframeEffect).pseudoElement : null;
+      return pseudo?.includes("view-transition") ? [`${pseudo} ${animation.playState}`] : [];
+    }),
+  );
+  expect(stillThere).toEqual([]);
 
-  await page.getByRole("button", { name: "Sign out" }).click();
-  await page.waitForURL(/\/sign-in$/);
+  await Promise.all([
+    page.waitForURL(/\/sign-in$/, { waitUntil: "commit", timeout: 15_000 }),
+    page.getByRole("button", { name: "Sign out" }).click({ noWaitAfter: true }),
+  ]);
   const signedOut = await readTransition(page);
   expect(signedOut.missing).toBe(false);
   expect(signedOut.names).toContain("::view-transition-new(root)");
@@ -609,9 +695,9 @@ test("Evidence", async ({ browser }) => {
       const context = await browser.newContext({ colorScheme: theme, viewport });
       await armShift(context);
       await watchTransitions(context);
-      await context.addCookies(cookies);
+      await context.addCookies(cookies.map((cookie) => ({ ...cookie, domain: "localhost" })));
       const page = await context.newPage();
-      await page.goto("/sign-in", { waitUntil: "load" });
+      await page.goto("http://localhost:3000/sign-in", { waitUntil: "load" });
       await settle(page);
       await page.evaluate(() => {
         location.assign("/");
@@ -623,8 +709,10 @@ test("Evidence", async ({ browser }) => {
       shiftSources[successKey] = await readShiftSources(page);
       await releaseTransition(page);
 
-      await page.getByRole("button", { name: "Sign out" }).click();
-      await page.waitForURL(/\/sign-in$/);
+      await Promise.all([
+        page.waitForURL(/\/sign-in$/, { waitUntil: "commit", timeout: 20_000 }),
+        page.getByRole("button", { name: "Sign out" }).click({ noWaitAfter: true }),
+      ]);
       await filmTransition(page, `t09-to-signed-out-${theme}-${viewport.width}`);
       const signedOutKey = `to-signed-out-${theme}-${viewport.width}`;
       shifts[signedOutKey] = await readShift(page);
