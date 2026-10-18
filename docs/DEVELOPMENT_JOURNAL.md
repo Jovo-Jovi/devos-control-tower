@@ -213,3 +213,15 @@ keeps `position: absolute` and `inset: 0`, and also takes `inline-size: 100%` an
 so the fill covers the track's full height. Test 3 checks that box at 1280 and 800, and that BRAVO's
 stroke is hit at the top and bottom of its first track. Playwright's Chromium was installed once in
 this environment so `pnpm e2e` could launch. Awaiting the verdict, then the owner's gate G-Design-v3.
+
+## 2026-10-18 — T06 Usage view (attempt 1)
+
+`/projects/[key]/usage` reads one project's attempts through the owner's session and the view
+`usage_by_attempt` (`security_invoker`). Coverage comes first, then totals by agent and by model,
+then attempts, with failed attempts in their own table. A null number is an em dash. The seed adds
+`USAGE` and `QUIET`; `USAGE` events are moved two hours earlier so `FIXTURE` stays newest.
+CF-018…CF-021 are open from the T05 a5 carry-forwards, and CF-011 and CF-012 now land at T07.
+Playwright's Chromium was installed once so `pnpm e2e` could launch. The attempt halts on Done-when
+D5: `supabase gen types` quotes `"usage_by_attempt"`, so the fence's unquoted search cannot print 1
+and still match a fresh generation. Awaiting the reviewer's ruling on that check. A PASS, if the
+reviewer gives one, waits for the human (schema change).

@@ -76,6 +76,9 @@ export function DetailPanel({
           <AgeText at={latest?.receivedAt ?? project.lastContactAt} empty={copy.noContact} />
         </dd>
       </dl>
+      <a className={styles.usage} href={`/projects/${project.key}/usage`}>
+        {copy.usage}
+      </a>
       <h3 className={styles.recent}>{copy.recent}</h3>
       <ol className={styles.events}>
         {project.recent.map((event) => (

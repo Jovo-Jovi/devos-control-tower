@@ -168,7 +168,15 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "usage_by_attempt": {
+                  Row: {
+                    "account_alias": string | null,"agent": string | null,"at": string | null,"cache_read": number | null,"cache_write": number | null,"input": number | null,"model": string | null,"origin": string | null,"output": number | null,"phase": string | null,"project_key": string | null,"received_at": string | null,"run_created_at": string | null,"run_key": string | null,"source": string | null,"status": string | null,"task": string | null
+                  }
+                  ComputedFields: never
+                  Relationships: [
+                    
+                  ]
+                }
           }
           Functions: {
             "ingest_event":

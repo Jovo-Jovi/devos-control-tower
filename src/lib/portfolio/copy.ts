@@ -38,6 +38,7 @@ export type OverviewCopy = {
   fact: string;
   recent: string;
   repository: string;
+  usage: string;
   offlineKnown: string;
   legend: string;
   system: string;

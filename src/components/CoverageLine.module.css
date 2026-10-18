@@ -1,0 +1,6 @@
+.line {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: var(--text-2);
+  font-weight: 600;
+}
