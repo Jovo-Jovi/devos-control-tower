@@ -115,6 +115,8 @@ A `ci` result that appears after the merge belongs to `main`, not to the PR.
   - 🔌 **lost connection**: Cursor's connection dropped. The run restarts once, then waits.
   - 🔴 **stuck**: no file change, no output and no computing for 30 minutes, so the run was stopped. The comment names what it was doing.
   - Every update also shows the builder's **last action** (for example `running shell: pnpm e2e`).
+  - Under that: the builder's **plan** (its own to-do list, ✅ done · 🔄 now · ⬜ left), its **latest note**, and **one line for every 10 minutes**: how much it read, searched, ran and edited, which files it edited and which commands it ran.
+  - When a run ends a time slice, parks or halts, the same report is posted on the task's PR.
   - ✅ **finished**: next come the checks and the review.
 - **Time slices:** a long build is split into slices of 72 minutes, up to 4 slices
   (`builder.max_time_slices`). Each slice commits its work with "(time slice k)" in the commit
