@@ -1,6 +1,6 @@
 # TOWER — Session context
 
-**Phase:** P02 (Tower v1 pages) · **Last verdict:** T06 FAIL a1 (fence defect, PR-09) · **Open carry-forwards:** CF-001…CF-012 except CF-005, CF-016…CF-021
+**Phase:** P02 (Tower v1 pages) · **Last verdict:** T06 PASS a2 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019…CF-021
 
 ## Done steps
 
@@ -13,8 +13,9 @@
 | T03 | GitHub App webhook receiver: deliveries and observations (observed origin) | PASS a1 |
 | T04 | Design v3 foundation: light and dark themes, theme switch, scene and planet, app shell, not-found page, sign-in on the v3 tokens | PASS a1 |
 | T05 | Overview as the tower map: projects and link states, panels, list and phone views, register project, Tower-health banner | PASS a5 |
-| T06 | Usage view: totals, by phase/task/attempt/agent/model/alias, coverage, failed attempts separate | built a2 — awaiting verdict |
+| T06 | Usage view: totals, by phase/task/attempt/agent/model/alias, coverage, failed attempts separate | PASS a2 |
+| T07 | Project page: phases, run timeline by seq, origin labels and age, evidence links, verification | built a1 — awaiting verdict |
 
 ## Next action
 
-Review of T06 attempt 2; a PASS waits for the human (schema change).
+Review of T07 attempt 1; a PASS waits for the human (schema change).

@@ -91,7 +91,7 @@ export function ProjectCard({
         <span className={styles.metricLabel} data-metric-label="">{copy.ofSeen}</span>
       </span>
       <span className={styles.fact} data-card-fact="">
-        <span>
+        <span className={styles.factText}>
           {latest
             ? `${latest.task ? `${latest.task} · ` : ""}${latest.step} · ${latest.status}`
             : copy.unknown}

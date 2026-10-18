@@ -406,4 +406,81 @@ describe("U-T03-2 createWebhookHandler", () => {
       actorLogin: null,
     });
   });
+
+  it("verify_reported_events marks a checks pass verified after a matching status", async () => {
+    const sha = `c0ffeea${"1".repeat(33)}`;
+    const ingested = await admin.rpc("ingest_event", {
+      payload: {
+        v: 1,
+        project: "WEBHOOK",
+        run: "webhook-verify-a",
+        seq: 1,
+        phase: "P02",
+        task: "T07",
+        step: "checks",
+        status: "pass",
+        at: AT,
+        evidence: `@${sha.slice(0, 7)}`,
+      },
+      src: "ci",
+    });
+    expect(ingested.error).toBeNull();
+    const run = await admin.from("runs").select("id").eq("project_id", projectId).eq("run_key", "webhook-verify-a").single();
+    expect(run.error).toBeNull();
+    const before = await admin.from("events").select("origin").eq("run_id", run.data?.id ?? "").eq("seq", 1).single();
+    expect(before.data?.origin).toBe("reported");
+
+    const body = JSON.stringify({
+      sha,
+      context: "devos/checks",
+      state: "success",
+      updated_at: AT,
+      repository: { full_name: "fixture-org/webhook-repo" },
+      sender: sender(),
+    });
+    const delivery = randomUUID();
+    deliveryIds.push(delivery);
+    const response = await post(body, signedHeaders(body, delivery, "status"));
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({ stored: true });
+    const after = await admin.from("events").select("origin").eq("run_id", run.data?.id ?? "").eq("seq", 1).single();
+    expect(after.data?.origin).toBe("verified");
+  });
+
+  it("verify_reported_events leaves a verdict pass reported when the observation disagrees", async () => {
+    const sha = `c0ffeeb${"2".repeat(33)}`;
+    const ingested = await admin.rpc("ingest_event", {
+      payload: {
+        v: 1,
+        project: "WEBHOOK",
+        run: "webhook-verify-b",
+        seq: 1,
+        phase: "P02",
+        task: "T07",
+        step: "verdict",
+        status: "pass",
+        at: AT,
+        evidence: `@${sha.slice(0, 7)}`,
+      },
+      src: "ci",
+    });
+    expect(ingested.error).toBeNull();
+    const body = JSON.stringify({
+      sha,
+      context: "devos/verdict",
+      state: "failure",
+      updated_at: AT,
+      repository: { full_name: "fixture-org/webhook-repo" },
+      sender: sender(),
+    });
+    const delivery = randomUUID();
+    deliveryIds.push(delivery);
+    const response = await post(body, signedHeaders(body, delivery, "status"));
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({ stored: true });
+    const run = await admin.from("runs").select("id").eq("project_id", projectId).eq("run_key", "webhook-verify-b").single();
+    expect(run.error).toBeNull();
+    const after = await admin.from("events").select("origin").eq("run_id", run.data?.id ?? "").eq("seq", 1).single();
+    expect(after.data?.origin).toBe("reported");
+  });
 });

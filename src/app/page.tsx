@@ -44,6 +44,7 @@ function overviewCopy(messages: ReturnType<typeof getMessages>): OverviewCopy {
     fact: messages.detail.fact,
     recent: messages.detail.recent,
     repository: messages.detail.repository,
+    project: messages.detail.project,
     usage: messages.detail.usage,
     offlineKnown: messages.map.offline,
     legend: messages.map.legend,

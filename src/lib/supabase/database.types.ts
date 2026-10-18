@@ -184,6 +184,9 @@ isOneToOne: false
                            },
 "is_owner":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"verify_reported_events":
+{ Args: { "run": string }; Returns: number
                            }
           }
           Enums: {
