@@ -113,12 +113,12 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
   return (
     <AppShell login={owner.login} avatarUrl={owner.avatarUrl}>
       <div className={styles.page}>
-        <header className={styles.head}>
+        <header className={styles.head} data-project-head="">
           <p className={styles.eyebrow}>{copy.eyebrow}</p>
           <h1 className={styles.title}>{key}</h1>
           <p className={styles.lead}>{copy.lead}</p>
           {report === "unavailable" ? null : (
-            <p className={styles.meta}>
+            <p className={styles.meta} data-project-meta="">
               <a className={styles.repo} href={`https://github.com/${report.project.repo}`} rel="noreferrer">
                 <Bidi>{report.project.repo}</Bidi>
               </a>

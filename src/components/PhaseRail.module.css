@@ -2,7 +2,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  transform-origin: inline-start;
+  transform-origin: 0 0;
   animation: draw var(--dur-slow) var(--ease-out) both;
 }
 

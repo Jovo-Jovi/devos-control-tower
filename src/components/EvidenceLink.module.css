@@ -21,7 +21,7 @@
   block-size: 1px;
   background: currentColor;
   transform: scaleX(0);
-  transform-origin: inline-start;
+  transform-origin: 0 0;
   transition: transform var(--dur-quick) var(--ease-out);
 }
 

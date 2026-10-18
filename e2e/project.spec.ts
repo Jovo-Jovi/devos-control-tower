@@ -198,6 +198,38 @@ test("Truth", async ({ browser }) => {
   await expect(page.getByText("Last contact", { exact: true })).toHaveCount(1);
   await expect(page.getByText("Last activity", { exact: true })).toHaveCount(1);
   await expect(page.getByRole("link", { name: "Usage", exact: true })).toHaveAttribute("href", "/projects/TRACE/usage");
+
+  const railOrigin = await page
+    .locator("[data-phase-rail] > :first-child")
+    .evaluate((element) => getComputedStyle(element).transformOrigin);
+  expect(railOrigin.startsWith("0px")).toBe(true);
+
+  const underlineOrigin = await page
+    .locator("[data-step-event] a")
+    .first()
+    .evaluate((element) => getComputedStyle(element, "::after").transformOrigin);
+  expect(underlineOrigin.startsWith("0px")).toBe(true);
+
+  await expect(page.locator("[data-phase-rail] [data-live-dot]")).toHaveCount(0);
+
+  const planetClearance = await page.evaluate(() => {
+    const turn = document.querySelector("[data-planet-turn]");
+    const globe = turn?.parentElement?.parentElement ?? null;
+    const head = document.querySelector("[data-project-head]");
+    const g = globe?.getBoundingClientRect();
+    const h = head?.getBoundingClientRect();
+    const sharesVerticalSpace = g !== undefined && h !== undefined && h.top < g.bottom && h.bottom > g.top;
+    return {
+      width: g?.width ?? 0,
+      sharesVerticalSpace,
+      right: h?.right ?? Number.POSITIVE_INFINITY,
+      left: g?.left ?? 0,
+    };
+  });
+  expect(planetClearance.width).toBeGreaterThan(0);
+  expect(planetClearance.sharesVerticalSpace).toBe(true);
+  expect(planetClearance.right).toBeLessThanOrEqual(planetClearance.left + 0.5);
+
   expect(csp).toEqual([]);
   await context.close();
 });

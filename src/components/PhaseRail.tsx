@@ -31,7 +31,7 @@ export function PhaseRail({ phases, copy }: { phases: ProjectPhase[]; copy: Proj
         {phases.flatMap((phase) =>
           phase.tasks.map((task) => (
             <li key={task.task} className={styles.task} data-task-row={task.task}>
-              <span className={styles.mono}>{task.task}</span> <StatusChip step={task.step} status={task.status} />{" "}
+              <span className={styles.mono}>{task.task}</span> <StatusChip step={task.step} status={task.status} still />{" "}
               <OriginChip origin={task.origin} /> <AgeText at={task.receivedAt} empty={copy.noContact} />
             </li>
           )),
