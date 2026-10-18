@@ -102,27 +102,64 @@ function holdAnimations(context: BrowserContext) {
 function watchTransitions(context: BrowserContext) {
   return context.addInitScript(() => {
     window.addEventListener("pagereveal", (event) => {
-      const transition = (event as Event & { viewTransition?: { ready: Promise<void> } | null }).viewTransition;
+      const transition = (
+        event as Event & { viewTransition?: { ready: Promise<void>; skipTransition: () => void } | null }
+      ).viewTransition;
       if (!transition) {
-        Object.assign(window, { __vtNames: [], __vtDurations: [], __vtNull: true, __vtReady: true });
+        Object.assign(window, {
+          __viewTransition: null,
+          __vtNames: [],
+          __vtDurations: [],
+          __vtNull: true,
+          __vtReady: true,
+        });
         return;
       }
-      void transition.ready.then(() => {
-        const names: string[] = [];
-        const durations: { pseudo: string; duration: number }[] = [];
-        for (const animation of document.getAnimations()) {
-          animation.pause();
-          const effect = animation.effect;
-          if (!effect || !("pseudoElement" in effect)) continue;
-          const pseudo = (effect as KeyframeEffect).pseudoElement;
-          if (!pseudo) continue;
-          names.push(pseudo);
-          const duration = effect.getTiming().duration;
-          durations.push({ pseudo, duration: typeof duration === "number" ? duration : -1 });
-        }
-        Object.assign(window, { __vtNames: names, __vtDurations: durations, __vtNull: false, __vtReady: true });
-      });
+      void transition.ready.then(
+        () => {
+          const names: string[] = [];
+          const durations: { pseudo: string; duration: number }[] = [];
+          for (const animation of document.getAnimations()) {
+            animation.pause();
+            const effect = animation.effect;
+            if (!effect || !("pseudoElement" in effect)) continue;
+            const pseudo = (effect as KeyframeEffect).pseudoElement;
+            if (!pseudo) continue;
+            names.push(pseudo);
+            const duration = effect.getTiming().duration;
+            durations.push({ pseudo, duration: typeof duration === "number" ? duration : -1 });
+          }
+          Object.assign(window, {
+            __viewTransition: transition,
+            __vtNames: names,
+            __vtDurations: durations,
+            __vtNull: false,
+            __vtReady: true,
+          });
+        },
+        () => {
+          Object.assign(window, {
+            __viewTransition: null,
+            __vtNames: [],
+            __vtDurations: [],
+            __vtNull: true,
+            __vtReady: true,
+          });
+        },
+      );
     });
+  });
+}
+
+async function releaseTransition(page: Page) {
+  await page.evaluate(() => {
+    const transition = (window as unknown as { __viewTransition?: { skipTransition: () => void } | null })
+      .__viewTransition;
+    try {
+      transition?.skipTransition();
+    } catch {
+      // The transition has already finished.
+    }
   });
 }
 
@@ -252,7 +289,7 @@ async function openChecking(page: Page) {
 
 async function showChecking(page: Page) {
   await page.route("**/auth/confirm**", async (route) => {
-    await route.abort();
+    await route.abort("aborted");
   });
   await page.goto("/auth/callback?code=t09-synthetic-code", { waitUntil: "commit" });
   await expect(page.getByText("Checking your access…")).toBeVisible();
@@ -460,6 +497,7 @@ test("Shared mark and transitions", async ({ browser }) => {
   const onOverview = await productMarks(page);
   expect(onOverview).toEqual([{ inCard: false, inNav: true }]);
   expect(await hasViewTransitionRule(page)).toBe(true);
+  await releaseTransition(page);
 
   await page.getByRole("button", { name: "Sign out" }).click();
   await page.waitForURL(/\/sign-in$/);
@@ -594,6 +632,7 @@ test("Evidence", async ({ browser }) => {
       const successKey = `to-success-${theme}-${viewport.width}`;
       shifts[successKey] = await readShift(page);
       shiftSources[successKey] = await readShiftSources(page);
+      await releaseTransition(page);
 
       await page.getByRole("button", { name: "Sign out" }).click();
       await page.waitForURL(/\/sign-in$/);
