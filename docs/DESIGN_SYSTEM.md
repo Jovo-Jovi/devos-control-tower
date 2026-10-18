@@ -1,7 +1,8 @@
 # TOWER — Design system v3 ("Energy-blade control tower")
 
 **Status:** approved **direction** (OD-08, DRAFT until the owner merges the intake PR of issue #13; OD-06 A1
-for v2). Precedence 8. Supersedes v2 ("Night-shift control room"). The approved design folder
+for v2). **v3.1** amendments to §1, §3, §5, §9 and §10 (the owner's art): OD-09, DRAFT until the owner merges the
+intake PR of issue #18. Precedence 8. Supersedes v2 ("Night-shift control room"). The approved design folder
 `docs/design/v3/` (README, mockup, assets, screens) ranks with this file. Where this file says "README §n", that
 section of `docs/design/v3/README.md` is binding as written; where the two differ, **this file holds**, because it
 records the intake decisions (§1 font names, §3 image location, §10 sizes). Each UI fence carries a Design
@@ -96,49 +97,29 @@ transition (§5 A). Scene colours are not themed: both scenes are always drawn, 
 
   /* planet position: light */
   --planet-turn-x: 0px;
-  --planet-night-x: 118%;
-  --planet-lights-mask-position: 316px -85px;
-  --planet-lights-delay: 0ms;
+  --planet-crimson-mask-position: 300px -90px;
   --planet-atmo-opacity: 1;
 
   /* scene colours (not themed) */
-  --scene-day-far: rgb(199 214 232 / 0.85);
-  --scene-day-near-start: #f4f8fc;
-  --scene-day-near-end: #c9d7e8;
-  --scene-day-rim: #ffffff;
-  --scene-day-cloud: #ffffff;
-  --scene-day-ground: rgb(238 244 251 / 0.9);
-  --scene-night-far: #0c0709;
-  --scene-night-near: #050304;
-  --scene-night-far-rim: rgb(255 43 43 / 0.18);
-  --scene-night-near-rim: rgb(255 43 43 / 0.42);
-  --scene-night-window: rgb(255 179 138 / 0.75);
   --scene-night-star: #ffffff;
-  --scene-night-ground: #050304;
   --scene-star-dim: 0.25;
-  --mask-sky-clouds: linear-gradient(180deg, #000 0 52%, transparent 72%);
 
   /* planet layers (not themed) */
-  --planet-night: radial-gradient(circle at 50% 50%, rgb(3 2 6 / 0.95) 0 49%, rgb(30 10 8 / 0.78) 55%, rgb(150 70 40 / 0.28) 61%, rgb(255 160 110 / 0.08) 65%, transparent 69%);
-  --planet-rim: radial-gradient(circle at 8% 50%, rgb(255 43 43 / 0.4), transparent 30%);
   --planet-shade: radial-gradient(circle at 36% 30%, rgb(255 255 255 / 0.22), transparent 30%), radial-gradient(circle at 50% 50%, transparent 55%, rgb(0 0 0 / 0.28) 76%, rgb(0 0 0 / 0.62) 100%);
   --planet-atmo: radial-gradient(circle, transparent 64%, rgb(170 210 255 / 0.18) 68%, rgb(190 222 255 / 0.55) 71%);
   --planet-glow-day: 0 0 0 1px rgb(255 255 255 / 0.35), 0 0 36px rgb(150 195 255 / 0.65), 0 0 110px rgb(150 195 255 / 0.3);
   --planet-glow-night: 0 0 0 1px rgb(255 90 90 / 0.22), 0 0 36px rgb(255 43 43 / 0.32), 0 0 120px rgb(255 43 43 / 0.16);
-  --mask-planet-lights: radial-gradient(circle, #000 0 44%, transparent 56%);
+  --mask-planet-crimson: radial-gradient(circle, #000 0 46%, transparent 54%);
 
   /* geometry: scene, planet, shell */
-  --scene-block-size: 1040px;
-  --scene-cloud-tile-inline: 3200px;
-  --scene-cloud-tile-block: 1100px;
+  --scene-drift-scale: 1.04;
   --planet-size: 340px;
   --planet-tile-inline: 680px;
   --planet-tile-block: 340px;
   --planet-inset-block-start: 34px;
   --planet-inset-inline-end: 4%;
   --planet-phone-scale: 0.62;
-  --planet-night-scale: 1.5;
-  --planet-lights-mask-size: 510px;
+  --planet-crimson-mask-size: 520px;
   --sidebar-inline-size: 220px;
   --shell-max: 1500px;
   --nav-bar: 3px;
@@ -192,12 +173,8 @@ transition (§5 A). Scene colours are not themed: both scenes are always drawn, 
   --dur-ambient: 2400ms;  /* live pulse, skeleton sheen, waiting pulse; loops only */
   --dur-scene: 1800ms;    /* the theme switch: scene and planet (amendment A) */
   --stagger: 40ms;        /* per item in a list entrance; total capped at 320ms */
-  --dur-planet-lights: 1000ms;
-  --dur-planet-rim: 1200ms;
-  --delay-planet-rim: 600ms;
-  --dur-planet-land: 160s;
-  --dur-planet-clouds: 105s;
-  --dur-sky-clouds: 420s;
+  --dur-planet-spin: 120s;
+  --dur-scene-drift: 60s;
   --dur-twinkle-1: 3.1s;  --delay-twinkle-1: -0.7s;
   --dur-twinkle-2: 4.2s;  --delay-twinkle-2: -2.3s;
   --dur-twinkle-3: 5.4s;  --delay-twinkle-3: -3.9s;
@@ -264,10 +241,8 @@ transition (§5 A). Scene colours are not themed: both scenes are always drawn, 
     --module: rgb(255 255 255 / 0.04);
     --slot: #2c2022;
     --planet-turn-x: -340px;
-    --planet-night-x: 20%;
-    --planet-lights-mask-position: -17px -85px;
-    --planet-lights-delay: 500ms;
-    --planet-atmo-opacity: 0.35;
+    --planet-crimson-mask-position: -90px -90px;
+    --planet-atmo-opacity: 0.25;
   }
 }
 
@@ -314,10 +289,8 @@ transition (§5 A). Scene colours are not themed: both scenes are always drawn, 
   --module: rgb(255 255 255 / 0.04);
   --slot: #2c2022;
   --planet-turn-x: -340px;
-  --planet-night-x: 20%;
-  --planet-lights-mask-position: -17px -85px;
-  --planet-lights-delay: 500ms;
-  --planet-atmo-opacity: 0.35;
+  --planet-crimson-mask-position: -90px -90px;
+  --planet-atmo-opacity: 0.25;
 }
 ```
 
@@ -325,12 +298,26 @@ transition (§5 A). Scene colours are not themed: both scenes are always drawn, 
 for byte. A later task that needs a new raw value appends it **after** this block in `tokens.css`, under a comment
 naming the task, and never redefines a name above; its fence states the additions and the reviewer checks them.
 
+**v3.1 (OD-09, the owner's art, README §3.4 and §14).** The block above is the v3.1 block. Against the v3 block
+that T04 landed it removes the tokens of the procedural layers (the skylines, window lights, cloud layer and
+ground: `--scene-day-*`, `--scene-night-far*`, `--scene-night-near*`, `--scene-night-window`,
+`--scene-night-ground`, `--mask-sky-clouds`, `--scene-block-size`, `--scene-cloud-tile-*`, `--dur-sky-clouds`; the
+night disc, lights and rim of the planet: `--planet-night`, `--planet-night-x`, `--planet-night-scale`, `--planet-rim`,
+`--mask-planet-lights`, `--planet-lights-*`, `--dur-planet-lights`, `--dur-planet-rim`, `--delay-planet-rim`, and the
+two strip speeds `--dur-planet-land`, `--dur-planet-clouds`). It adds the crimson globe's mask
+(`--mask-planet-crimson`, `--planet-crimson-mask-size`, `--planet-crimson-mask-position` per theme: off the planet
+in light, covering it in dark), one spin speed (`--dur-planet-spin`, one 680 px tile per 120 s) and the day plate's
+slow scale (`--dur-scene-drift`, `--scene-drift-scale`). The dark atmosphere is 25 % (`--planet-atmo-opacity`). The
+task that lands v3.1 (T11) replaces the leading block of `tokens.css` with this one; the T05 additions after it stay.
+
 Contrast (WCAG relative luminance, computed at intake with the README §1 method: the glass composited over the
 canvas and over the darkest scene colour behind a card — light `#c4d4e7` and `#a7c7ee`, dark `#3d070a`): light ink
 12.98, muted 5.56, accent 5.28, line-strong 3.74; dark ink 16.73, muted 7.58, accent 6.75, line-strong 3.22.
 Status text on its own background: light 5.53 (waiting) to 6.66 (stale); dark 6.66 (started) to 9.77 (waiting).
 Accent-ink on accent: light 6.70, dark 7.06; action-ink on action: light 16.47, dark 15.76. The task that lands §1
-recomputes every pair in a unit test and the reviewer reads the result.
+recomputes every pair in a unit test and the reviewer reads the result. The reference backdrops stay as stated under
+v3.1 (the unit test does not change); the owner's plates sit behind the glass, and their readability is judged on the
+screenshots in both themes (§7, the accessibility row of the ledger).
 
 ## 2. Type
 
@@ -351,8 +338,8 @@ and the map. Glass = `--glass` with `backdrop-filter: blur(var(--blur-glass)) sa
 
 | Component | Look | Motion (tokens from §1, rules from §5) |
 |---|---|---|
-| `Scene` | README §3: sky backdrops, cloud layer, skylines, stars, windows, ground; `aria-hidden`, `pointer-events: none`, behind every page | layer opacity follows `--scene-light`/`--scene-dark` over `--dur-scene`; ambient loops (cloud pan, twinkle) per §5 B |
-| `Planet` | README §3.4: globe (land, clouds) through the sphere filter, night disc, night lights, rim, shade, atmosphere; top end corner; × `--planet-phone-scale` at ≤ 760 px | the switch turns the globe half a turn while the night disc sweeps (`--dur-scene`); spin loops per §5 B; glow = two layers crossfading by opacity, never an animated shadow |
+| `Scene` | README §3 and §14 (v3.1): the owner's plates `bg-day` and `bg-night` (landscape; the `-portrait` pair at ≤ 760 px), each filling the fixed layer with `background-size: cover` anchored at the bottom centre; 27 twinkling vector stars in dark, upper half only. No vector skyline, window light, cloud layer or ground. `aria-hidden`, `pointer-events: none`, behind every page | the two plates crossfade by opacity (`--scene-light`/`--scene-dark`) over `--dur-scene`; the day plate scales 1 → `--scene-drift-scale` over `--dur-scene-drift`, alternate, from the bottom centre; twinkle per §5 B |
+| `Planet` | README §3.4 (v3.1): the day globe (`planet-day`) and the crimson globe (`planet-crimson`, inside the `--mask-planet-crimson` disc), each through the sphere filter (`feDisplacementMap` `scale` 300), then shade and atmosphere; top end corner; × `--planet-phone-scale` at ≤ 760 px | the switch turns both globes half a turn while the mask disc sweeps across (`mask-position`, `--dur-scene`), so the crimson night side rolls over; one spin loop (`--dur-planet-spin`) per §5 B; glow = two layers crossfading by opacity, never an animated shadow |
 | `ThemeSwitch` (new) | segmented **Auto · Light · Dark**, `aria-pressed`, in the top bar | the pressed segment's wash moves `--dur-quick`; the theme itself changes at once (§5 A) |
 | `AppSidebar` (new) | README §2: glass, product mark, "DEV_OS", links to routes that exist only; current link `--color-energy-wash` + `--nav-bar` energy bar at the start edge; a strip above the content at ≤ 980 px | none |
 | `AppHeader` (top bar) | glass, "Control Tower", `LiveMark` (from T05), `ThemeSwitch`, avatar (alt = login), login in `<bdi>`, sign-out | none |
@@ -392,15 +379,15 @@ v2's rules, with the amendments OD-08 signs (README §8):
    watching, now" and are bound by B.
 2. **Animated properties:** `transform`, `opacity`, `clip-path`, and (amendment **C**) `stroke-dashoffset`,
    `offset-distance` and `mask-position`. `filter` and `box-shadow` are never animated. Static blur is allowed on
-   its own elements only: the blades' glow path, the cloud sea's SVG blur, and the 340 px globe's sphere
-   displacement.
+   its own elements only: the blades' glow path and the 340 px globes' sphere displacement (v3.1 removes the
+   cloud sea and its SVG blur).
 3. **Durations from tokens only.** Nothing interactive above `--dur-slow`, except (amendment **A**) the theme
    switch: `--dur-scene` (1.8 s, `--ease-in-out`) for the scene and the planet; it answers *what changed* and blocks
    nothing. Total first-paint choreography ≤ 740 ms.
 4. **Never block reading or input.** Content is interactive from its first frame.
 5. **Animate once.** Entrances play on first view of a document; refreshes, polls and returns never replay them.
 6. **Loops (amendment B).** Allowed loops: `LiveMark`, `started`, skeleton sheen (v2), and the scene's: planet
-   spin, cloud pan, star twinkle, blade hum and particles, module LEDs, the seam beam. All are slow and
+   spin, the day plate's slow scale (v3.1, which removes the cloud pan), star twinkle, blade hum and particles, module LEDs, the seam beam. All are slow and
    low-contrast, and **all stop** under `prefers-reduced-motion: reduce` and while `document.visibilityState` is
    `hidden`. (README §8 B also names an in-app "Reduce motion" control; §2 places none, so the system setting
    governs: OD-08 "Does not decide".)
@@ -457,19 +444,28 @@ reach `/sign-in` without a proxy change. They live in `src/components/scene/asse
 are referenced from the scene's CSS modules (and the sphere map through a static import), so they are served from
 `/_next/static/media/`.
 
-| File | Size | Alpha | Seamless in x | Role |
-|---|---|---|---|---|
-| `sky-day.jpg` | 1600×900 | no | no | day backdrop (cover, top centre) |
-| `sky-night.jpg` | 2400×1350 | no | no | night backdrop |
-| `sky-clouds.webp` | 3200×1100 | yes | yes | cloud layer, one tile per `--dur-sky-clouds` |
-| `planet-land.webp` | 1360×680 | no | yes | surface strip (shown at 680×340) |
-| `planet-clouds.webp` | 1360×680 | yes | yes | cloud strip |
-| `planet-lights.webp` | 1360×680 | yes | yes | night lights, on land only |
-| `planet-sphere-map.png` | 340×340 | no | — | displacement map, lossless, never replaced |
+**v3.1 (OD-09).** The bundled set is the owner's, copied byte for byte from `docs/design/v3/assets/v3.1/` (README
+§3.4, §14). The v3 baseline files (`sky-day.jpg`, `sky-night.jpg`, `sky-clouds.webp`, `planet-land.webp`,
+`planet-clouds.webp`, `planet-lights.webp`) leave `src/components/scene/assets/`; their copies in
+`docs/design/v3/assets/` stay as the design record.
 
-The sizes are the baseline's as committed (README §13 lists `sky-day` at 2400×1350; the committed baseline is
-1600×900 and holds, "same sizes as the baseline"). Budget: each file at most twice its baseline's bytes, and the
-seven together at most 1 048 576 bytes (baseline 722 875).
+| File | Size | Alpha | Seamless in x | Bytes | Role |
+|---|---|---|---|---|---|
+| `bg-day.webp` | 2560×1440 | no | no | 80 102 | day plate, > 760 px (cover, bottom centre) |
+| `bg-night.webp` | 2560×1440 | no | no | 301 586 | night plate, > 760 px |
+| `bg-day-portrait.webp` | 1440×2560 | no | no | 91 186 | day plate, ≤ 760 px |
+| `bg-night-portrait.webp` | 1440×2560 | no | no | 236 474 | night plate, ≤ 760 px |
+| `planet-day.webp` | 1360×680 | no | yes | 169 748 | day globe strip, clouds baked in (shown at 680×340) |
+| `planet-crimson.webp` | 1360×680 | no | yes | 114 850 | crimson night globe strip, city lights screened on |
+| `planet-sphere-map.png` | 340×340 | no | — | 15 372 | displacement map at scale 300, lossless |
+
+The sphere map is replaced once, by the v3.1 map (the v3 map at scale 200 clipped the polar rows into flat bands);
+it is lossless and changes only with the `feDisplacementMap` `scale` it was made for. Budget: the seven files
+together at most 1 048 576 bytes (v3.1: 1 009 318, the sum of the column above). **Loading:** before the first
+paint only the theme's plate for the viewport (the system theme, since nothing is stored) and that theme's globe
+strip load, from CSS rules under `prefers-color-scheme` and the 760 px query; the other theme's plate and strip
+load after hydration (`:root[data-scene-ready]`); a viewport never loads the other orientation's pair; the sphere
+map is a static import. The map and the page never wait for an image.
 
 ## 10. Realistic art (README §13)
 
@@ -481,6 +477,12 @@ a check, and that never blocks the task; the reviewer looks at every replaced im
 both themes and can keep the baseline for any image that is worse, off-style or not original. The owner can generate
 the same images by hand in Cursor's editor with the prompts the task commits, through a pull request; the checks
 still apply.
+
+**v3.1 (OD-09).** The owner made the art (README §3.4, §14), so the builder's image step ends: no task generates
+scene images, and `scripts/scene/art.mjs verify` checks the bundled set against the v3.1 files (the seven names and
+no other, byte identity, size and format as §9, the byte budget) and prints the seam difference of the two globe
+strips for the reviewer, instead of printing prompts. New art is a change request
+from the owner, as v3.1 was.
 
 ## 11. What this system does not decide
 

@@ -24,6 +24,7 @@ The runner reads the table below, and `guard:phases` checks it.
 | T08 | PM | M | Method fix: motion evidence for design v2 (filmstrips, reduced motion, layout shift) | 3 | G-Method-6 | [x] | PASS a2 — docs/reviews/T08-a2.md |
 | T09 | P02 | J5 | Sign-in retrofit to design v2: first paint, redirecting, checking-access interstitial, shared mark, denied, error, signed out | 3 | G-Design-v2 | [ ] | — |
 | T10 | P02 | J5 | Pilot history export and import page; replay of 25 tasks labelled imported | 2 | G-Tower-v1 | [ ] | — |
+| T11 | P02 | J5 | Design v3.1 art: the owner's backgrounds and planet in the scene | 2 | G-Design-v3.1 | [ ] | — |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both
 belong to milestone M1 of `devos-plan`; the CK1 checkpoint between T02/PM01 and T03 is an owner gate
@@ -90,3 +91,12 @@ Phase outlines (method track):
   the header, denied nudge with "Use another account", error hairline with "Try again", signed-out crossfade;
   reduced-motion equivalents; CSS and View Transitions only. Evidence: settled, reduced-motion and filmstrip
   screenshots for five states at 1280 and 390, layout shift 0. Fence: `docs/fences/T09.md`.
+- **T11 — Design v3.1 art (OD-09, issue #18, `docs/requests/issue-18.md`; risk 2, gate G-Design-v3.1).** The owner's
+  plates and globe strips from `docs/design/v3/assets/v3.1/`, copied byte for byte into `src/components/scene/assets/`
+  (the six v3 baseline images leave it; the sphere map becomes the v3.1 map, `feDisplacementMap` `scale` 300);
+  `tokens.css` takes the v3.1 §1 block; `Scene` keeps two plate layers (cover, bottom centre, portrait pair at
+  ≤ 760 px, crossfade over `--dur-scene`, the day plate's 1 → 1.04 scale) and the 27 upper-half stars in dark;
+  `Planet` keeps the day globe and the crimson globe inside the moving mask disc, shade and atmosphere; only the
+  theme's plate and globe strip load before the first paint; `scripts/scene/art.mjs` checks the bundled set against
+  v3.1; `e2e/shell.spec.ts` proves the loading and keeps the v3 evidence in both themes. The task was asked for
+  T05's scope, but T05 had passed and been merged; it runs after T10 unless the owner renumbers (OD-09 §3).
