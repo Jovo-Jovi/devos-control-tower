@@ -1,0 +1,8 @@
+{"v":1,"project":"IMPORTFX","run":"import-0a1b2c3","seq":1,"phase":"P01","task":"T01","step":"review","status":"pass","at":"2026-10-01T07:00:00Z","evidence":"docs/reviews/T01-a1.md@1111111"}
+{"v":1,"project":"IMPORTFX","run":"import-0a1b2c3","seq":2,"phase":"P01","task":"T01","step":"verdict","status":"fail","at":"2026-10-01T07:00:00Z","evidence":"docs/reviews/T01-a1.md@1111111"}
+{"v":1,"project":"IMPORTFX","run":"import-0a1b2c3","seq":3,"phase":"P01","task":"T01","step":"review","status":"pass","at":"2026-10-02T10:30:00Z","evidence":"docs/reviews/T01-a2.md@2222222"}
+{"v":1,"project":"IMPORTFX","run":"import-0a1b2c3","seq":4,"phase":"P01","task":"T01","step":"verdict","status":"pass","at":"2026-10-02T10:30:00Z","evidence":"docs/reviews/T01-a2.md@2222222"}
+{"v":1,"project":"IMPORTFX","run":"import-0a1b2c3","seq":5,"phase":"P01","task":"T02","step":"review","status":"pass","at":"2026-10-03T11:00:00Z","evidence":"docs/reviews/T02-a1.md@3333333"}
+{"v":1,"project":"IMPORTFX","run":"import-0a1b2c3","seq":6,"phase":"P01","task":"T02","step":"verdict","status":"pass","at":"2026-10-03T11:00:00Z","evidence":"docs/reviews/T02-a1.md@3333333"}
+{"v":1,"project":"IMPORTFX","run":"import-0a1b2c3","seq":7,"phase":"PM","task":"T03","step":"review","status":"pass","at":"2026-10-04T12:15:00Z","evidence":"docs/reviews/T03-a1.md@4444444"}
+{"v":1,"project":"IMPORTFX","run":"import-0a1b2c3","seq":8,"phase":"PM","task":"T03","step":"verdict","status":"fail","at":"2026-10-04T12:15:00Z","evidence":"docs/reviews/T03-a1.md@4444444"}
