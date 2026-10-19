@@ -112,7 +112,8 @@ transition (§5 A). Scene colours are not themed: both scenes are always drawn, 
   --mask-planet-crimson: radial-gradient(circle, #000 0 46%, transparent 54%);
 
   /* geometry: scene, planet, shell */
-  --scene-drift-scale: 1.04;
+  --cloud-texture-ratio: 1.7778;   /* the cloud tiles keep sky-clouds.webp's 2048×1152 ratio */
+  --cloud-far-block: 68;           /* the far cloud layer, % of the cloud band */
   --planet-size: 340px;
   --planet-tile-inline: 680px;
   --planet-tile-block: 340px;

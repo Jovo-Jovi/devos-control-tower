@@ -70,9 +70,8 @@
   --mask-planet-crimson: radial-gradient(circle, #000 0 46%, transparent 54%);
 
   /* geometry: scene, planet, shell */
-  --scene-drift-scale: 1.04;
-  --cloud-tile-inline: 1680px;
-  --cloud-tile-far-inline: 2240px;
+  --cloud-texture-ratio: 1.7778; /* sky-clouds.webp is 2048×1152: its tiles keep that ratio */
+  --cloud-far-block: 68;          /* the far layer's height, % of the cloud band */
   --cloud-band: 58%;
   --cloud-near-opacity: 0.72;
   --cloud-far-opacity: 0.4;

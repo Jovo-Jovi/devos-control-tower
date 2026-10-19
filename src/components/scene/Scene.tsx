@@ -8,16 +8,10 @@ export function Scene() {
       <div className={`${styles.layer} ${styles.dayPlate}`} data-scene-plate="day" />
       <div className={styles.clouds} data-scene-clouds>
         <div className={`${styles.cloudLayer} ${styles.cloudFar}`}>
-          <div className={`${styles.cloudTrack} ${styles.cloudTrackFar}`} data-cloud-track="far">
-            <div className={styles.cloudTile} />
-            <div className={styles.cloudTile} />
-          </div>
+          <div className={`${styles.cloudTrack} ${styles.cloudTrackFar}`} data-cloud-track="far" />
         </div>
         <div className={`${styles.cloudLayer} ${styles.cloudNear}`}>
-          <div className={`${styles.cloudTrack} ${styles.cloudTrackNear}`} data-cloud-track="near">
-            <div className={styles.cloudTile} />
-            <div className={styles.cloudTile} />
-          </div>
+          <div className={`${styles.cloudTrack} ${styles.cloudTrackNear}`} data-cloud-track="near" />
         </div>
       </div>
       <div className={`${styles.layer} ${styles.nightPlate}`} data-scene-plate="night" />

@@ -37,6 +37,8 @@
   inset-inline: 0;
   block-size: var(--cloud-band);
   overflow: hidden;
+  /* the cloud tiles are sized from this box's height (cqh), so the texture keeps its aspect ratio */
+  container-type: size;
   opacity: var(--scene-light);
   mask-image: var(--mask-scene-sky);
   -webkit-mask-image: var(--mask-scene-sky);
@@ -51,39 +53,39 @@
 }
 
 .cloudFar {
-  block-size: 68%;
+  --cloud-tile: calc(var(--cloud-far-block) * 1cqh * var(--cloud-texture-ratio));
+
+  block-size: calc(var(--cloud-far-block) * 1%);
   opacity: var(--cloud-far-opacity);
 }
 
 .cloudNear {
+  --cloud-tile: calc(100cqh * var(--cloud-texture-ratio));
+
   block-size: 100%;
   opacity: var(--cloud-near-opacity);
 }
 
+/* One repeating strip per layer: the texture at its own aspect ratio (height = the layer, width = height ×
+   2048/1152), wide enough to cover the viewport plus one tile, moved left by exactly one tile per loop. */
 .cloudTrack {
   position: absolute;
   inset-block: 0;
   inset-inline-start: 0;
+  inline-size: calc(100% + var(--cloud-tile));
   block-size: 100%;
-  display: flex;
+  background-repeat: repeat-x;
+  background-position: 0 0;
+  background-size: var(--cloud-tile) 100%;
 }
 
 .cloudTrackNear {
-  inline-size: calc(var(--cloud-tile-inline) * 2);
   animation: cloud-pan var(--dur-cloud-near) var(--ease-linear) infinite;
 }
 
 .cloudTrackFar {
-  inline-size: calc(var(--cloud-tile-far-inline) * 2);
-  animation: cloud-pan-far var(--dur-cloud-far) var(--ease-linear) infinite;
-}
-
-.cloudTile {
-  inline-size: 50%;
-  block-size: 100%;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 100% 100%;
+  background-position: calc(var(--cloud-tile) / -2) 0;
+  animation: cloud-pan var(--dur-cloud-far) var(--ease-linear) infinite;
 }
 
 .mist {
@@ -107,7 +109,7 @@
   background-image: var(--scene-night-mist);
   background-repeat: no-repeat;
   background-size: 100% 100%;
-  animation: cloud-pan var(--dur-mist) var(--ease-linear) infinite;
+  animation: mist-pan var(--dur-mist) var(--ease-linear) infinite;
 }
 
 .starfield {
@@ -126,17 +128,17 @@
   }
 
   to {
-    transform: translateX(-50%);
+    transform: translateX(calc(-1 * var(--cloud-tile)));
   }
 }
 
-@keyframes cloud-pan-far {
+@keyframes mist-pan {
   from {
-    transform: translateX(-25%);
+    transform: translateX(0);
   }
 
   to {
-    transform: translateX(-75%);
+    transform: translateX(-50%);
   }
 }
 
@@ -165,7 +167,7 @@
 }
 
 @media (prefers-color-scheme: light) {
-  .cloudTile {
+  .cloudTrack {
     background-image: url("./assets/sky-clouds.webp");
   }
 }
@@ -190,6 +192,6 @@
   }
 }
 
-:global(:root[data-scene-ready]) .cloudTile {
+:global(:root[data-scene-ready]) .cloudTrack {
   background-image: url("./assets/sky-clouds.webp");
 }
