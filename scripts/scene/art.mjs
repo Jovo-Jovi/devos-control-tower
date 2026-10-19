@@ -7,18 +7,20 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const nextRequire = createRequire(require.resolve("next/package.json"));
 
-const SOURCE_DIR = "docs/design/v3/assets/v3.1";
+const V31_DIR = "docs/design/v3/assets/v3.1";
+const V32_DIR = "docs/design/v3/assets/v3.2";
 const SCENE_DIR = "src/components/scene/assets";
-const BYTE_BUDGET = 1048576;
+const BYTE_BUDGET = 3400000;
 
 const SPECS = [
-  { name: "bg-day.webp", width: 2560, height: 1440, format: "webp", seamless: false },
-  { name: "bg-night.webp", width: 2560, height: 1440, format: "webp", seamless: false },
-  { name: "bg-day-portrait.webp", width: 1440, height: 2560, format: "webp", seamless: false },
-  { name: "bg-night-portrait.webp", width: 1440, height: 2560, format: "webp", seamless: false },
-  { name: "planet-day.webp", width: 1360, height: 680, format: "webp", seamless: true },
-  { name: "planet-crimson.webp", width: 1360, height: 680, format: "webp", seamless: true },
-  { name: "planet-sphere-map.png", width: 340, height: 340, format: "png", seamless: false },
+  { name: "bg-day.jpg", width: 2560, height: 1440, format: "jpeg", seamless: false, source: V32_DIR },
+  { name: "bg-night.jpg", width: 2560, height: 1440, format: "jpeg", seamless: false, source: V32_DIR },
+  { name: "bg-day-portrait.jpg", width: 1440, height: 2560, format: "jpeg", seamless: false, source: V32_DIR },
+  { name: "bg-night-portrait.jpg", width: 1440, height: 2560, format: "jpeg", seamless: false, source: V32_DIR },
+  { name: "sky-clouds.webp", width: 2048, height: 1152, format: "webp", seamless: true, source: V32_DIR },
+  { name: "planet-day.webp", width: 1360, height: 680, format: "webp", seamless: true, source: V31_DIR },
+  { name: "planet-crimson.webp", width: 1360, height: 680, format: "webp", seamless: true, source: V31_DIR },
+  { name: "planet-sphere-map.png", width: 340, height: 340, format: "png", seamless: false, source: V31_DIR },
 ];
 
 function loadSharp() {
@@ -71,7 +73,7 @@ async function verify() {
   for (const name of [...present].sort()) {
     if (!expected.has(name)) {
       failed = true;
-      console.log(`${name} FAIL not in v3.1`);
+      console.log(`${name} FAIL not in the scene set`);
     }
   }
 
@@ -80,7 +82,7 @@ async function verify() {
   for (const spec of SPECS) {
     if (!present.includes(spec.name)) continue;
     const scenePath = path.join(SCENE_DIR, spec.name);
-    const sourcePath = path.join(SOURCE_DIR, spec.name);
+    const sourcePath = path.join(spec.source, spec.name);
     bytes += statSync(scenePath).size;
     const reasons = [];
     if (!existsSync(sourcePath) || sha256(scenePath) !== sha256(sourcePath)) reasons.push("sha256");
@@ -105,7 +107,7 @@ async function verify() {
       failed = true;
       console.log(`${spec.name} FAIL ${reasons.join("; ")}`);
     } else {
-      console.log(`${spec.name} v3.1`);
+      console.log(`${spec.name} ok`);
     }
   }
 

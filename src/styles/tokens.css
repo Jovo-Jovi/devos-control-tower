@@ -70,7 +70,20 @@
   --mask-planet-crimson: radial-gradient(circle, #000 0 46%, transparent 54%);
 
   /* geometry: scene, planet, shell */
-  --scene-drift-scale: 1.04;
+  --cloud-texture-ratio: 1.7778; /* sky-clouds.webp is 2048×1152: its tiles keep that ratio */
+  --cloud-far-block: 68;          /* the far layer's height, % of the cloud band */
+  --cloud-band: 58%;
+  --cloud-near-opacity: 0.72;
+  --cloud-far-opacity: 0.4;
+  --dur-cloud-near: 240s;
+  --dur-cloud-far: 390s;
+  --dur-mist: 320s;
+  --scene-mist-opacity: 0.14;
+  --mist-band-block: 16%;
+  --mist-inset-block-start: 68%;
+  --mask-scene-sky: linear-gradient(to bottom, #000 0%, #000 58%, transparent 100%);
+  --mask-scene-mist: linear-gradient(to bottom, transparent 0%, #000 42%, #000 62%, transparent 100%);
+  --scene-night-mist: linear-gradient(90deg, transparent 0%, rgb(160 32 44 / 0.45) 28%, transparent 48%, rgb(120 24 36 / 0.28) 72%, transparent 100%);
   --planet-size: 340px;
   --planet-tile-inline: 680px;
   --planet-tile-block: 340px;
@@ -319,4 +332,11 @@
   --dur-toast: 5s;
   --ease-linear: linear;
   --scene-viewport-block-size: 100lvh;
+}
+
+@media (max-width: 47.5rem) {
+  :root {
+    --cloud-band: 48%;
+    --mist-inset-block-start: 74%;
+  }
 }

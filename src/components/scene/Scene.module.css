@@ -6,6 +6,7 @@
   block-size: var(--scene-viewport-block-size);
   overflow: hidden;
   pointer-events: none;
+  isolation: isolate;
 }
 
 .layer {
@@ -15,30 +16,100 @@
   transition: opacity var(--dur-scene) var(--ease-in-out);
 }
 
-.dayPlate {
-  opacity: var(--scene-light);
+.dayPlate,
+.nightPlate {
   background-repeat: no-repeat;
   background-position: center bottom;
   background-size: cover;
-  transform-origin: 50% 100%;
-  animation: drift var(--dur-scene-drift) var(--ease-in-out) infinite alternate;
+}
+
+.dayPlate {
+  opacity: var(--scene-light);
 }
 
 .nightPlate {
   opacity: var(--scene-dark);
-  background-repeat: no-repeat;
-  background-position: center bottom;
-  background-size: cover;
 }
 
-@keyframes drift {
-  from {
-    transform: scale(1);
-  }
+.clouds {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: var(--cloud-band);
+  overflow: hidden;
+  /* the cloud tiles are sized from this box's height (cqh), so the texture keeps its aspect ratio */
+  container-type: size;
+  opacity: var(--scene-light);
+  mask-image: var(--mask-scene-sky);
+  -webkit-mask-image: var(--mask-scene-sky);
+  transition: opacity var(--dur-scene) var(--ease-in-out);
+}
 
-  to {
-    transform: scale(var(--scene-drift-scale));
-  }
+.cloudLayer {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 0;
+  overflow: hidden;
+}
+
+.cloudFar {
+  --cloud-tile: calc(var(--cloud-far-block) * 1cqh * var(--cloud-texture-ratio));
+
+  block-size: calc(var(--cloud-far-block) * 1%);
+  opacity: var(--cloud-far-opacity);
+}
+
+.cloudNear {
+  --cloud-tile: calc(100cqh * var(--cloud-texture-ratio));
+
+  block-size: 100%;
+  opacity: var(--cloud-near-opacity);
+}
+
+/* One repeating strip per layer: the texture at its own aspect ratio (height = the layer, width = height ×
+   2048/1152), wide enough to cover the viewport plus one tile, moved left by exactly one tile per loop. */
+.cloudTrack {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: calc(100% + var(--cloud-tile));
+  block-size: 100%;
+  background-repeat: repeat-x;
+  background-position: 0 0;
+  background-size: var(--cloud-tile) 100%;
+}
+
+.cloudTrackNear {
+  animation: cloud-pan var(--dur-cloud-near) var(--ease-linear) infinite;
+}
+
+.cloudTrackFar {
+  background-position: calc(var(--cloud-tile) / -2) 0;
+  animation: cloud-pan var(--dur-cloud-far) var(--ease-linear) infinite;
+}
+
+.mist {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: var(--mist-inset-block-start);
+  block-size: var(--mist-band-block);
+  overflow: hidden;
+  opacity: calc(var(--scene-dark) * var(--scene-mist-opacity));
+  mask-image: var(--mask-scene-mist);
+  -webkit-mask-image: var(--mask-scene-mist);
+  transition: opacity var(--dur-scene) var(--ease-in-out);
+}
+
+.mistTrack {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 200%;
+  block-size: 100%;
+  background-image: var(--scene-night-mist);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  animation: mist-pan var(--dur-mist) var(--ease-linear) infinite;
 }
 
 .starfield {
@@ -47,94 +118,80 @@
   inset-inline: 0;
   inline-size: 100%;
   block-size: 100%;
-}
-
-.stars {
-  fill: var(--scene-night-star);
   opacity: var(--scene-dark);
   transition: opacity var(--dur-scene) var(--ease-in-out);
 }
 
-.star1,
-.star2,
-.star3,
-.star4 {
-  animation-timing-function: var(--ease-in-out);
-  animation-iteration-count: infinite;
-  animation-name: twinkle;
-}
-
-.star1 {
-  animation-duration: var(--dur-twinkle-1);
-  animation-delay: var(--delay-twinkle-1);
-}
-
-.star2 {
-  animation-duration: var(--dur-twinkle-2);
-  animation-delay: var(--delay-twinkle-2);
-}
-
-.star3 {
-  animation-duration: var(--dur-twinkle-3);
-  animation-delay: var(--delay-twinkle-3);
-}
-
-.star4 {
-  animation-duration: var(--dur-twinkle-4);
-  animation-delay: var(--delay-twinkle-4);
-}
-
-@keyframes twinkle {
-  0%,
-  100% {
-    opacity: var(--scene-star-dim);
+@keyframes cloud-pan {
+  from {
+    transform: translateX(0);
   }
 
-  50% {
-    opacity: 1;
+  to {
+    transform: translateX(calc(-1 * var(--cloud-tile)));
+  }
+}
+
+@keyframes mist-pan {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
   }
 }
 
 @media (prefers-color-scheme: light) and (min-width: 47.5625rem) {
   .dayPlate {
-    background-image: url("./assets/bg-day.webp");
+    background-image: url("./assets/bg-day.jpg");
   }
 }
 
 @media (prefers-color-scheme: light) and (max-width: 47.5rem) {
   .dayPlate {
-    background-image: url("./assets/bg-day-portrait.webp");
+    background-image: url("./assets/bg-day-portrait.jpg");
   }
 }
 
 @media (prefers-color-scheme: dark) and (min-width: 47.5625rem) {
   .nightPlate {
-    background-image: url("./assets/bg-night.webp");
+    background-image: url("./assets/bg-night.jpg");
   }
 }
 
 @media (prefers-color-scheme: dark) and (max-width: 47.5rem) {
   .nightPlate {
-    background-image: url("./assets/bg-night-portrait.webp");
+    background-image: url("./assets/bg-night-portrait.jpg");
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .cloudTrack {
+    background-image: url("./assets/sky-clouds.webp");
   }
 }
 
 @media (min-width: 47.5625rem) {
   :global(:root[data-scene-ready]) .dayPlate {
-    background-image: url("./assets/bg-day.webp");
+    background-image: url("./assets/bg-day.jpg");
   }
 
   :global(:root[data-scene-ready]) .nightPlate {
-    background-image: url("./assets/bg-night.webp");
+    background-image: url("./assets/bg-night.jpg");
   }
 }
 
 @media (max-width: 47.5rem) {
   :global(:root[data-scene-ready]) .dayPlate {
-    background-image: url("./assets/bg-day-portrait.webp");
+    background-image: url("./assets/bg-day-portrait.jpg");
   }
 
   :global(:root[data-scene-ready]) .nightPlate {
-    background-image: url("./assets/bg-night-portrait.webp");
+    background-image: url("./assets/bg-night-portrait.jpg");
   }
+}
+
+:global(:root[data-scene-ready]) .cloudTrack {
+  background-image: url("./assets/sky-clouds.webp");
 }

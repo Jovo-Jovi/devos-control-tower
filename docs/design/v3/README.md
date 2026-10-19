@@ -350,3 +350,49 @@ horizon) in two lightings, landscape and portrait — `assets/v3.1/bg-night.webp
   while the page is hidden;
 - `screens/v3.1-phone-day-scrolled.jpg` shows the page scrolled on a phone with the scene standing still.
 The scene's images total about 1 MB; only the theme's background and planet texture load before first paint.
+
+## 15. Original quality (v3.2, requested 2026-10-19)
+
+**Why.** v3.1 squeezed the owner's art into a 1 MB budget (§9 of `DESIGN_SYSTEM.md`). A phone shows its own
+portrait plate near 1:1 on a small screen, so the loss is hidden; a desktop shows the landscape plate large,
+stretched past 2560 px on a high-density screen and enlarged a further 4 % by the day drift, so the compression
+shows (`screens/v3.2-why-desktop-vs-phone-background.png`: live site, desktop at DPR 2 on the left, phone at
+DPR 3 on the right). The globe is warped by an 8-bit `feDisplacementMap` from a 340×340 map: near its centre
+neighbouring pixels share one displacement value and copy the same texel, so the clouds turn into small squares,
+which show on the 340 px desktop globe and hide on the 211 px phone globe (`screens/v3.2-why-planet-blocks.png`).
+
+**The set** (`assets/v3.2/`):
+
+| File | Size | Bytes | What it is |
+|---|---|---|---|
+| `bg-day.jpg` · `bg-night.jpg` | 2560×1440 | 367 325 · 882 525 | the owner's landscape plates, **byte for byte** (no re-encoding) |
+| `bg-day-portrait.jpg` · `bg-night-portrait.jpg` | 1440×2560 | 421 534 · 762 660 | the owner's portrait plates, byte for byte |
+| `planet-day.webp` · `planet-crimson.webp` | 2048×1024 | 567 430 · 406 100 | the globe strips rebuilt at the full size of the owner's maps (`assets/v3.1/source/`), WebP quality 95 |
+
+SHA-256: `bg-day.jpg` `0ca52211…f7ad66`, `bg-night.jpg` `67626c97…dfa4`, `bg-day-portrait.jpg` `26984190…ad66`,
+`bg-night-portrait.jpg` `ea3e6a38…d8db`, `planet-day.webp` `0e2007c1…701f`, `planet-crimson.webp` `d395e92e…7924`
+(`sha256sum docs/design/v3/assets/v3.2/*` prints the full values).
+
+The strips follow v3.1's recipe at 2048×1024: day = the day map with the clouds laid over it
+(`a = clamp(1.4 × (clouds − 0.05))`, `day × (1 − a) + 0.96 × a`); crimson = the v3.1 crimson colouring applied to
+the day map and clouds, with the city lights screened on (× 1.3). At 1360×680 both match the v3.1 strips within
+their compression noise (mean absolute difference 3.4 of 255); both are seamless in x.
+
+**How it should land** (a change request, then a task with a design gate):
+- the plates are bundled byte for byte, no re-encoding; the day drift (scale 1 → 1.04) goes, because it enlarges
+  the plate past its pixels;
+- the globe is drawn at the device's pixel density (for example a small WebGL sphere sampling the strips per
+  pixel), with the same size, spin (120 s), crimson roll on the switch, shade, atmosphere and glow; without
+  WebGL, or with reduced motion, a still globe; the sphere map and `feDisplacementMap` leave;
+- loading stays as §9: before the first paint only the theme's plate for the viewport and that theme's strip;
+  a phone never loads the landscape plates; the byte budget becomes the size of this set.
+
+**Landed with the living sky.** The four plates above are the ones on the page, byte for byte. Night is not
+repainted: the Milky Way, the crimson horizon and the skyline stay in `bg-night.jpg` and
+`bg-night-portrait.jpg`, and the plate itself does not move. A canvas of about 64 stars on a desktop and 32
+on a phone (half of that on a small CPU) twinkles and drifts above the plate, only while the theme is dark,
+and is still under reduced motion. Day keeps its plate and adds `sky-clouds.webp` (2048×1152, transparent,
+edge-faded so the loop has no hard cut) in two layers under the night plate, masked so the drift stays in
+the sky. A faint crimson mist drifts on the night horizon only. The day plate no longer scales. The globe
+is still the v3.1 strip and displacement map; the sharper WebGL sphere in the paragraph above is not in
+this change.

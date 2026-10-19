@@ -112,7 +112,8 @@ transition (§5 A). Scene colours are not themed: both scenes are always drawn, 
   --mask-planet-crimson: radial-gradient(circle, #000 0 46%, transparent 54%);
 
   /* geometry: scene, planet, shell */
-  --scene-drift-scale: 1.04;
+  --cloud-texture-ratio: 1.7778;   /* the cloud tiles keep sky-clouds.webp's 2048×1152 ratio */
+  --cloud-far-block: 68;           /* the far cloud layer, % of the cloud band */
   --planet-size: 340px;
   --planet-tile-inline: 680px;
   --planet-tile-block: 340px;
@@ -338,7 +339,7 @@ and the map. Glass = `--glass` with `backdrop-filter: blur(var(--blur-glass)) sa
 
 | Component | Look | Motion (tokens from §1, rules from §5) |
 |---|---|---|
-| `Scene` | README §3 and §14 (v3.1): the owner's plates `bg-day` and `bg-night` (landscape; the `-portrait` pair at ≤ 760 px), each filling the fixed layer with `background-size: cover` anchored at the bottom centre; 27 twinkling vector stars in dark, upper half only. No vector skyline, window light, cloud layer or ground. `aria-hidden`, `pointer-events: none`, behind every page | the two plates crossfade by opacity (`--scene-light`/`--scene-dark`) over `--dur-scene`; the day plate scales 1 → `--scene-drift-scale` over `--dur-scene-drift`, alternate, from the bottom centre; twinkle per §5 B |
+| `Scene` | README §3, §14 and §15 (v3.2): the owner's plates `bg-day` and `bg-night` (landscape; the `-portrait` pair at ≤ 760 px), each filling the fixed layer with `background-size: cover` anchored at the bottom centre. Day clouds are a separate transparent layer over the day plate and under the night plate. Night keeps the owner's Milky Way plate still; a canvas starfield and a faint horizon mist sit above it. `aria-hidden`, `pointer-events: none`, behind every page | the two plates crossfade by opacity (`--scene-light`/`--scene-dark`) over `--dur-scene`; clouds and mist drift by `transform` only; stars twinkle and drift on the canvas. The day plate does not scale |
 | `Planet` | README §3.4 (v3.1): the day globe (`planet-day`) and the crimson globe (`planet-crimson`, inside the `--mask-planet-crimson` disc), each through the sphere filter (`feDisplacementMap` `scale` 300), then shade and atmosphere; top end corner; × `--planet-phone-scale` at ≤ 760 px | the switch turns both globes half a turn while the mask disc sweeps across (`mask-position`, `--dur-scene`), so the crimson night side rolls over; one spin loop (`--dur-planet-spin`) per §5 B; glow = two layers crossfading by opacity, never an animated shadow |
 | `ThemeSwitch` (new) | segmented **Auto · Light · Dark**, `aria-pressed`, in the top bar | the pressed segment's wash moves `--dur-quick`; the theme itself changes at once (§5 A) |
 | `AppSidebar` (new) | README §2: glass, product mark, "DEV_OS", links to routes that exist only; current link `--color-energy-wash` + `--nav-bar` energy bar at the start edge; a strip above the content at ≤ 980 px | none |
@@ -387,7 +388,7 @@ v2's rules, with the amendments OD-08 signs (README §8):
 4. **Never block reading or input.** Content is interactive from its first frame.
 5. **Animate once.** Entrances play on first view of a document; refreshes, polls and returns never replay them.
 6. **Loops (amendment B).** Allowed loops: `LiveMark`, `started`, skeleton sheen (v2), and the scene's: planet
-   spin, the day plate's slow scale (v3.1, which removes the cloud pan), star twinkle, blade hum and particles, module LEDs, the seam beam. All are slow and
+   spin, cloud drift, horizon-mist drift, star twinkle, blade hum and particles, module LEDs, the seam beam. The day plate does not scale (v3.2). All are slow and
    low-contrast, and **all stop** under `prefers-reduced-motion: reduce` and while `document.visibilityState` is
    `hidden`. (README §8 B also names an in-app "Reduce motion" control; §2 places none, so the system setting
    governs: OD-08 "Does not decide".)
@@ -399,8 +400,9 @@ v2's rules, with the amendments OD-08 signs (README §8):
 9. **Performance:** README §9 — 60 fps, LCP < 2.5 s on production, no layout shift from animation (0 in the
    evidence), images after the first paint, every loop paused when hidden.
 10. **Library:** CSS transitions/keyframes and the View Transitions API first; **Motion** (`motion`,
-    `motion/react`) for FLIP, odometer and gesture-driven pieces. No other animation library, no Lottie, no
-    canvas or WebGL.
+    `motion/react`) for FLIP, odometer and gesture-driven pieces. No other animation library and no Lottie.
+    The one canvas is the night starfield (`Starfield`): it draws with `requestAnimationFrame`, not React
+    state, and it is still under reduced motion. No WebGL.
 
 ## 6. Quality floor
 
@@ -444,27 +446,27 @@ reach `/sign-in` without a proxy change. They live in `src/components/scene/asse
 are referenced from the scene's CSS modules (and the sphere map through a static import), so they are served from
 `/_next/static/media/`.
 
-**v3.1 (OD-09).** The bundled set is the owner's, copied byte for byte from `docs/design/v3/assets/v3.1/` (README
-§3.4, §14). The v3 baseline files (`sky-day.jpg`, `sky-night.jpg`, `sky-clouds.webp`, `planet-land.webp`,
-`planet-clouds.webp`, `planet-lights.webp`) leave `src/components/scene/assets/`; their copies in
-`docs/design/v3/assets/` stay as the design record.
+**v3.2.** The bundled plates are the owner's JPEG files, copied byte for byte from `docs/design/v3/assets/v3.2/`
+(README §15). Night is that file unchanged, Milky Way included. Day is the same file; its clouds in the open
+sky are a separate transparent texture, `sky-clouds.webp`, also kept in `assets/v3.2/`. The globe strips and
+the sphere map stay the v3.1 files. The old v3.1 WebP plates leave `src/components/scene/assets/`.
 
 | File | Size | Alpha | Seamless in x | Bytes | Role |
 |---|---|---|---|---|---|
-| `bg-day.webp` | 2560×1440 | no | no | 80 102 | day plate, > 760 px (cover, bottom centre) |
-| `bg-night.webp` | 2560×1440 | no | no | 301 586 | night plate, > 760 px |
-| `bg-day-portrait.webp` | 1440×2560 | no | no | 91 186 | day plate, ≤ 760 px |
-| `bg-night-portrait.webp` | 1440×2560 | no | no | 236 474 | night plate, ≤ 760 px |
+| `bg-day.jpg` | 2560×1440 | no | no | 367 325 | day plate, > 760 px (cover, bottom centre) |
+| `bg-night.jpg` | 2560×1440 | no | no | 882 525 | night plate, > 760 px; Milky Way stays still |
+| `bg-day-portrait.jpg` | 1440×2560 | no | no | 421 534 | day plate, ≤ 760 px |
+| `bg-night-portrait.jpg` | 1440×2560 | no | no | 762 660 | night plate, ≤ 760 px |
+| `sky-clouds.webp` | 2048×1152 | yes | soft edge fade | 440 388 | day cloud layer, two speeds, under the night plate |
 | `planet-day.webp` | 1360×680 | no | yes | 169 748 | day globe strip, clouds baked in (shown at 680×340) |
 | `planet-crimson.webp` | 1360×680 | no | yes | 114 850 | crimson night globe strip, city lights screened on |
 | `planet-sphere-map.png` | 340×340 | no | — | 15 372 | displacement map at scale 300, lossless |
 
-The sphere map is replaced once, by the v3.1 map (the v3 map at scale 200 clipped the polar rows into flat bands);
-it is lossless and changes only with the `feDisplacementMap` `scale` it was made for. Budget: the seven files
-together at most 1 048 576 bytes (v3.1: 1 009 318, the sum of the column above). **Loading:** before the first
+Budget: the eight files together at most 3 400 000 bytes (this set: 3 174 402). **Loading:** before the first
 paint only the theme's plate for the viewport (the system theme, since nothing is stored) and that theme's globe
-strip load, from CSS rules under `prefers-color-scheme` and the 760 px query; the other theme's plate and strip
-load after hydration (`:root[data-scene-ready]`); a viewport never loads the other orientation's pair; the sphere
+strip load, from CSS rules under `prefers-color-scheme` and the 760 px query; in light, the cloud texture loads
+with the day plate. The other theme's plate and strip, and the cloud texture if the first theme is dark, load
+after hydration (`:root[data-scene-ready]`); a viewport never loads the other orientation's pair; the sphere
 map is a static import. The map and the page never wait for an image.
 
 ## 10. Realistic art (README §13)
@@ -478,11 +480,10 @@ both themes and can keep the baseline for any image that is worse, off-style or 
 the same images by hand in Cursor's editor with the prompts the task commits, through a pull request; the checks
 still apply.
 
-**v3.1 (OD-09).** The owner made the art (README §3.4, §14), so the builder's image step ends: no task generates
-scene images, and `scripts/scene/art.mjs verify` checks the bundled set against the v3.1 files (the seven names and
-no other, byte identity, size and format as §9, the byte budget) and prints the seam difference of the two globe
-strips for the reviewer, instead of printing prompts. New art is a change request
-from the owner, as v3.1 was.
+**v3.2.** The owner's plates are bundled byte for byte (README §15). `scripts/scene/art.mjs verify` checks that
+set: the eight names and no other, byte identity with `assets/v3.2/` for the plates and the cloud texture and
+with `assets/v3.1/` for the globe, size and format as §9, and the byte budget. The night plates are not
+regenerated. The cloud texture is a transparent layer; it is not painted into the plates.
 
 ## 11. What this system does not decide
 

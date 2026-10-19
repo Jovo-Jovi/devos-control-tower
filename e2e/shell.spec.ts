@@ -519,7 +519,8 @@ test("Scene art v3.1", async ({ browser }) => {
   const structurePage = await structure.newPage();
   watchCsp(structurePage, csp);
   await structurePage.goto("/sign-in");
-  await expect(structurePage.locator("[data-scene] circle")).toHaveCount(27);
+  await expect(structurePage.locator("[data-starfield]")).toHaveCount(1);
+  await expect(structurePage.locator("[data-scene] circle")).toHaveCount(0);
   await expect(
     structurePage.locator("[data-scene] polygon, [data-scene] polyline, [data-scene] rect, [data-scene] ellipse"),
   ).toHaveCount(0);
@@ -538,10 +539,20 @@ test("Scene art v3.1", async ({ browser }) => {
   });
   expect(dayPlate.backgroundSize).toBe("cover");
   expect(dayPlate.backgroundPosition).toBe("50% 100%");
-  expect(dayPlate.animationName).not.toBe("none");
-  expect(dayPlate.animationDuration).toBe("60s");
-  expect(dayPlate.animationIterationCount).toBe("infinite");
-  expect(dayPlate.animationDirection).toBe("alternate");
+  expect(dayPlate.animationName).toBe("none");
+  const nearClouds = await structurePage.locator('[data-cloud-track="near"]').evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      animationName: style.animationName,
+      animationDuration: style.animationDuration,
+      animationTimingFunction: style.animationTimingFunction,
+      animationIterationCount: style.animationIterationCount,
+    };
+  });
+  expect(nearClouds.animationName).not.toBe("none");
+  expect(nearClouds.animationDuration).toBe("240s");
+  expect(nearClouds.animationTimingFunction).toBe("linear");
+  expect(nearClouds.animationIterationCount).toBe("infinite");
   const nightPlate = await structurePage.locator('[data-scene-plate="night"]').evaluate((element) => {
     const style = getComputedStyle(element);
     return {
