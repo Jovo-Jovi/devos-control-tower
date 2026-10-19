@@ -1,4 +1,4 @@
-// Skyline geometry from docs/design/v3/mockup/tower-map.dc.html. Colours live in tokens, not here.
+// Star geometry from docs/design/v3/mockup/tower-map.dc.html. Colours live in tokens, not here.
 export const stars = [
   {
     "cx": "466",

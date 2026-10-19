@@ -73,7 +73,7 @@
   position: absolute;
   inset: 0;
   mask-image: var(--mask-planet-crimson);
-  mask-size: var(--planet-crimson-mask-size);
+  mask-size: var(--planet-crimson-mask-size) var(--planet-crimson-mask-size);
   mask-repeat: no-repeat;
   mask-position: var(--planet-crimson-mask-position);
   transition: mask-position var(--dur-scene) var(--ease-in-out);

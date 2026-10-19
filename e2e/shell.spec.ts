@@ -561,6 +561,7 @@ test("Scene art v3.1", async ({ browser }) => {
   await rollPage.waitForFunction(() => document.documentElement.hasAttribute("data-scene-ready"));
   const mask = rollPage.locator("[data-planet-crimson-mask]");
   expect(await mask.evaluate((element) => getComputedStyle(element).maskPosition)).toBe("300px -90px");
+  expect(await mask.evaluate((element) => getComputedStyle(element).maskSize)).toBe("520px 520px");
   await rollPage.getByRole("button", { name: "Dark" }).click();
   const rolling = await mask.evaluate((element) =>
     element.getAnimations().some((animation) => {

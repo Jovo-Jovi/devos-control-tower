@@ -303,8 +303,8 @@ A usage limit is a wait, not a failure. No attempt is spent.
   `DESIGN_SYSTEM.md` needs a change request, so the rules are amended before the code.
 - **New images** (backgrounds, planet maps): file a "Dev OS change request" with the images
   attached, or add them on a branch and reference them in the request.
-- **Art checks:** `node scripts/scene/art.mjs` prints the generation prompts and checks images
-  (size, ratio, seams, poles, bytes).
+- **Art checks:** `node scripts/scene/art.mjs verify` checks the bundled scene images against the owner's v3.1
+  set in `docs/design/v3/assets/v3.1/` (names, byte identity, sizes, bytes).
 - **Visual review:** each UI task's run captures screenshots, a filmstrip and a reduced-motion
   screenshot (`screens.mjs`). Claude compares them with the design documents.
 

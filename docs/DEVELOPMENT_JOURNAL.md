@@ -280,3 +280,10 @@ the upload and names the line, and a refused file is not stored. Stored events g
 the other end-to-end specs. Its captures cover idle, uploading, result and error in both themes.
 Playwright's Chromium was installed once so `pnpm e2e` could launch. Awaiting the verdict. A PASS
 stops at gate G-Tower-v1 for the owner.
+
+## 2026-10-19 — T11 Design v3.1 art (attempts 1 and 2)
+
+Attempt 1 built S1–S6 and halted on a fence defect: the geometry comment contained a word D6 item 1
+rejects, and `.crimsonMask` had a one-value `mask-size`, so the crimson disc did not cover the globe
+in dark. Attempt 2 fixed the comment and the mask size, then did the guide and the ledgers. Awaiting
+the verdict. A PASS stops at gate G-Design-v3.1 for the owner.
