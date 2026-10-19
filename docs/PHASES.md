@@ -25,6 +25,7 @@ The runner reads the table below, and `guard:phases` checks it.
 | T09 | P02 | J5 | Sign-in retrofit to design v2: first paint, redirecting, checking-access interstitial, shared mark, denied, error, signed out | 3 | G-Design-v2 | [x] | PASS a2 — docs/reviews/T09-a2.md |
 | T10 | P02 | J5 | Pilot history export and import page; replay of 25 tasks labelled imported | 2 | G-Tower-v1 | [x] | PASS a1 — docs/reviews/T10-a1.md |
 | T11 | P02 | J5 | Design v3.1 art: the owner's backgrounds and planet in the scene | 2 | G-Design-v3.1 | [x] | PASS a2 — docs/reviews/T11-a2.md |
+| T12 | P02 | J5 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | 2 | G-Planet-Sharp | [ ] | — |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both
 belong to milestone M1 of `devos-plan`; the CK1 checkpoint between T02/PM01 and T03 is an owner gate
@@ -100,3 +101,14 @@ Phase outlines (method track):
   theme's plate and globe strip load before the first paint; `scripts/scene/art.mjs` checks the bundled set against
   v3.1; `e2e/shell.spec.ts` proves the loading and keeps the v3 evidence in both themes. The task was asked for
   T05's scope, but T05 had passed and been merged; it runs after T10 unless the owner renumbers (OD-09 §3).
+- **T12 — Sharp globe (OD-10, issue #35, `docs/requests/issue-35.md`; risk 2, three stages, gate G-Planet-Sharp).**
+  Stage 1: `planet-day.webp`/`planet-crimson.webp` become the v3.2 2048×1024 files and `planet-sphere-map.png` goes;
+  the pure sphere math in `src/components/scene/sphere.ts` with `sphere.test.ts`; the client `PlanetGlobe` canvas in
+  each globe (WebGL 1 per device pixel, `highp`, reading `.spin`/`.turn` `translateX` every frame; still under
+  reduced motion; the flat strip as the poster until the first frame); the SVG filter leaves
+  `Planet.tsx`/`Planet.module.css`; `scripts/scene/art.mjs` checks the seven v3.2 files and the 3 847 962-byte
+  budget; shell spec tests 4 and 6 follow, and test 7 `Sharp globe` proves the motion mode at 1280 DPR 2 and 390
+  DPR 3 in its own SwiftShader Chromium. Stage 2: the 2D still drawing without WebGL and context loss, with test 7's
+  reduced and no-WebGL modes. Stage 3: the `planet-*` captures, the roll filmstrip and 12 layout-shift values, the
+  guide's Art checks bullet, the ledgers and every Done-when. The owner signs G-Planet-Sharp on the captures
+  (OD-10 §5).
