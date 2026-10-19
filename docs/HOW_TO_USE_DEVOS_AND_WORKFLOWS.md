@@ -169,6 +169,7 @@ finishes, every 30 minutes (at :11 and :41), and when you approve or reject.
 - continues a halted task from its branch when time ran out;
 - recovers work saved on a `rescue/` branch after a push conflict;
 - starts the next task when nothing is running but a task is waiting;
+- **closes finished requests**: when the plan of a change request or method fix is merged and every task it added has passed and been merged, it comments and closes the issue (you can reopen it);
 - wakes a parked task whose wait is long overdue.
 
 **What it asks you about:** anything else. If no rule explains a failure, it asks Claude Opus for a

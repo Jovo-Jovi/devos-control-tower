@@ -67,8 +67,13 @@ function collect() {
   const intakePrs = prs.filter((p) => p.head.startsWith("intake/"));
   const rescueRefs = api(`repos/${REPO}/git/matching-refs/heads/rescue/`) || [];
   const rescues = (Array.isArray(rescueRefs) ? rescueRefs : []).map((r) => ({ ref: r.ref.replace("refs/heads/", ""), sha: r.object.sha }));
+  // Open change requests and method fixes (closed by rule 5 once every task their plan added is done).
+  const reqJson = api(`repos/${REPO}/issues?state=open&per_page=100`) || [];
+  const requests = (Array.isArray(reqJson) ? reqJson : [])
+    .filter((i) => !i.pull_request && i.labels.some((l) => ["devos:request", "devos:method"].includes(l.name)))
+    .map((i) => ({ number: i.number, title: i.title, labels: i.labels.map((l) => l.name) }));
   const facts = {
-    at: new Date().toISOString(), repo: REPO,
+    at: new Date().toISOString(), repo: REPO, requests,
     event: { name: process.env.EVENT_NAME || "", workflow: (process.env.WF_PATH || "").split("/").pop().replace(/\.ya?ml$/, "") || process.env.WF_NAME || "", run: process.env.WF_RUN_ID || "", conclusion: process.env.WF_CONCLUSION || "" },
     next_task: next ? { task: next.task, name: next.name, phase: next.phase } : null,
     runs, active: active.map((r) => r.id), task_prs: taskPrs, intake_prs: intakePrs.map((p) => p.number), rescues,
@@ -224,7 +229,38 @@ function detect(facts) {
     add({ kind: "idle", task: facts.next_task.task, attempt: 1, key: `${facts.next_task.task}:idle`,
       cause: `nothing has run for ${lastRun ? Math.round(minutesSince(lastRun.updated)) : "?"} min and ${facts.next_task.task} is waiting`, action: "dispatch-next" });
   }
+  // 5. Requests that are finished: the plan PR (intake/issue-N) is merged and every task row it added to
+  //    docs/PHASES.md is ticked PASS on main (a task's PASS reaches main only through its merge).
+  const doneNow = new Set(parsePhases().rows.filter((r) => r.done).map((r) => r.task));
+  for (const req of facts.requests || []) {
+    if (req.labels.includes("devos:quota-wait")) continue;
+    const plan = plannedTasks(req.number);
+    if (!plan) continue;
+    const open = plan.tasks.filter((t) => !doneNow.has(t));
+    if (open.length) continue;
+    add({ kind: "request-done", task: "", attempt: 0, issue: req.number, plan_pr: plan.pr, tasks: plan.tasks, key: `issue-${req.number}:done`,
+      cause: `request #${req.number} is finished: its plan (PR #${plan.pr}) ${plan.tasks.length ? `added ${plan.tasks.join(", ")}, and every one is PASS and merged` : "added no task, and it is merged"}`,
+      action: "close-request" });
+  }
   return inc;
+}
+
+// The task rows a request's merged plan PR added: PHASES.md at the merge commit minus at its first parent.
+function plannedTasks(issue) {
+  const owner = REPO.split("/")[0];
+  const prs = api(`repos/${REPO}/pulls?state=closed&head=${owner}:intake/issue-${issue}&per_page=10`) || [];
+  const merged = (Array.isArray(prs) ? prs : []).filter((p) => p.merged_at).pop();
+  if (!merged?.merge_commit_sha) return null;
+  const parent = api(`repos/${REPO}/commits/${merged.merge_commit_sha}`)?.parents?.[0]?.sha;
+  if (!parent) return null;
+  const ids = (sha) => {
+    const f = api(`repos/${REPO}/contents/docs/PHASES.md?ref=${sha}`);
+    const text = f?.content ? Buffer.from(f.content, "base64").toString("utf8") : "";
+    return new Set([...text.matchAll(/^\| (T\d{2}) \|/gm)].map((m) => m[1]));
+  };
+  const before = ids(parent), after = ids(merged.merge_commit_sha);
+  if (!after.size) return null;
+  return { pr: merged.number, tasks: [...after].filter((t) => !before.has(t)) };
 }
 
 // ---------- the supervisor issue: one comment per incident, with a machine-readable marker ----------
@@ -256,6 +292,13 @@ function dispatch(fields) {
   return `dispatched ${CYCLE} ${Object.entries(fields).map(([k, v]) => `${k}=${v}`).join(" ")}`;
 }
 const AUTO = {
+  "close-request": (i) => {
+    const body = `Dev OS: done. ${i.cause}. Closing this request; reopen it if something is missing.`;
+    if (DRY) return { done: true, note: `dry-run: comment on #${i.issue} and close it as completed` };
+    gh(["api", `repos/${REPO}/issues/${i.issue}/comments`, "-f", `body=${body}`], { report: true });
+    gh(["api", "-X", "PATCH", `repos/${REPO}/issues/${i.issue}`, "-f", "state=closed", "-f", "state_reason=completed"], { report: true });
+    return { done: true, note: `closed #${i.issue} as completed` };
+  },
   "redispatch": (i, facts) => {
     if (facts.active.length) return { done: false, note: "a cycle run is active; it will be re-checked on the next scan" };
     return { done: true, note: dispatch({ task: i.task, attempt: String(i.attempt || 1), revision: "true", ...(i.review_only ? { review_only: "true" } : {}) }) };
