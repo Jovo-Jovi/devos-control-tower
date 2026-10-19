@@ -52,11 +52,7 @@
   inset-inline-start: 0;
   block-size: 100%;
   inline-size: calc(var(--planet-tile-inline) * 6);
-  animation: spin var(--dur-planet-land) linear infinite;
-}
-
-.spinClouds {
-  animation-duration: var(--dur-planet-clouds);
+  animation: spin var(--dur-planet-spin) linear infinite;
 }
 
 .turn {
@@ -73,42 +69,14 @@
   background-size: var(--planet-tile-inline) var(--planet-tile-block);
 }
 
-.cloudStrip {
-  opacity: 0.95;
-}
-
-.night {
+.crimsonMask {
   position: absolute;
   inset: 0;
-  border-radius: var(--radius-pill);
-  background: var(--planet-night);
-  transform: translateX(var(--planet-night-x)) scale(var(--planet-night-scale));
-  transition: transform var(--dur-scene) var(--ease-in-out);
-}
-
-.lightsMask {
-  position: absolute;
-  inset: 0;
-  opacity: var(--scene-dark);
-  mask-image: var(--mask-planet-lights);
-  mask-size: var(--planet-lights-mask-size);
+  mask-image: var(--mask-planet-crimson);
+  mask-size: var(--planet-crimson-mask-size);
   mask-repeat: no-repeat;
-  mask-position: var(--planet-lights-mask-position);
-  transition-property: opacity, mask-position;
-  transition-duration: var(--dur-planet-lights), var(--dur-scene);
-  transition-timing-function: var(--ease-in-out), var(--ease-in-out);
-  transition-delay: var(--planet-lights-delay), var(--planet-lights-delay);
-}
-
-.rim {
-  position: absolute;
-  inset: 0;
-  border-radius: var(--radius-pill);
-  background: var(--planet-rim);
-  mix-blend-mode: screen;
-  opacity: var(--scene-dark);
-  transition: opacity var(--dur-planet-rim) var(--ease-in-out);
-  transition-delay: var(--delay-planet-rim);
+  mask-position: var(--planet-crimson-mask-position);
+  transition: mask-position var(--dur-scene) var(--ease-in-out);
 }
 
 .shade {
@@ -133,16 +101,24 @@
   }
 }
 
-:global(:root[data-scene-ready]) .land {
-  background-image: url("./assets/planet-land.webp");
+@media (prefers-color-scheme: light) {
+  .dayStrip {
+    background-image: url("./assets/planet-day.webp");
+  }
 }
 
-:global(:root[data-scene-ready]) .cloudStrip {
-  background-image: url("./assets/planet-clouds.webp");
+@media (prefers-color-scheme: dark) {
+  .crimsonStrip {
+    background-image: url("./assets/planet-crimson.webp");
+  }
 }
 
-:global(:root[data-scene-ready]) .lights {
-  background-image: url("./assets/planet-lights.webp");
+:global(:root[data-scene-ready]) .dayStrip {
+  background-image: url("./assets/planet-day.webp");
+}
+
+:global(:root[data-scene-ready]) .crimsonStrip {
+  background-image: url("./assets/planet-crimson.webp");
 }
 
 @media (max-width: 47.5rem) {
