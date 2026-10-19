@@ -28,32 +28,25 @@ export function Planet() {
               preserveAspectRatio="none"
               result="map"
             />
-            <feDisplacementMap in="SourceGraphic" in2="map" scale="200" xChannelSelector="R" yChannelSelector="G" />
+            <feDisplacementMap in="SourceGraphic" in2="map" scale="300" xChannelSelector="R" yChannelSelector="G" />
           </filter>
         </svg>
-        <div className={styles.globe}>
+        <div className={styles.globe} data-planet-globe="day">
           <div className={styles.spin}>
             <div className={styles.turn} data-planet-turn>
-              <div className={`${styles.strip} ${styles.land}`} />
-            </div>
-          </div>
-          <div className={`${styles.spin} ${styles.spinClouds}`}>
-            <div className={styles.turn} data-planet-turn>
-              <div className={`${styles.strip} ${styles.cloudStrip}`} />
+              <div className={`${styles.strip} ${styles.dayStrip}`} />
             </div>
           </div>
         </div>
-        <div className={styles.night} />
-        <div className={styles.lightsMask}>
-          <div className={styles.globe}>
+        <div className={styles.crimsonMask} data-planet-crimson-mask>
+          <div className={styles.globe} data-planet-globe="crimson">
             <div className={styles.spin}>
               <div className={styles.turn} data-planet-turn>
-                <div className={`${styles.strip} ${styles.lights}`} />
+                <div className={`${styles.strip} ${styles.crimsonStrip}`} />
               </div>
             </div>
           </div>
         </div>
-        <div className={styles.rim} />
         <div className={styles.shade} />
         <div className={styles.atmo} />
       </div>

@@ -15,39 +15,33 @@
   transition: opacity var(--dur-scene) var(--ease-in-out);
 }
 
-.dayBackdrop {
+.dayPlate {
   opacity: var(--scene-light);
   background-repeat: no-repeat;
-  background-position: center top;
+  background-position: center bottom;
   background-size: cover;
+  transform-origin: 50% 100%;
+  animation: drift var(--dur-scene-drift) var(--ease-in-out) infinite alternate;
 }
 
-.nightBackdrop {
+.nightPlate {
   opacity: var(--scene-dark);
   background-repeat: no-repeat;
-  background-position: center top;
+  background-position: center bottom;
   background-size: cover;
 }
 
-.cloudLayer {
-  overflow: hidden;
-  opacity: var(--scene-light);
-  mask-image: var(--mask-sky-clouds);
+@keyframes drift {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(var(--scene-drift-scale));
+  }
 }
 
-.cloudPan {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  inline-size: calc(var(--scene-cloud-tile-inline) * 2);
-  block-size: var(--scene-cloud-tile-block);
-  background-repeat: repeat-x;
-  background-position: 0 0;
-  background-size: var(--scene-cloud-tile-inline) var(--scene-cloud-tile-block);
-  animation: cloudPan var(--dur-sky-clouds) linear infinite;
-}
-
-.skyline {
+.starfield {
   position: absolute;
   inset-block: 0;
   inset-inline: 0;
@@ -55,21 +49,10 @@
   block-size: 100%;
 }
 
-.night,
-.day {
-  transition: opacity var(--dur-scene) var(--ease-in-out);
-}
-
-.night {
-  opacity: var(--scene-dark);
-}
-
-.day {
-  opacity: var(--scene-light);
-}
-
 .stars {
   fill: var(--scene-night-star);
+  opacity: var(--scene-dark);
+  transition: opacity var(--dur-scene) var(--ease-in-out);
 }
 
 .star1,
@@ -101,66 +84,6 @@
   animation-delay: var(--delay-twinkle-4);
 }
 
-.nightFar {
-  fill: var(--scene-night-far);
-}
-
-.nightFarRim {
-  fill: none;
-  stroke: var(--scene-night-far-rim);
-  stroke-width: 1;
-}
-
-.nightNear {
-  fill: var(--scene-night-near);
-}
-
-.nightNearRim {
-  fill: none;
-  stroke: var(--scene-night-near-rim);
-  stroke-width: 1;
-}
-
-.windows {
-  fill: var(--scene-night-window);
-}
-
-.nightGround {
-  fill: var(--scene-night-ground);
-}
-
-.dayFar {
-  fill: var(--scene-day-far);
-}
-
-.nearStart {
-  stop-color: var(--scene-day-near-start);
-}
-
-.nearEnd {
-  stop-color: var(--scene-day-near-end);
-}
-
-.dayRim {
-  fill: none;
-  stroke: var(--scene-day-rim);
-  stroke-width: 1.5;
-}
-
-.cloudSea {
-  fill: var(--scene-day-cloud);
-}
-
-.dayGround {
-  fill: var(--scene-day-ground);
-}
-
-@keyframes cloudPan {
-  to {
-    transform: translateX(calc(var(--scene-cloud-tile-inline) * -1));
-  }
-}
-
 @keyframes twinkle {
   0%,
   100% {
@@ -172,14 +95,46 @@
   }
 }
 
-:global(:root[data-scene-ready]) .dayBackdrop {
-  background-image: url("./assets/sky-day.jpg");
+@media (prefers-color-scheme: light) and (min-width: 47.5625rem) {
+  .dayPlate {
+    background-image: url("./assets/bg-day.webp");
+  }
 }
 
-:global(:root[data-scene-ready]) .nightBackdrop {
-  background-image: url("./assets/sky-night.jpg");
+@media (prefers-color-scheme: light) and (max-width: 47.5rem) {
+  .dayPlate {
+    background-image: url("./assets/bg-day-portrait.webp");
+  }
 }
 
-:global(:root[data-scene-ready]) .cloudPan {
-  background-image: url("./assets/sky-clouds.webp");
+@media (prefers-color-scheme: dark) and (min-width: 47.5625rem) {
+  .nightPlate {
+    background-image: url("./assets/bg-night.webp");
+  }
+}
+
+@media (prefers-color-scheme: dark) and (max-width: 47.5rem) {
+  .nightPlate {
+    background-image: url("./assets/bg-night-portrait.webp");
+  }
+}
+
+@media (min-width: 47.5625rem) {
+  :global(:root[data-scene-ready]) .dayPlate {
+    background-image: url("./assets/bg-day.webp");
+  }
+
+  :global(:root[data-scene-ready]) .nightPlate {
+    background-image: url("./assets/bg-night.webp");
+  }
+}
+
+@media (max-width: 47.5rem) {
+  :global(:root[data-scene-ready]) .dayPlate {
+    background-image: url("./assets/bg-day-portrait.webp");
+  }
+
+  :global(:root[data-scene-ready]) .nightPlate {
+    background-image: url("./assets/bg-night-portrait.webp");
+  }
 }
