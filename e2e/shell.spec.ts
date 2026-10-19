@@ -3,14 +3,33 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createOwner, removeOwner, sessionCookies, type SessionCookie } from "./support/owner";
 
 const SCENE_FILES = [
-  "sky-day",
-  "sky-night",
-  "sky-clouds",
-  "planet-land",
-  "planet-clouds",
-  "planet-lights",
+  "bg-day",
+  "bg-night",
+  "bg-day-portrait",
+  "bg-night-portrait",
+  "planet-day",
+  "planet-crimson",
   "planet-sphere-map",
 ];
+
+function sceneName(url: string): string | null {
+  const segment = new URL(url).pathname.split("/").pop() ?? "";
+  let match: string | null = null;
+  for (const name of SCENE_FILES) {
+    if (segment.startsWith(name) && (match === null || name.length > match.length)) match = name;
+  }
+  return match;
+}
+
+function sceneCounts(urls: string[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const name of SCENE_FILES) counts[name] = 0;
+  for (const url of urls) {
+    const name = sceneName(url);
+    if (name) counts[name] += 1;
+  }
+  return counts;
+}
 
 const STATES = [
   { id: "overview", path: "/", owner: true },
@@ -94,6 +113,15 @@ async function armShift(context: BrowserContext) {
 
 async function readShift(page: Page): Promise<number> {
   return page.evaluate(() => (window as unknown as { __layoutShift: { value: number } }).__layoutShift.value);
+}
+
+async function finishFinite(page: Page) {
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      const timing = animation.effect?.getTiming();
+      if (timing && timing.iterations !== Infinity && typeof timing.duration === "number") animation.finish();
+    }
+  });
 }
 
 async function settle(page: Page) {
@@ -302,7 +330,15 @@ test("Not found and sign-in on the scene", async ({ browser }) => {
   await expect(signIn.getByText("The Tower admits one GitHub account: its owner.")).toBeVisible();
   await expect(signIn.getByRole("button", { name: "Continue with GitHub" })).toBeVisible();
   await expect
-    .poll(() => SCENE_FILES.every((name) => media.filter((url) => url.includes(name)).length === 1), { timeout: 5_000 })
+    .poll(() => {
+      const counts = sceneCounts(media);
+      const landscape = ["bg-day", "bg-night", "planet-day", "planet-crimson", "planet-sphere-map"];
+      return (
+        landscape.every((name) => counts[name] === 1) &&
+        counts["bg-day-portrait"] === 0 &&
+        counts["bg-night-portrait"] === 0
+      );
+    }, { timeout: 5_000 })
     .toBe(true);
   expect(csp).toEqual([]);
   await signedOut.close();
@@ -418,4 +454,125 @@ test("Evidence", async ({ browser }) => {
   expect(Object.keys(shifts)).toHaveLength(44);
   for (const value of Object.values(shifts)) expect(value).toBe(0);
   expect(csp).toEqual([]);
+});
+
+test("Scene art v3.1", async ({ browser }) => {
+  const csp: string[] = [];
+  const beforeHydration = { javaScriptEnabled: false, viewport: { width: 1280, height: 900 } } as const;
+
+  const lightOff = await browser.newContext({ ...beforeHydration, colorScheme: "light" });
+  const lightPage = await lightOff.newPage();
+  watchCsp(lightPage, csp);
+  const lightNames: string[] = [];
+  lightPage.on("request", (request) => {
+    const name = sceneName(request.url());
+    if (name) lightNames.push(name);
+  });
+  await lightPage.goto("/sign-in", { waitUntil: "networkidle" });
+  expect(lightNames).toEqual(expect.arrayContaining(["bg-day", "planet-day"]));
+  expect(lightNames.every((name) => name === "bg-day" || name === "planet-day" || name === "planet-sphere-map")).toBe(
+    true,
+  );
+  await lightOff.close();
+
+  const darkOff = await browser.newContext({ ...beforeHydration, colorScheme: "dark" });
+  const darkPage = await darkOff.newPage();
+  watchCsp(darkPage, csp);
+  const darkNames: string[] = [];
+  darkPage.on("request", (request) => {
+    const name = sceneName(request.url());
+    if (name) darkNames.push(name);
+  });
+  await darkPage.goto("/sign-in", { waitUntil: "networkidle" });
+  expect(darkNames).toEqual(expect.arrayContaining(["bg-night", "planet-crimson"]));
+  expect(
+    darkNames.every((name) => name === "bg-night" || name === "planet-crimson" || name === "planet-sphere-map"),
+  ).toBe(true);
+  await darkOff.close();
+
+  const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
+  const phonePage = await phone.newPage();
+  watchCsp(phonePage, csp);
+  const phoneMedia: string[] = [];
+  phonePage.on("response", (response) => {
+    if (response.url().includes("/_next/static/media/") && response.status() === 200) phoneMedia.push(response.url());
+  });
+  await phonePage.goto("/sign-in");
+  await phonePage.waitForFunction(() => document.documentElement.hasAttribute("data-scene-ready"));
+  await expect
+    .poll(() => {
+      const counts = sceneCounts(phoneMedia);
+      return (
+        counts["bg-day-portrait"] === 1 &&
+        counts["bg-night-portrait"] === 1 &&
+        counts["planet-day"] === 1 &&
+        counts["planet-crimson"] === 1 &&
+        counts["planet-sphere-map"] === 1 &&
+        counts["bg-day"] === 0 &&
+        counts["bg-night"] === 0
+      );
+    }, { timeout: 5_000 })
+    .toBe(true);
+  await phone.close();
+
+  const structure = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: "light" });
+  const structurePage = await structure.newPage();
+  watchCsp(structurePage, csp);
+  await structurePage.goto("/sign-in");
+  await expect(structurePage.locator("[data-scene] circle")).toHaveCount(27);
+  await expect(
+    structurePage.locator("[data-scene] polygon, [data-scene] polyline, [data-scene] rect, [data-scene] ellipse"),
+  ).toHaveCount(0);
+  await expect(structurePage.locator("[data-planet-globe]")).toHaveCount(2);
+  await expect(structurePage.locator("feDisplacementMap")).toHaveAttribute("scale", "300");
+  const dayPlate = await structurePage.locator('[data-scene-plate="day"]').evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      backgroundSize: style.backgroundSize,
+      backgroundPosition: style.backgroundPosition,
+      animationName: style.animationName,
+      animationDuration: style.animationDuration,
+      animationIterationCount: style.animationIterationCount,
+      animationDirection: style.animationDirection,
+    };
+  });
+  expect(dayPlate.backgroundSize).toBe("cover");
+  expect(dayPlate.backgroundPosition).toBe("50% 100%");
+  expect(dayPlate.animationName).not.toBe("none");
+  expect(dayPlate.animationDuration).toBe("60s");
+  expect(dayPlate.animationIterationCount).toBe("infinite");
+  expect(dayPlate.animationDirection).toBe("alternate");
+  const nightPlate = await structurePage.locator('[data-scene-plate="night"]').evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      animationName: style.animationName,
+      backgroundPosition: style.backgroundPosition,
+    };
+  });
+  expect(nightPlate.animationName).toBe("none");
+  expect(nightPlate.backgroundPosition).toBe("50% 100%");
+  await structure.close();
+
+  const roll = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: "light" });
+  await roll.addCookies(ownerCookies);
+  const rollPage = await roll.newPage();
+  watchCsp(rollPage, csp);
+  await rollPage.goto("/");
+  await rollPage.waitForFunction(() => document.documentElement.hasAttribute("data-scene-ready"));
+  const mask = rollPage.locator("[data-planet-crimson-mask]");
+  expect(await mask.evaluate((element) => getComputedStyle(element).maskPosition)).toBe("300px -90px");
+  await rollPage.getByRole("button", { name: "Dark" }).click();
+  const rolling = await mask.evaluate((element) =>
+    element.getAnimations().some((animation) => {
+      return animation.effect?.getTiming().duration === 1800 && animation.playState === "running";
+    }),
+  );
+  expect(rolling).toBe(true);
+  await finishFinite(rollPage);
+  expect(await mask.evaluate((element) => getComputedStyle(element).maskPosition)).toBe("-90px -90px");
+  await rollPage.getByRole("button", { name: "Light" }).click();
+  await finishFinite(rollPage);
+  expect(await mask.evaluate((element) => getComputedStyle(element).maskPosition)).toBe("300px -90px");
+  expect(csp).toEqual([]);
+  await roll.close();
 });
