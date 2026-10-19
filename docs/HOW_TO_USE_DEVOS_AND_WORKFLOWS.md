@@ -164,7 +164,7 @@ finishes, every 30 minutes (at :11 and :41), and when you approve or reject.
 **What it fixes by itself, at most 2 times per cause:**
 
 - re-runs a run that failed on the environment (network, setup steps);
-- re-runs the `ci` check on `main` when an outside service broke it (network, Google Fonts download). A failed production deploy is only **reported**, never re-run;
+- re-runs the `ci` check on `main` when an outside service broke it (network, Google Fonts download). A failed production deploy is re-run the same way **only** when an outside service broke the build and the site was not touched; any other deploy failure is only **reported**;
 - re-dispatches a stuck, stalled or timed-out run;
 - continues a halted task from its branch when time ran out;
 - recovers work saved on a `rescue/` branch after a push conflict;
