@@ -30,4 +30,8 @@ export default defineConfig({
       ),
     ),
   },
+  projects: [
+    { name: "pages", testIgnore: /import\.spec\.ts$/ },
+    { name: "import", testMatch: /import\.spec\.ts$/, dependencies: ["pages"] },
+  ],
 });
