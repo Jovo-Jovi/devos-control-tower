@@ -252,3 +252,21 @@ capped with the planet tokens so its box ends before the globe wherever the two 
 space; below 40rem the head sits under the scaled globe and keeps the column width. Each task
 row passes `still` to `StatusChip`, so a past `started` does not breathe in the rail. Awaiting
 the verdict. A PASS waits for the human (schema change).
+
+## 2026-10-18 — T09 Sign-in retrofit (attempt 1)
+
+The sign-in card on the v3 scene gains v2's states: first paint, "Opening GitHub…", "Checking your
+access…" at `/auth/callback` while the unchanged code exchange runs at `/auth/confirm`, the shared
+product mark, the denied nudge, the error hairline and the signed-out crossfade. Owner-only access,
+the claim path and the headers stay. CF-021 is closed with the layout-shift sources files. CF-022
+is open for the human: Next's router payload carries the request URL. Playwright's Chromium was
+installed once so `pnpm e2e` could launch. Awaiting the verdict. A PASS stops at gate G-Design-v2
+for the owner.
+
+## 2026-10-18 — T09 Sign-in retrofit (attempt 2)
+
+Attempt 2 keeps the attempt-1 tree. The error hairline sits inset on the card's top edge, and the
+checking hairline has a track. The success film was a blank canvas because the capture paused the
+view-transition snapshots before Chromium had painted them; the new page was already in the document.
+The film now waits for those frames, then seeks. Every transition frame shows the page. Awaiting the
+verdict. A PASS stops at gate G-Design-v2 for the owner.

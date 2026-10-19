@@ -19,7 +19,7 @@ export function AppSidebar({
   return (
     <nav className={styles.nav} aria-label={navLabel}>
       <div className={styles.brand}>
-        <ProductMark />
+        <ProductMark shared />
         <span className={styles.word}>{productWord}</span>
       </div>
       <ul className={styles.list}>

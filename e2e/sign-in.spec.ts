@@ -1,9 +1,503 @@
-import { expect, test } from "@playwright/test";
-import { mkdirSync } from "node:fs";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { createOwner, removeOwner, sessionCookies } from "./support/owner";
 
-test.beforeAll(() => {
+const SIGN_IN_OWNER = { githubId: "700041", login: "fixture-sign-in-owner" };
+const FILM_TIMES = [0, 80, 160, 320, 640] as const;
+const THEMES = ["light", "dark"] as const;
+const VIEWPORTS = [
+  { width: 1280, height: 900 },
+  { width: 390, height: 844 },
+] as const;
+const STATES = ["signed-out", "redirecting", "checking", "denied", "error"] as const;
+
+test.describe.configure({ timeout: 360_000 });
+
+test.beforeAll(async () => {
   mkdirSync(".devos/screens", { recursive: true });
+  await removeOwner([SIGN_IN_OWNER]);
+  await createOwner({ ...SIGN_IN_OWNER, allowListed: true });
 });
+
+test.afterAll(async () => {
+  await removeOwner([SIGN_IN_OWNER]);
+});
+
+async function armShift(context: BrowserContext) {
+  await context.addInitScript(() => {
+    function describeShiftNode(node: Node | null): string {
+      if (!node || node.nodeType !== Node.ELEMENT_NODE) return "";
+      const element = node as Element;
+      const id = element.id ? `#${element.id}` : "";
+      const classes = [...element.classList].map((name) => `.${name}`).join("");
+      const data = [...element.attributes]
+        .filter((attribute) => attribute.name.startsWith("data-"))
+        .map((attribute) => `[${attribute.name}]`)
+        .join("");
+      return `${element.tagName.toLowerCase()}${id}${classes}${data}`;
+    }
+
+    const bucket: { value: number; entries: { value: number; sources: string[] }[] } = { value: 0, entries: [] };
+    Object.assign(window, { __layoutShift: bucket });
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const shift = entry as PerformanceEntry & { value?: number; sources?: { node?: Node | null }[] };
+        if (typeof shift.value !== "number") continue;
+        bucket.value += shift.value;
+        bucket.entries.push({
+          value: shift.value,
+          sources: (shift.sources ?? []).flatMap((source) => {
+            const described = describeShiftNode(source.node ?? null);
+            return described ? [described] : [];
+          }),
+        });
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+}
+
+async function readShift(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as { __layoutShift: { value: number } }).__layoutShift.value);
+}
+
+async function readShiftSources(page: Page): Promise<{ value: number; sources: string[] }[]> {
+  return page.evaluate(
+    () =>
+      (window as unknown as { __layoutShift: { entries: { value: number; sources: string[] }[] } }).__layoutShift
+        .entries,
+  );
+}
+
+async function settle(page: Page) {
+  await page.waitForFunction(() => document.documentElement.hasAttribute("data-scene-ready"));
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      const timing = animation.effect?.getTiming();
+      if (timing && timing.iterations !== Infinity && typeof timing.duration === "number") animation.finish();
+    }
+  });
+}
+
+async function seek(page: Page, time: number) {
+  await page.evaluate((ms) => {
+    for (const animation of document.getAnimations()) {
+      animation.pause();
+      animation.currentTime = ms;
+    }
+  }, time);
+}
+
+function holdAnimations(context: BrowserContext) {
+  return context.addInitScript(() => {
+    const hold = () => {
+      for (const animation of document.getAnimations()) {
+        if (animation.playState === "running") animation.pause();
+      }
+      requestAnimationFrame(hold);
+    };
+    requestAnimationFrame(hold);
+  });
+}
+
+function watchTransitions(context: BrowserContext, paintTicks = 3) {
+  return context.addInitScript((need: number) => {
+    window.addEventListener("pagereveal", (event) => {
+      const transition = (
+        event as Event & { viewTransition?: { ready: Promise<void>; skipTransition: () => void } | null }
+      ).viewTransition;
+      const at = performance.timeOrigin + performance.now();
+      if (!transition) {
+        Object.assign(window, {
+          __viewTransition: null,
+          __vtNames: [],
+          __vtDurations: [],
+          __vtNull: true,
+          __vtReady: true,
+          __vtAt: at,
+        });
+        return;
+      }
+      void transition.ready.then(
+        async () => {
+          // `ready` fires when the pseudo tree exists, before Chromium has painted the
+          // snapshot textures. Pausing there freezes an empty texture: every seek is the
+          // canvas colour even though the new document is already in the DOM. Wait until
+          // a view-transition animation has produced a frame, then pause.
+          const started = () =>
+            document.getAnimations().some((animation) => {
+              const effect = animation.effect;
+              const pseudo = effect && "pseudoElement" in effect ? (effect as KeyframeEffect).pseudoElement : null;
+              return Boolean(pseudo?.includes("view-transition")) && Number(animation.currentTime) > 0;
+            });
+          // The first tick can still precede the snapshot upload, and the dark scene's
+          // snapshot is slower than the light one. Keep waiting for more frames, but stay
+          // inside the shorter crossfade so the animations are still recorded.
+          let ticks = 0;
+          const start = performance.now();
+          const budget = need > 3 ? 180 : 90;
+          while (ticks < need && performance.now() - start < budget) {
+            await new Promise<void>((resolve) => {
+              requestAnimationFrame(() => resolve());
+            });
+            if (started()) ticks += 1;
+          }
+          const names: string[] = [];
+          const durations: { pseudo: string; duration: number }[] = [];
+          for (const animation of document.getAnimations()) {
+            const effect = animation.effect;
+            if (!effect || !("pseudoElement" in effect)) continue;
+            const pseudo = (effect as KeyframeEffect).pseudoElement;
+            if (!pseudo?.includes("view-transition")) continue;
+            animation.pause();
+            names.push(pseudo);
+            const duration = effect.getTiming().duration;
+            durations.push({ pseudo, duration: typeof duration === "number" ? duration : -1 });
+          }
+          Object.assign(window, {
+            __viewTransition: transition,
+            __vtNames: names,
+            __vtDurations: durations,
+            __vtNull: false,
+            __vtReady: true,
+            __vtAt: at,
+          });
+        },
+        () => {
+          Object.assign(window, {
+            __viewTransition: null,
+            __vtNames: [],
+            __vtDurations: [],
+            __vtNull: true,
+            __vtReady: true,
+            __vtAt: at,
+          });
+        },
+      );
+    });
+  }, paintTicks);
+}
+
+async function releaseTransition(page: Page) {
+  await page.evaluate(async () => {
+    const pending = () =>
+      document.getAnimations().filter((animation) => {
+        const effect = animation.effect;
+        const pseudo = effect && "pseudoElement" in effect ? (effect as KeyframeEffect).pseudoElement : null;
+        return Boolean(pseudo?.includes("view-transition"));
+      });
+    const skip = () => {
+      for (const animation of pending()) {
+        const effect = animation.effect;
+        const duration = effect && "getTiming" in effect ? effect.getTiming().duration : null;
+        if (typeof duration === "number") animation.currentTime = duration;
+        try {
+          animation.finish();
+        } catch {
+          // The animation has already ended.
+        }
+      }
+      const transition = (window as unknown as { __viewTransition?: { skipTransition: () => void } | null })
+        .__viewTransition;
+      try {
+        transition?.skipTransition();
+      } catch {
+        // The transition has already finished.
+      }
+    };
+    const deadline = performance.now() + 1500;
+    skip();
+    while (pending().length > 0 && performance.now() < deadline) {
+      skip();
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
+    }
+  });
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+      }),
+  );
+}
+
+function expectSameBox(
+  before: { x: number; y: number; width: number; height: number },
+  after: { x: number; y: number; width: number; height: number },
+) {
+  expect(Math.abs(before.x - after.x)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(before.y - after.y)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(before.width - after.width)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(before.height - after.height)).toBeLessThanOrEqual(0.5);
+}
+
+async function placement(page: Page) {
+  return page.evaluate(() => {
+    const turn = document.querySelector("[data-planet-turn]");
+    const globe = turn?.parentElement?.parentElement ?? null;
+    const card = document.querySelector("[data-sign-in-card]");
+    const g = globe?.getBoundingClientRect();
+    const c = card?.getBoundingClientRect();
+    if (!g || !c || g.width <= 0) {
+      return { width: g?.width ?? 0, ok: false, shares: false, top: 0, globeBottom: 0, right: 0, globeLeft: 0 };
+    }
+    const shares = c.top < g.bottom && c.bottom > g.top;
+    const ok = shares ? c.right <= g.left + 0.5 : c.top + 0.5 >= g.bottom;
+    return { width: g.width, ok, shares, top: c.top, globeBottom: g.bottom, right: c.right, globeLeft: g.left };
+  });
+}
+
+async function productMarks(page: Page) {
+  return page.evaluate(() => {
+    const found: { inCard: boolean; inNav: boolean }[] = [];
+    for (const element of document.querySelectorAll("*")) {
+      if (getComputedStyle(element).viewTransitionName !== "product-mark") continue;
+      found.push({
+        inCard: Boolean(element.closest("[data-sign-in-card]")),
+        inNav: Boolean(element.closest("nav")),
+      });
+    }
+    return found;
+  });
+}
+
+async function hasViewTransitionRule(page: Page) {
+  return page.evaluate(() => {
+    for (const sheet of document.styleSheets) {
+      let rules: CSSRuleList;
+      try {
+        rules = sheet.cssRules;
+      } catch {
+        continue;
+      }
+      for (const rule of rules) {
+        const text = rule.cssText.replace(/\s+/g, "");
+        if (text.includes("@view-transition") && text.includes("navigation:auto")) return true;
+      }
+    }
+    return false;
+  });
+}
+
+async function openChecking(page: Page) {
+  // A held /auth/confirm navigation freezes Playwright's evaluate. The track is read here,
+  // in the page, and reported through the binding the test already uses.
+  const seen: {
+    current: { state: string; text: string; name: string; backgroundColor: string; width: number } | null;
+  } = { current: null };
+  await page.exposeBinding(
+    "checkingSeen",
+    (
+      _source,
+      payload: { state: string; text: string; name: string; backgroundColor: string; width: number },
+    ) => {
+      seen.current = payload;
+    },
+  );
+  await page.addInitScript(() => {
+    const started = performance.now();
+    const look = () => {
+      if (performance.now() - started > 8_000) return;
+      const card = document.querySelector("[data-sign-in-card]");
+      const mark = card?.querySelector("svg");
+      const line = card?.querySelector("[data-checking-line]");
+      if (!(card instanceof HTMLElement) || !(mark instanceof SVGElement) || !(line instanceof HTMLElement)) {
+        requestAnimationFrame(look);
+        return;
+      }
+      const name = getComputedStyle(mark).viewTransitionName;
+      const text = document.body?.innerText ?? "";
+      if (
+        card.getAttribute("data-state") !== "checking" ||
+        name !== "product-mark" ||
+        !text.includes("Checking your access")
+      ) {
+        requestAnimationFrame(look);
+        return;
+      }
+      const box = line.getBoundingClientRect();
+      (
+        window as unknown as {
+          checkingSeen: (payload: {
+            state: string;
+            text: string;
+            name: string;
+            backgroundColor: string;
+            width: number;
+          }) => void;
+        }
+      ).checkingSeen({
+        state: "checking",
+        text,
+        name,
+        backgroundColor: getComputedStyle(line).backgroundColor,
+        width: box.width,
+      });
+    };
+    requestAnimationFrame(look);
+  });
+  let release = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/auth/confirm**", async (route) => {
+    await gate;
+    await route.continue();
+  });
+  await page.goto("/auth/callback?code=t09-synthetic-code", { waitUntil: "commit" });
+  const deadline = Date.now() + 8_000;
+  while (!seen.current && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+  if (!seen.current) throw new Error("checking state was not observed");
+  return { release, seen: seen.current };
+}
+
+async function showChecking(page: Page) {
+  // Cancel the confirm navigation so the checking document stays scriptable. A held or
+  // aborted document navigation freezes Playwright's evaluate, settle and screenshot.
+  await page.addInitScript(() => {
+    const hold = (event: Event) => {
+      const nav = event as Event & { destination?: { url: string }; cancelable: boolean };
+      if (!nav.destination?.url.includes("/auth/confirm")) return;
+      if (nav.cancelable) event.preventDefault();
+    };
+    (window as unknown as { navigation: { addEventListener: (type: string, fn: (event: Event) => void) => void } }).navigation.addEventListener("navigate", hold);
+  });
+  await page.goto("/auth/callback?code=t09-synthetic-code", { waitUntil: "commit" });
+  await expect(page.getByText("Checking your access…")).toBeVisible();
+}
+
+async function boxOf(locator: ReturnType<Page["locator"]>) {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error("sign-in controls are missing");
+  return { x: box.x, y: box.y, width: box.width, height: box.height };
+}
+
+async function showRedirecting(page: Page, options?: { stay?: boolean }) {
+  let openGate = () => {};
+  const gate = new Promise<void>((resolve) => {
+    openGate = resolve;
+  });
+  let arrived = () => {};
+  const held = new Promise<void>((resolve) => {
+    arrived = resolve;
+  });
+  let finished = () => {};
+  const aborted = new Promise<void>((resolve) => {
+    finished = resolve;
+  });
+  if (!options?.stay) {
+    await page.route("**/auth/v1/authorize**", async (route) => {
+      arrived();
+      await gate;
+      await route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: "<!doctype html><title>held</title>",
+      });
+      finished();
+    });
+  }
+  const captured: {
+    current: {
+      status: string;
+      hidden: string | null;
+      busy: string;
+      disabled: boolean;
+      button: { x: number; y: number; width: number; height: number };
+      card: { x: number; y: number; width: number; height: number };
+    } | null;
+  } = { current: null };
+  await page.exposeBinding(
+    "signInPressed",
+    (_source, payload: NonNullable<(typeof captured)["current"]>) => {
+      captured.current = payload;
+    },
+  );
+  await page.evaluate((stay: boolean) => {
+    if (stay) {
+      const hold = (event: Event) => {
+        const nav = event as Event & { destination?: { url: string }; cancelable: boolean };
+        if (!nav.destination?.url.includes("/auth/v1/authorize")) return;
+        if (nav.cancelable) event.preventDefault();
+      };
+      const nav = (window as unknown as {
+        navigation: { addEventListener: (type: string, fn: (event: Event) => void) => void; removeEventListener: (type: string, fn: (event: Event) => void) => void };
+      }).navigation;
+      nav.addEventListener("navigate", hold);
+      (window as unknown as { __releaseOAuth?: () => void }).__releaseOAuth = () => nav.removeEventListener("navigate", hold);
+    }
+    const button = document.querySelector("[data-sign-in-button]");
+    if (!(button instanceof HTMLButtonElement)) return;
+    const observer = new MutationObserver(() => {
+      if (button.getAttribute("aria-busy") !== "true") return;
+      const card = document.querySelector("[data-sign-in-card]");
+      const status = button.querySelector("[role='status']");
+      const box = (element: Element | null) => {
+        if (!element) return { x: 0, y: 0, width: 0, height: 0 };
+        const rect = element.getBoundingClientRect();
+        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+      };
+      void (
+        window as unknown as {
+          signInPressed: (payload: {
+            status: string;
+            hidden: string | null;
+            busy: string;
+            disabled: boolean;
+            button: { x: number; y: number; width: number; height: number };
+            card: { x: number; y: number; width: number; height: number };
+          }) => void;
+        }
+      ).signInPressed({
+        status: status?.textContent ?? "",
+        hidden: status?.getAttribute("aria-hidden") ?? null,
+        busy: button.getAttribute("aria-busy") ?? "",
+        disabled: button.disabled,
+        button: box(button),
+        card: box(card),
+      });
+    });
+    observer.observe(button, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ["aria-busy", "disabled", "aria-hidden"],
+    });
+  }, Boolean(options?.stay));
+  const button = page.locator("[data-sign-in-button]");
+  const card = page.locator("[data-sign-in-card]");
+  const before = { button: await boxOf(button), card: await boxOf(card) };
+  await button.click({ noWaitAfter: true, timeout: 8_000 });
+  const deadline = Date.now() + 8_000;
+  while (!captured.current && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 40));
+  }
+  if (!captured.current) throw new Error("redirecting state was not observed");
+  if (!options?.stay) {
+    await Promise.race([
+      held,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("authorize route was not held")), 8_000)),
+    ]);
+  }
+  return {
+    release: async () => {
+      if (options?.stay) {
+        await page.evaluate(() => {
+          (window as unknown as { __releaseOAuth?: () => void }).__releaseOAuth?.();
+        });
+        return;
+      }
+      const landed = page.waitForURL(/\/auth\/v1\/authorize/, { waitUntil: "commit", timeout: 8_000 });
+      openGate();
+      await aborted;
+      await landed;
+      await page.unroute("**/auth/v1/authorize**");
+    },
+    before,
+    after: captured.current,
+  };
+}
 
 test("unsigned visitors are sent to sign-in and the read API refuses them", async ({ request }) => {
   const home = await request.get("/", { maxRedirects: 0 });
@@ -34,6 +528,21 @@ test("unsigned visitors are sent to sign-in and the read API refuses them", asyn
   const authError = await request.get("/sign-in?reason=auth_error", { maxRedirects: 0 });
   expect(authError.status()).toBe(200);
   expect(await authError.text()).toContain('<html lang="en" dir="ltr"');
+
+  const checking = await request.get("/auth/callback?code=t09-synthetic-code", { maxRedirects: 0 });
+  expect(checking.status()).toBe(200);
+  expect(await checking.text()).toContain("Checking your access…");
+
+  const callback = await request.get("/auth/callback", { maxRedirects: 0 });
+  expect(callback.status()).toBe(200);
+
+  const confirm = await request.get("/auth/confirm", { maxRedirects: 0 });
+  expect(confirm.status()).toBe(303);
+  expect(confirm.headers().location ?? "").toMatch(/\/sign-in\?reason=auth_error$/);
+
+  const confirmCode = await request.get("/auth/confirm?code=t09-synthetic-code", { maxRedirects: 0 });
+  expect(confirmCode.status()).toBe(303);
+  expect(confirmCode.headers().location ?? "").toMatch(/\/sign-in\?reason=auth_error$/);
 });
 
 test("sign-in renders its three states and the header baseline", async ({ page }) => {
@@ -47,7 +556,7 @@ test("sign-in renders its three states and the header baseline", async ({ page }
   expect(signedOut?.status()).toBe(200);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Control Tower" })).toBeVisible();
   await expect(page.getByText("The Tower admits one GitHub account: its owner.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Continue with GitHub" })).toBeVisible();
 
@@ -73,38 +582,384 @@ test("sign-in renders its three states and the header baseline", async ({ page }
   expect(denied?.status()).toBe(403);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await expect(page.getByRole("heading", { name: "Control Tower" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Use another account" })).toBeVisible();
   await expect(page.getByText("This GitHub account is not the owner. Signed out.")).toBeVisible();
 
+  await page.setViewportSize({ width: 1280, height: 720 });
   const errored = await page.goto("/sign-in?reason=auth_error");
   expect(errored?.status()).toBe(200);
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
+  await expect(page.getByRole("heading", { name: "Control Tower" })).toBeVisible();
   await expect(page.getByText("Sign-in did not complete: no session was returned. Try again.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Try again" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+  expect(page.viewportSize()?.width).toBe(1280);
+  const errorLine = await page.evaluate(() => {
+    const card = document.querySelector("[data-sign-in-card]");
+    const line = document.querySelector("[data-error-line]");
+    if (!(card instanceof HTMLElement) || !(line instanceof HTMLElement)) return null;
+    const cardBox = card.getBoundingClientRect();
+    const lineBox = line.getBoundingClientRect();
+    const style = getComputedStyle(card);
+    const startRadius = Number.parseFloat(style.borderStartStartRadius);
+    const endRadius = Number.parseFloat(style.borderStartEndRadius);
+    return {
+      lineStart: lineBox.left,
+      lineEnd: lineBox.right,
+      minStart: cardBox.left + startRadius - 0.5,
+      maxEnd: cardBox.right - endRadius + 0.5,
+      overflow: style.overflow,
+    };
+  });
+  if (!errorLine) throw new Error("error hairline is missing");
+  expect(errorLine.lineStart).toBeGreaterThanOrEqual(errorLine.minStart);
+  expect(errorLine.lineEnd).toBeLessThanOrEqual(errorLine.maxEnd);
+  expect(errorLine.overflow).toBe("visible");
   expect(cspMessages).toEqual([]);
 });
 
-test("screenshots of the three sign-in states", async ({ page }) => {
-  const cspMessages: string[] = [];
-  page.on("console", (message) => {
-    const text = message.text();
-    if (text.includes("Content Security Policy")) cspMessages.push(text);
+test("Redirecting and checking", async ({ page }) => {
+  await page.goto("/sign-in");
+  await settle(page);
+  const pressed = await showRedirecting(page);
+  expect(pressed.after.status).toContain("Opening GitHub…");
+  expect(pressed.after.hidden).not.toBe("true");
+  expect(pressed.after.busy).toBe("true");
+  expect(pressed.after.disabled).toBe(true);
+  expectSameBox(pressed.before.button, pressed.after.button);
+  expectSameBox(pressed.before.card, pressed.after.card);
+  await pressed.release();
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const checking = await openChecking(page);
+  expect(checking.seen.state).toBe("checking");
+  expect(checking.seen.text).toContain("Checking your access…");
+  expect(checking.seen.text).not.toContain("t09-synthetic-code");
+  expect(checking.seen.name).toBe("product-mark");
+  expect(page.viewportSize()?.width).toBe(1280);
+  expect(checking.seen.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
+  expect(checking.seen.width).toBeGreaterThanOrEqual(200);
+  checking.release();
+  await page.waitForURL(/\/sign-in\?reason=auth_error$/);
+});
+
+test("Shared mark and transitions", async ({ browser }) => {
+  const cookies = await sessionCookies("fixture-sign-in-owner@example.test");
+  const context = await browser.newContext();
+  await watchTransitions(context);
+  // Next's sign-out Location uses the server host `localhost`. Playwright's base URL is
+  // `127.0.0.1`, and Chrome aborts that cross-origin redirect. Stay on `localhost` so the
+  // unchanged 303 is same-origin and the view transition can run.
+  await context.addCookies(cookies.map((cookie) => ({ ...cookie, domain: "localhost" })));
+  const page = await context.newPage();
+  await page.goto("http://localhost:3000/sign-in");
+  await settle(page);
+  const onCard = await productMarks(page);
+  expect(onCard).toEqual([{ inCard: true, inNav: false }]);
+  expect(await hasViewTransitionRule(page)).toBe(true);
+
+  await page.evaluate(() => {
+    location.assign("/");
   });
-  const shots: Array<[string, string]> = [
-    ["signed-out", "/sign-in"],
-    ["denied", "/sign-in?reason=not_owner"],
-    ["error", "/sign-in?reason=auth_error"],
-  ];
-  const viewports: Array<[string, { width: number; height: number }]> = [
-    ["1280", { width: 1280, height: 800 }],
-    ["390", { width: 390, height: 844 }],
-  ];
-  for (const [name, path] of shots) {
-    for (const [width, viewport] of viewports) {
-      await page.setViewportSize(viewport);
-      await page.goto(path);
-      await page.screenshot({ path: `.devos/screens/sign-in-${name}-${width}.png`, fullPage: true });
+  await page.waitForURL(/\/$/);
+  const success = await readTransition(page);
+  expect(success.missing).toBe(false);
+  expect(success.names).toContain("::view-transition-group(product-mark)");
+  const onOverview = await productMarks(page);
+  expect(onOverview).toEqual([{ inCard: false, inNav: true }]);
+  expect(await hasViewTransitionRule(page)).toBe(true);
+  await releaseTransition(page);
+  const stillThere = await page.evaluate(() =>
+    document.getAnimations().flatMap((animation) => {
+      const effect = animation.effect;
+      const pseudo = effect && "pseudoElement" in effect ? (effect as KeyframeEffect).pseudoElement : null;
+      return pseudo?.includes("view-transition") ? [`${pseudo} ${animation.playState}`] : [];
+    }),
+  );
+  expect(stillThere).toEqual([]);
+
+  await Promise.all([
+    page.waitForURL(/\/sign-in$/, { waitUntil: "commit", timeout: 15_000 }),
+    page.getByRole("button", { name: "Sign out" }).click({ noWaitAfter: true }),
+  ]);
+  const signedOut = await readTransition(page);
+  expect(signedOut.missing).toBe(false);
+  expect(signedOut.names).toContain("::view-transition-new(root)");
+  await context.close();
+
+  const reducedCookies = await sessionCookies("fixture-sign-in-owner@example.test");
+  const reduced = await browser.newContext({ reducedMotion: "reduce" });
+  await watchTransitions(reduced);
+  await reduced.addCookies(reducedCookies);
+  const reducedPage = await reduced.newPage();
+  await reducedPage.goto("/sign-in");
+  await reducedPage.evaluate(() => {
+    location.assign("/");
+  });
+  await reducedPage.waitForURL(/\/$/);
+  const reducedTransition = await readTransition(reducedPage);
+  expect(reducedTransition.missing).toBe(false);
+  expect(reducedTransition.names.some((name) => name.includes("::view-transition-group("))).toBe(false);
+  const oldOrNew = reducedTransition.durations.filter(
+    (entry) => entry.pseudo.includes("view-transition-old") || entry.pseudo.includes("view-transition-new"),
+  );
+  expect(oldOrNew.length).toBeGreaterThan(0);
+  for (const entry of oldOrNew) expect(entry.duration).toBe(160);
+  await reduced.close();
+});
+
+test("Evidence", async ({ browser }) => {
+  const shifts: Record<string, number> = {};
+  const shiftSources: Record<string, { value: number; sources: string[] }[]> = {};
+
+  for (const theme of THEMES) {
+    for (const viewport of VIEWPORTS) {
+      for (const reduced of [false, true]) {
+        const context = await browser.newContext({
+          colorScheme: theme,
+          viewport,
+          reducedMotion: reduced ? "reduce" : "no-preference",
+        });
+        await armShift(context);
+        const page = await context.newPage();
+        const suffix = reduced ? "-reduced" : "";
+        for (const state of STATES) {
+          await page.evaluate(() => {
+            const bucket = (window as unknown as { __layoutShift?: { value: number; entries: unknown[] } }).__layoutShift;
+            if (!bucket) return;
+            bucket.value = 0;
+            bucket.entries = [];
+          }).catch(() => undefined);
+          const release = await captureState(page, state);
+          if (reduced) {
+            const text = await page.evaluate(() => document.body.innerText);
+            for (const line of expectedLines(state)) expect(text).toContain(line);
+            expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+            const transform = await page
+              .locator("[data-sign-in-card]")
+              .evaluate((element) => getComputedStyle(element).transform);
+            expect(transform).toBe("none");
+          }
+          const where = await placement(page);
+          expect(where.width).toBeGreaterThan(0);
+          expect(where.ok).toBe(true);
+          const key = `${state}-${theme}-${viewport.width}${suffix}`;
+          await page.screenshot({ path: `.devos/screens/t09-${key}.png` });
+          shifts[key] = await readShift(page);
+          shiftSources[key] = await readShiftSources(page);
+          await release();
+        }
+        await context.close();
+      }
+
+      const film = await browser.newContext({ colorScheme: theme, viewport, reducedMotion: "no-preference" });
+      await holdAnimations(film);
+      const filmPage = await film.newPage();
+      for (const state of ["signed-out", "denied", "error", "checking"] as const) {
+        await captureState(filmPage, state, { film: true });
+        await expect(filmPage.getByRole("heading", { name: "Control Tower" })).toBeVisible();
+        for (const time of FILM_TIMES) {
+          await seek(filmPage, time);
+          await filmPage.screenshot({
+            path: `.devos/screens/t09-${state}-${theme}-${viewport.width}-film-${String(time).padStart(3, "0")}.png`,
+          });
+        }
+      }
+      await film.close();
+
+      const press = await browser.newContext({ colorScheme: theme, viewport, reducedMotion: "no-preference" });
+      const pressPage = await press.newPage();
+      await pressPage.goto("/sign-in", { waitUntil: "load" });
+      await settle(pressPage);
+      await pressPage.evaluate(() => {
+        for (const animation of document.getAnimations()) {
+          animation.pause();
+          (animation as Animation & { held?: boolean }).held = true;
+        }
+        const hold = () => {
+          for (const animation of document.getAnimations()) {
+            if ((animation as Animation & { held?: boolean }).held) continue;
+            if (animation.playState === "running") animation.pause();
+          }
+          requestAnimationFrame(hold);
+        };
+        requestAnimationFrame(hold);
+      });
+      const pressed = await showRedirecting(pressPage, { stay: true });
+      for (const time of FILM_TIMES) {
+        await pressPage.evaluate((ms) => {
+          for (const animation of document.getAnimations()) {
+            if ((animation as Animation & { held?: boolean }).held) continue;
+            animation.pause();
+            animation.currentTime = ms;
+          }
+        }, time);
+        await pressPage.screenshot({
+          path: `.devos/screens/t09-redirecting-${theme}-${viewport.width}-film-${String(time).padStart(3, "0")}.png`,
+        });
+      }
+      await pressed.release();
+      await press.close();
     }
   }
-  expect(cspMessages).toEqual([]);
+
+  for (const theme of THEMES) {
+    for (const viewport of VIEWPORTS) {
+      const cookies = await sessionCookies("fixture-sign-in-owner@example.test");
+      const context = await browser.newContext({ colorScheme: theme, viewport });
+      await armShift(context);
+      await watchTransitions(context, 8);
+      await context.addCookies(cookies.map((cookie) => ({ ...cookie, domain: "localhost" })));
+      const page = await context.newPage();
+      await page.goto("http://localhost:3000/sign-in", { waitUntil: "load" });
+      await settle(page);
+      await filmHeld(page, `t09-to-success-${theme}-${viewport.width}`, async () => {
+        if (new URL(page.url()).pathname !== "/sign-in") {
+          await page.goto("http://localhost:3000/sign-in", { waitUntil: "load" });
+          await settle(page);
+        }
+        await page.evaluate(() => {
+          location.assign("/");
+        });
+        await page.waitForURL(/\/$/);
+      });
+      const successKey = `to-success-${theme}-${viewport.width}`;
+      shifts[successKey] = await readShift(page);
+      shiftSources[successKey] = await readShiftSources(page);
+      await releaseTransition(page);
+
+      await filmHeld(page, `t09-to-signed-out-${theme}-${viewport.width}`, async () => {
+        if (new URL(page.url()).pathname !== "/") {
+          const fresh = await sessionCookies("fixture-sign-in-owner@example.test");
+          await context.addCookies(fresh.map((cookie) => ({ ...cookie, domain: "localhost" })));
+          await page.goto("http://localhost:3000/", { waitUntil: "load", timeout: 20_000 });
+          await settle(page);
+          await releaseTransition(page);
+        }
+        await Promise.all([
+          page.waitForURL(/\/sign-in$/, { waitUntil: "commit", timeout: 20_000 }),
+          page.getByRole("button", { name: "Sign out" }).click({ noWaitAfter: true, timeout: 10_000 }),
+        ]);
+      });
+      const signedOutKey = `to-signed-out-${theme}-${viewport.width}`;
+      shifts[signedOutKey] = await readShift(page);
+      shiftSources[signedOutKey] = await readShiftSources(page);
+      await context.close();
+    }
+  }
+
+  writeFileSync(".devos/screens/t09-layout-shift.json", `${JSON.stringify(shifts, null, 2)}\n`);
+  writeFileSync(".devos/screens/t09-layout-shift-sources.json", `${JSON.stringify(shiftSources, null, 2)}\n`);
+  expect(Object.keys(shifts)).toHaveLength(48);
+  for (const value of Object.values(shifts)) expect(value).toBe(0);
 });
+
+function expectedLines(state: (typeof STATES)[number]): string[] {
+  if (state === "signed-out") {
+    return ["Control Tower", "The Tower admits one GitHub account: its owner.", "Continue with GitHub"];
+  }
+  if (state === "redirecting") return ["Control Tower", "Opening GitHub…"];
+  if (state === "checking") return ["Control Tower", "Checking your access…"];
+  if (state === "denied") {
+    return ["Control Tower", "Use another account", "This GitHub account is not the owner. Signed out."];
+  }
+  return ["Control Tower", "Sign-in did not complete: no session was returned. Try again.", "Try again"];
+}
+
+async function captureState(
+  page: Page,
+  state: (typeof STATES)[number],
+  options?: { film?: boolean },
+): Promise<() => Promise<void>> {
+  if (state === "signed-out" || state === "redirecting") {
+    await page.goto("/sign-in", { waitUntil: "load" });
+    if (options?.film) return async () => undefined;
+    await settle(page);
+    if (state === "redirecting") {
+      const pressed = await showRedirecting(page, { stay: true });
+      await settle(page);
+      return pressed.release;
+    }
+    return async () => undefined;
+  }
+  if (state === "denied") {
+    await page.goto("/sign-in?reason=not_owner", { waitUntil: "load" });
+    if (!options?.film) await settle(page);
+    return async () => undefined;
+  }
+  if (state === "error") {
+    await page.goto("/sign-in?reason=auth_error", { waitUntil: "load" });
+    if (!options?.film) await settle(page);
+    return async () => undefined;
+  }
+  await showChecking(page);
+  if (!options?.film) await settle(page);
+  return async () => undefined;
+}
+
+async function readTransition(page: Page) {
+  await page.waitForFunction(() => (window as unknown as { __vtReady?: boolean }).__vtReady === true);
+  return page.evaluate(() => {
+    const record = window as unknown as {
+      __vtNull: boolean;
+      __vtNames: string[];
+      __vtDurations: { pseudo: string; duration: number }[];
+    };
+    return { missing: record.__vtNull, names: record.__vtNames, durations: record.__vtDurations };
+  });
+}
+
+async function filmHeld(page: Page, prefix: string, navigate: () => Promise<void>) {
+  let note = "";
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    try {
+      await page.evaluate(() => {
+        Object.assign(window, { __vtReady: false });
+      });
+      await navigate();
+      const recorded = await readTransition(page);
+      if (recorded.missing) {
+        note = `${prefix} attempt ${attempt + 1}: missing names=${recorded.names.join("|")}`;
+        console.log(note);
+        await releaseTransition(page);
+        continue;
+      }
+      const frames: { time: number; data: Buffer }[] = [];
+      const seeks: string[] = [];
+      for (const time of FILM_TIMES) {
+        await seek(page, time);
+        const pseudos = await page.evaluate(() =>
+          document.getAnimations().flatMap((animation) => {
+            const effect = animation.effect;
+            const pseudo = effect && "pseudoElement" in effect ? (effect as KeyframeEffect).pseudoElement : null;
+            return pseudo?.includes("view-transition") ? [`${pseudo}@${String(animation.currentTime)}`] : [];
+          }),
+        );
+        seeks.push(`${time}:${pseudos.join(",")}`);
+        frames.push({ time, data: await page.screenshot({ type: "png", animations: "allow" }) });
+      }
+      const sizes = frames.map((frame) => frame.data.length);
+      note = `${prefix} attempt ${attempt + 1}: bytes=${sizes.join(",")} names=${recorded.names.join("|")} seeks=${seeks.join(";")}`;
+      if (frames.some((frame) => frame.data.length <= 20_000)) {
+        console.log(note);
+        await releaseTransition(page);
+        continue;
+      }
+      for (const frame of frames) {
+        writeFileSync(`.devos/screens/${prefix}-${String(frame.time).padStart(3, "0")}.png`, frame.data);
+        expect(frame.data.length).toBeGreaterThan(20_000);
+      }
+      if (prefix.includes("t09-to-success")) {
+        expect(await productMarks(page)).toEqual([{ inCard: false, inNav: true }]);
+      }
+      console.log(note);
+      return;
+    } catch (error) {
+      note = error instanceof Error ? error.message.split("\n")[0] : String(error);
+      console.log(`${prefix} attempt ${attempt + 1}: ${note}`);
+      await releaseTransition(page).catch(() => undefined);
+    }
+  }
+  throw new Error(note);
+}

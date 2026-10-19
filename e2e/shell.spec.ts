@@ -61,12 +61,32 @@ async function turnX(page: Page): Promise<number> {
 
 async function armShift(context: BrowserContext) {
   await context.addInitScript(() => {
-    const bucket = { value: 0 };
+    function describeShiftNode(node: Node | null): string {
+      if (!node || node.nodeType !== Node.ELEMENT_NODE) return "";
+      const element = node as Element;
+      const id = element.id ? `#${element.id}` : "";
+      const classes = [...element.classList].map((name) => `.${name}`).join("");
+      const data = [...element.attributes]
+        .filter((attribute) => attribute.name.startsWith("data-"))
+        .map((attribute) => `[${attribute.name}]`)
+        .join("");
+      return `${element.tagName.toLowerCase()}${id}${classes}${data}`;
+    }
+
+    const bucket: { value: number; entries: { value: number; sources: string[] }[] } = { value: 0, entries: [] };
     Object.assign(window, { __layoutShift: bucket });
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        const shift = entry as PerformanceEntry & { value?: number };
-        if (typeof shift.value === "number") bucket.value += shift.value;
+        const shift = entry as PerformanceEntry & { value?: number; sources?: { node?: Node | null }[] };
+        if (typeof shift.value !== "number") continue;
+        bucket.value += shift.value;
+        bucket.entries.push({
+          value: shift.value,
+          sources: (shift.sources ?? []).flatMap((source) => {
+            const described = describeShiftNode(source.node ?? null);
+            return described ? [described] : [];
+          }),
+        });
       }
     }).observe({ type: "layout-shift", buffered: true });
   });
@@ -278,7 +298,7 @@ test("Not found and sign-in on the scene", async ({ browser }) => {
   const response = await signIn.goto("/sign-in");
   expect(response?.status()).toBe(200);
   await expect(signIn.locator("[data-scene]")).toHaveAttribute("aria-hidden", "true");
-  await expect(signIn.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(signIn.getByRole("heading", { name: "Control Tower" })).toBeVisible();
   await expect(signIn.getByText("The Tower admits one GitHub account: its owner.")).toBeVisible();
   await expect(signIn.getByRole("button", { name: "Continue with GitHub" })).toBeVisible();
   await expect
@@ -291,6 +311,7 @@ test("Not found and sign-in on the scene", async ({ browser }) => {
 test("Evidence", async ({ browser }) => {
   const csp: string[] = [];
   const shifts: Record<string, number> = {};
+  const shiftSources: Record<string, { value: number; sources: string[] }[]> = {};
 
   for (const theme of ["light", "dark"] as const) {
     for (const viewport of VIEWPORTS) {
@@ -312,7 +333,13 @@ test("Evidence", async ({ browser }) => {
           await page.screenshot({
             path: `.devos/screens/v3-${state.id}-${theme}-${viewport.width}${suffix}.png`,
           });
-          shifts[`${state.id}-${theme}-${viewport.width}${suffix}`] = await readShift(page);
+          const shiftKey = `${state.id}-${theme}-${viewport.width}${suffix}`;
+          shifts[shiftKey] = await readShift(page);
+          shiftSources[shiftKey] = await page.evaluate(
+            () =>
+              (window as unknown as { __layoutShift: { entries: { value: number; sources: string[] }[] } }).__layoutShift
+                .entries,
+          );
         }
         await context.close();
       }
@@ -355,7 +382,9 @@ test("Evidence", async ({ browser }) => {
     await settle(page);
     for (const choice of ["dark", "light"] as const) {
       await page.evaluate(() => {
-        (window as unknown as { __layoutShift: { value: number } }).__layoutShift.value = 0;
+        const bucket = (window as unknown as { __layoutShift: { value: number; entries: unknown[] } }).__layoutShift;
+        bucket.value = 0;
+        bucket.entries = [];
         for (const animation of document.getAnimations()) {
           const timing = animation.effect?.getTiming();
           if (timing?.iterations !== Infinity && animation.playState === "paused") animation.finish();
@@ -373,12 +402,19 @@ test("Evidence", async ({ browser }) => {
           path: `.devos/screens/v3-theme-to-${choice}-${viewport.width}-${String(time).padStart(4, "0")}.png`,
         });
       }
-      shifts[`theme-to-${choice}-${viewport.width}`] = await readShift(page);
+      const themeKey = `theme-to-${choice}-${viewport.width}`;
+      shifts[themeKey] = await readShift(page);
+      shiftSources[themeKey] = await page.evaluate(
+        () =>
+          (window as unknown as { __layoutShift: { entries: { value: number; sources: string[] }[] } }).__layoutShift
+            .entries,
+      );
     }
     await context.close();
   }
 
   writeFileSync(".devos/screens/v3-layout-shift.json", `${JSON.stringify(shifts, null, 2)}\n`);
+  writeFileSync(".devos/screens/v3-layout-shift-sources.json", `${JSON.stringify(shiftSources, null, 2)}\n`);
   expect(Object.keys(shifts)).toHaveLength(44);
   for (const value of Object.values(shifts)) expect(value).toBe(0);
   expect(csp).toEqual([]);
