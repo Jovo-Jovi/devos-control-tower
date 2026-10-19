@@ -1,0 +1,31 @@
+{
+  "project": "IMPORTFX",
+  "head": "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567",
+  "phases": "| Task | Phase | Done |\n| --- | --- | --- |\n| T01 | P01 | [x] |\n| T02 | P01 | [x] |\n| T03 | PM | [ ] |\n",
+  "reviews": [
+    {
+      "path": "docs/reviews/T01-a1.md",
+      "firstLine": "VERDICT: FAIL",
+      "commit": "1111111111111111111111111111111111111111",
+      "at": "2026-10-01T09:00:00+02:00"
+    },
+    {
+      "path": "docs/reviews/T01-a2.md",
+      "firstLine": "VERDICT: PASS",
+      "commit": "2222222222222222222222222222222222222222",
+      "at": "2026-10-02T10:30:00Z"
+    },
+    {
+      "path": "docs/reviews/T02-a1.md",
+      "firstLine": "VERDICT: PASS",
+      "commit": "3333333333333333333333333333333333333333",
+      "at": "2026-10-03T11:00:00Z"
+    },
+    {
+      "path": "docs/reviews/T03-a1.md",
+      "firstLine": "VERDICT: FAIL",
+      "commit": "4444444444444444444444444444444444444444",
+      "at": "2026-10-04T12:15:00Z"
+    }
+  ]
+}

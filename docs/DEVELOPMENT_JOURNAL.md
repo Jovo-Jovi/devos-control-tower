@@ -270,3 +270,13 @@ checking hairline has a track. The success film was a blank canvas because the c
 view-transition snapshots before Chromium had painted them; the new page was already in the document.
 The film now waits for those frames, then seeks. Every transition frame shows the page. Awaiting the
 verdict. A PASS stops at gate G-Design-v2 for the owner.
+
+## 2026-10-19 — T10 Pilot history export and import page (attempt 1)
+
+The history export reads `docs/PHASES.md` and `docs/reviews/` through read-only git and writes
+contract events. The owner imports that file at `/projects/[key]/import`. One invalid line refuses
+the upload and names the line, and a refused file is not stored. Stored events go through
+`ingest_event` with source `import`, so each one is labelled imported. The import spec runs after
+the other end-to-end specs. Its captures cover idle, uploading, result and error in both themes.
+Playwright's Chromium was installed once so `pnpm e2e` could launch. Awaiting the verdict. A PASS
+stops at gate G-Tower-v1 for the owner.

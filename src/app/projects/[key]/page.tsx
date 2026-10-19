@@ -138,6 +138,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
               <a className={styles.usage} href={`/projects/${report.project.key}/usage`}>
                 {copy.usage}
               </a>
+              <a className={styles.import} href={`/projects/${report.project.key}/import`}>
+                {getMessages().project.import}
+              </a>
             </p>
           )}
         </header>

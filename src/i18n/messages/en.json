@@ -115,7 +115,8 @@
     "unfinished": "unfinished",
     "atRange": "Sender clock: {from} to {to}",
     "seq": "seq",
-    "legend": "reported: sent by the project's runner · observed: seen on GitHub · verified: a reported result that an observed commit status confirms · imported: loaded from history. Ages count from when the Tower received each fact."
+    "legend": "reported: sent by the project's runner · observed: seen on GitHub · verified: a reported result that an observed commit status confirms · imported: loaded from history. Ages count from when the Tower received each fact.",
+    "import": "Import history"
   },
   "usage": {
     "title": "Usage",
@@ -175,5 +176,30 @@
     "keyTaken": "This key is already registered.",
     "repoTaken": "This repository is already registered.",
     "failed": "The project could not be saved. Nothing was stored."
+  },
+  "import": {
+    "eyebrow": "History",
+    "title": "Import history",
+    "lead": "Upload the JSON Lines file from the history export. Every line is checked before anything is stored, and every stored event is labelled imported.",
+    "file": "History file (.jsonl)",
+    "drop": "Drop the file here or choose it. Up to 512 KB.",
+    "submit": "Import",
+    "pending": "Importing…",
+    "stored": "Stored",
+    "duplicate": "Already stored",
+    "conflict": "Conflicts (the first event is kept)",
+    "run": "Run {run}",
+    "view": "View project",
+    "back": "Back to project",
+    "invalid": "Line {line}: {reason}. Nothing was imported.",
+    "empty": "The file is empty. Nothing was imported.",
+    "tooLarge": "The file is larger than 512 KB. Nothing was imported.",
+    "failed": "Stopped at line {line} after {stored} stored. Upload the same file again to finish.",
+    "reasonJson": "not JSON",
+    "reasonContract": "not an event of contract v1",
+    "reasonProject": "an event of another project",
+    "reasonRun": "not the file's one import run",
+    "reasonSeq": "a seq that repeats",
+    "reasonTooMany": "more than 5 000 lines"
   }
 }
