@@ -61,7 +61,8 @@
 }
 
 .repo,
-.usage {
+.usage,
+.import {
   display: inline-flex;
   align-items: center;
   min-inline-size: 0;
