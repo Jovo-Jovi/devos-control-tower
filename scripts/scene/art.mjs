@@ -7,10 +7,9 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const nextRequire = createRequire(require.resolve("next/package.json"));
 
-const V31_DIR = "docs/design/v3/assets/v3.1";
 const V32_DIR = "docs/design/v3/assets/v3.2";
 const SCENE_DIR = "src/components/scene/assets";
-const BYTE_BUDGET = 3400000;
+const BYTE_BUDGET = 3847962;
 
 const SPECS = [
   { name: "bg-day.jpg", width: 2560, height: 1440, format: "jpeg", seamless: false, source: V32_DIR },
@@ -18,9 +17,8 @@ const SPECS = [
   { name: "bg-day-portrait.jpg", width: 1440, height: 2560, format: "jpeg", seamless: false, source: V32_DIR },
   { name: "bg-night-portrait.jpg", width: 1440, height: 2560, format: "jpeg", seamless: false, source: V32_DIR },
   { name: "sky-clouds.webp", width: 2048, height: 1152, format: "webp", seamless: true, source: V32_DIR },
-  { name: "planet-day.webp", width: 1360, height: 680, format: "webp", seamless: true, source: V31_DIR },
-  { name: "planet-crimson.webp", width: 1360, height: 680, format: "webp", seamless: true, source: V31_DIR },
-  { name: "planet-sphere-map.png", width: 340, height: 340, format: "png", seamless: false, source: V31_DIR },
+  { name: "planet-day.webp", width: 2048, height: 1024, format: "webp", seamless: true, source: V32_DIR },
+  { name: "planet-crimson.webp", width: 2048, height: 1024, format: "webp", seamless: true, source: V32_DIR },
 ];
 
 function loadSharp() {
