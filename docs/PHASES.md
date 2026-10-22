@@ -27,7 +27,7 @@ The runner reads the table below, and `guard:phases` checks it.
 | T11 | P02 | J5 | Design v3.1 art: the owner's backgrounds and planet in the scene | 2 | G-Design-v3.1 | [x] | PASS a2 — docs/reviews/T11-a2.md |
 | T12 | P02 | J5 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | 2 | G-Planet-Sharp | [x] | PASS a1 — docs/reviews/T12-a1.md |
 | T13 | P02 | J5 | Theme switch on the sign-in pages: Auto · Light · Dark at the foot of every sign-in state, nothing stored | 2 | — | [x] | PASS a1 — docs/reviews/T13-a1.md |
-| T14 | P02 | J5 | Link preview: Open Graph and Twitter-card tags with a 1200×630 image captured from the real sign-in page | 2 | G-Link-Preview | [ ] | — |
+| T14 | P02 | J5 | Link preview: Open Graph and Twitter-card tags with a 1200×630 image captured from the real sign-in page | 2 | G-Link-Preview | [x] | PASS a1 — docs/reviews/T14-a1.md |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both
 belong to milestone M1 of `devos-plan`; the CK1 checkpoint between T02/PM01 and T03 is an owner gate
