@@ -659,8 +659,7 @@ async function backingOf(canvas: ReturnType<Page["locator"]>) {
   });
 }
 
-async function expectStillGlobe(page: Page) {
-  await hideShell(page);
+async function twoFrames(page: Page) {
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => {
@@ -669,6 +668,11 @@ async function expectStillGlobe(page: Page) {
         });
       }),
   );
+}
+
+async function expectStillGlobe(page: Page) {
+  await hideShell(page);
+  await twoFrames(page);
   const first = await centreCrop(page);
   await page.waitForTimeout(1000);
   const second = await centreCrop(page);
@@ -676,8 +680,9 @@ async function expectStillGlobe(page: Page) {
 }
 
 test("Sharp globe", async () => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const csp: string[] = [];
+  const shifts: Record<string, number> = {};
   const baseURL = test.info().project.use.baseURL;
   if (!baseURL) throw new Error("missing baseURL");
   const gl = await chromium.launch({ args: ["--enable-unsafe-swiftshader"] });
@@ -711,7 +716,14 @@ test("Sharp globe", async () => {
           expect(metrics.width).toBe(metrics.backing);
           expect(metrics.height).toBe(metrics.backing);
         }
+        shifts[`${theme}-${size.width}-motion`] = await readShift(motion.page);
+        await motion.page.screenshot({
+          path: `.devos/screens/planet-${theme}-${size.width}-page.png`,
+        });
         await hideShell(motion.page);
+        await motion.page.locator("[data-planet-slot]").screenshot({
+          path: `.devos/screens/planet-${theme}-${size.width}.png`,
+        });
         const first = await centreCrop(motion.page);
         await motion.page.waitForTimeout(1000);
         const second = await centreCrop(motion.page);
@@ -726,7 +738,11 @@ test("Sharp globe", async () => {
           await expect(canvas).toHaveAttribute("data-planet-renderer", "webgl");
           await expect(canvas).not.toHaveAttribute("data-planet-running");
         }
+        shifts[`${theme}-${size.width}-reduced`] = await readShift(reduced.page);
         await expectStillGlobe(reduced.page);
+        await reduced.page.locator("[data-planet-slot]").screenshot({
+          path: `.devos/screens/planet-${theme}-${size.width}-reduced.png`,
+        });
         await reduced.context.close();
 
         const flat = await openGlobe(gl, baseURL, csp, theme, size, "no-preference", true);
@@ -742,10 +758,53 @@ test("Sharp globe", async () => {
           expect(metrics.width).toBe(metrics.backing);
           expect(metrics.height).toBe(metrics.backing);
         }
+        shifts[`${theme}-${size.width}-nowebgl`] = await readShift(flat.page);
         await expectStillGlobe(flat.page);
+        await flat.page.locator("[data-planet-slot]").screenshot({
+          path: `.devos/screens/planet-${theme}-${size.width}-nowebgl.png`,
+        });
         await flat.context.close();
       }
     }
+
+    const roll = await openGlobe(gl, baseURL, csp, "light", GLOBE_SIZES[0], "no-preference", false);
+    const rollCanvases = roll.page.locator("[data-planet-canvas]");
+    await expect(rollCanvases).toHaveCount(2);
+    for (const canvas of await rollCanvases.all()) {
+      await expect(canvas).toHaveAttribute("data-planet-drawn", "", { timeout: 15_000 });
+      await expect(canvas).toHaveAttribute("data-planet-renderer", "webgl");
+    }
+    await roll.page.evaluate(() => {
+      const button = document.querySelector<HTMLButtonElement>('[data-theme-option="dark"]');
+      if (!button) throw new Error("missing dark");
+      button.click();
+      for (const animation of document.getAnimations()) animation.pause();
+      for (const child of document.body.children) {
+        if (!(child instanceof HTMLElement) || child.matches("[data-scene]")) continue;
+        child.style.visibility = "hidden";
+      }
+    });
+    const rollFrames = new Map<number, Buffer>();
+    for (const ms of [0, 450, 900, 1350, 1800]) {
+      await seek(roll.page, ms);
+      await twoFrames(roll.page);
+      const buffer = await roll.page.locator("[data-planet-slot]").screenshot({
+        path: `.devos/screens/planet-roll-${String(ms).padStart(4, "0")}.png`,
+      });
+      rollFrames.set(ms, buffer);
+    }
+    const frame0 = rollFrames.get(0);
+    const frame900 = rollFrames.get(900);
+    const frame1800 = rollFrames.get(1800);
+    if (!frame0 || !frame900 || !frame1800) throw new Error("missing roll frame");
+    expect(Buffer.compare(frame0, frame900)).not.toBe(0);
+    expect(Buffer.compare(frame0, frame1800)).not.toBe(0);
+    expect(Buffer.compare(frame900, frame1800)).not.toBe(0);
+    await roll.context.close();
+
+    writeFileSync(".devos/screens/planet-layout-shift.json", `${JSON.stringify(shifts, null, 2)}\n`);
+    expect(Object.keys(shifts)).toHaveLength(12);
+    for (const value of Object.values(shifts)) expect(value).toBe(0);
   } finally {
     await gl.close();
   }
