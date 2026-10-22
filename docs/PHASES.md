@@ -26,6 +26,8 @@ The runner reads the table below, and `guard:phases` checks it.
 | T10 | P02 | J5 | Pilot history export and import page; replay of 25 tasks labelled imported | 2 | G-Tower-v1 | [x] | PASS a1 — docs/reviews/T10-a1.md |
 | T11 | P02 | J5 | Design v3.1 art: the owner's backgrounds and planet in the scene | 2 | G-Design-v3.1 | [x] | PASS a2 — docs/reviews/T11-a2.md |
 | T12 | P02 | J5 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | 2 | G-Planet-Sharp | [x] | PASS a1 — docs/reviews/T12-a1.md |
+| T13 | P02 | J5 | Theme switch on the sign-in pages: Auto · Light · Dark at the foot of every sign-in state, nothing stored | 2 | — | [ ] | — |
+| T14 | P02 | J5 | Link preview: Open Graph and Twitter-card tags with a 1200×630 image captured from the real sign-in page | 2 | G-Link-Preview | [ ] | — |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both
 belong to milestone M1 of `devos-plan`; the CK1 checkpoint between T02/PM01 and T03 is an owner gate
@@ -112,3 +114,19 @@ Phase outlines (method track):
   reduced and no-WebGL modes. Stage 3: the `planet-*` captures, the roll filmstrip and 12 layout-shift values, the
   guide's Art checks bullet, the ledgers and every Done-when. The owner signs G-Planet-Sharp on the captures
   (OD-10 §5).
+- **T13 — Theme switch on the sign-in pages (OD-11 §1–§2, issue #40, `docs/requests/issue-40.md`; risk 2, one run).**
+  `SignInCard` renders the existing `ThemeSwitch` (labels `theme.*`, no new key) in a new `.theme` foot, outside the
+  card, centred at the page's block end, in all four states; `SignInCard.module.css` gains the foot (logical
+  properties, tokens only). A new test 6 `Theme switch on sign-in` in `e2e/sign-in.spec.ts` proves Light and Dark
+  change `--color-canvas` on `/sign-in`, the 403 and the error state, nothing is stored and a reload returns to Auto,
+  and captures `.devos/screens/t13-*.png`; tests 1–5 stay green unchanged. Fence: `docs/fences/T13.md`.
+- **T14 — Link preview (OD-11 §3–§6; risk 2, gate G-Link-Preview).** `scripts/site/link-preview.mjs` captures
+  `/sign-in` of the local production build at 1200×630, DPR 1, dark, reduced motion, as JPEG ≤ 300 000 bytes into
+  `src/assets/link-preview.jpg` (committed); `src/lib/site/metadata-base.ts` (pure: `TOWER_URL` → `URL | undefined`)
+  with its unit test; the root layout's `generateMetadata` adds `metadataBase`, `openGraph` (type, site name, title,
+  description, the imported image with 1200, 630, `image/jpeg` and alt `site.previewAlt`) and `twitter`
+  (`summary_large_image`); a new `e2e/link-preview.spec.ts` fetches `/sign-in` with a WhatsApp user agent and finds
+  every tag inside `<head>`, then fetches the `og:image` path without a session (200, `image/jpeg`, JPEG magic bytes,
+  ≤ 300 000 bytes) and proves `/` still answers 302. `src/proxy.ts`, `next.config.ts` and the headers stay unchanged;
+  if WhatsApp's agent gets the tags outside `<head>`, the builder HALTs (a `next.config.ts` change needs its own
+  decision). The owner signs G-Link-Preview by merging after the WhatsApp check on production (OD-11 §5).

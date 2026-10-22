@@ -342,7 +342,7 @@ and the map. Glass = `--glass` with `backdrop-filter: blur(var(--blur-glass)) sa
 |---|---|---|
 | `Scene` | README §3, §14 and §15 (v3.2): the owner's plates `bg-day` and `bg-night` (landscape; the `-portrait` pair at ≤ 760 px), each filling the fixed layer with `background-size: cover` anchored at the bottom centre. Day clouds are a separate transparent layer over the day plate and under the night plate. Night keeps the owner's Milky Way plate still; a canvas starfield and a faint horizon mist sit above it. `aria-hidden`, `pointer-events: none`, behind every page | the two plates crossfade by opacity (`--scene-light`/`--scene-dark`) over `--dur-scene`; clouds and mist drift by `transform` only; stars twinkle and drift on the canvas. The day plate does not scale |
 | `Planet` | README §3.4 (v3.1): the day globe (`planet-day`) and the crimson globe (`planet-crimson`, inside the `--mask-planet-crimson` disc), each drawn as a sphere by `PlanetGlobe` (OD-10): a canvas whose backing store is its rendered size × `devicePixelRatio`, sampling the 2048×1024 strip per device pixel (WebGL; without WebGL a still 2D drawing; until its first frame the strip shows flat), then shade and atmosphere; top end corner; × `--planet-phone-scale` at ≤ 760 px | the switch turns both globes half a turn while the mask disc sweeps across (`mask-position`, `--dur-scene`), so the crimson night side rolls over; one spin loop (`--dur-planet-spin`) per §5 B. The spin and turn stay CSS (`.spin`, `.turn`); the canvas reads their `translateX` every frame, so timing, reduced motion and the hidden pause are the CSS ones. Reduced motion or no WebGL: a still globe in its theme's position; glow = two layers crossfading by opacity, never an animated shadow |
-| `ThemeSwitch` (new) | segmented **Auto · Light · Dark**, `aria-pressed`, in the top bar | the pressed segment's wash moves `--dur-quick`; the theme itself changes at once (§5 A) |
+| `ThemeSwitch` (new) | segmented **Auto · Light · Dark**, `aria-pressed`, in the top bar; on the sign-in pages (no top bar) centred at the page's block-end foot, outside the card (OD-11) | the pressed segment's wash moves `--dur-quick`; the theme itself changes at once (§5 A) |
 | `AppSidebar` (new) | README §2: glass, product mark, "DEV_OS", links to routes that exist only; current link `--color-energy-wash` + `--nav-bar` energy bar at the start edge; a strip above the content at ≤ 980 px | none |
 | `AppHeader` (top bar) | glass, "Control Tower", `LiveMark` (from T05), `ThemeSwitch`, avatar (alt = login), login in `<bdi>`, sign-out | none |
 | `LiveMark` | 6 px energy dot + "live" word **while the latest poll of `/api/projects` answered 200**; "offline" and a faint dot otherwise (the browser never calls Supabase, `DATA_MODEL.md` §1; carry-forward (c) of `docs/reviews/T03-a1.md`) | ambient pulse (`--dur-ambient`) while live; none offline |
@@ -362,6 +362,8 @@ between them, in **both themes**. Route changes use the View Transitions API wit
   glass; nothing else changes. T09: v2's §4.1 states and choreography (first paint, redirecting "Opening
   GitHub…", "Checking your access…" on `/auth/callback`, the shared product mark, denied nudge, error hairline,
   signed-out crossfade), with the scene and planet as the atmosphere instead of v2's gradients.
+  OD-11 (T13): every state carries the `ThemeSwitch` at the page foot, outside the card; the card's size, place and
+  choreography do not change, and nothing is stored.
 - **4.3 Overview `/` as the tower map (T05).** README §4 (map ≥ 761 px, tower, up to eight nodes, blades and link
   states, ignition, live changes, filters and list, phone ≤ 760 px), §5 (panels), §6 (values, all from existing
   tables) and §7 (states: loading, map, list, selected, empty, error, offline, reduced motion; each in both themes).
@@ -472,6 +474,11 @@ texture loads with the day plate. The other theme's plate and strip, and the clo
 dark, load after hydration (`:root[data-scene-ready]`); a viewport never loads the other orientation's pair. The
 globe renderer takes each strip's URL from its CSS background (the same file, never a second URL), and until its
 first frame the strip shows flat under the shade. The map and the page never wait for an image.
+
+**Link preview (OD-11, T14).** One more bundled image, outside the scene set and its budget:
+`src/assets/link-preview.jpg`, 1200×630 JPEG, at most 300 000 bytes, captured from `/sign-in` of the production
+build in dark with reduced motion by `scripts/site/link-preview.mjs`. The root layout imports it for `og:image`, so it
+is served from `/_next/static/media/` like the scene. It is a capture of the real page, never drawn or generated.
 
 ## 10. Realistic art (README §13)
 
