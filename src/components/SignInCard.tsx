@@ -1,5 +1,6 @@
 import { ProductMark } from "./ProductMark";
 import { SignInButton } from "./SignInButton";
+import { ThemeSwitch } from "./ThemeSwitch";
 import type { Messages } from "@/i18n/messages";
 import styles from "./SignInCard.module.css";
 
@@ -57,6 +58,14 @@ export function SignInCard({
           </span>
         ) : null}
       </section>
+      <div data-sign-in-theme="" className={`${styles.theme} ${styles.enter} ${styles.enter4}`}>
+        <ThemeSwitch
+          label={messages.theme.label}
+          auto={messages.theme.auto}
+          light={messages.theme.light}
+          dark={messages.theme.dark}
+        />
+      </div>
     </main>
   );
 }

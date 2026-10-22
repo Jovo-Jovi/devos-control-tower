@@ -300,3 +300,7 @@ WebGL context drops the drawn frame and rebuilds on restore. Evidence from the s
 globe test is `.devos/screens/planet-*.png` (the page, the slot, reduced motion, no WebGL, and the
 roll frames `planet-roll-0000.png` through `planet-roll-1800.png`) and `planet-layout-shift.json`.
 Awaiting the verdict. A PASS stops at gate G-Planet-Sharp for the owner.
+
+## 2026-10-22 — T13 Theme switch on sign-in (attempt 1)
+
+The existing ThemeSwitch sits at the foot of every sign-in state, outside the card. Auto, Light and Dark set `data-theme` on the open document only; a reload returns to Auto, and nothing is stored. The card, the scene and the switch's own code are unchanged. Evidence is `e2e/sign-in.spec.ts` test `Theme switch on sign-in` and `.devos/screens/t13-*.png` (signed-out, denied and error, in light and dark, at 1280 and 390). Playwright's Chromium was installed once so `pnpm e2e` could launch. Awaiting the verdict.

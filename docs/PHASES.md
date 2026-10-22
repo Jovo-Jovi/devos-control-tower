@@ -26,7 +26,7 @@ The runner reads the table below, and `guard:phases` checks it.
 | T10 | P02 | J5 | Pilot history export and import page; replay of 25 tasks labelled imported | 2 | G-Tower-v1 | [x] | PASS a1 — docs/reviews/T10-a1.md |
 | T11 | P02 | J5 | Design v3.1 art: the owner's backgrounds and planet in the scene | 2 | G-Design-v3.1 | [x] | PASS a2 — docs/reviews/T11-a2.md |
 | T12 | P02 | J5 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | 2 | G-Planet-Sharp | [x] | PASS a1 — docs/reviews/T12-a1.md |
-| T13 | P02 | J5 | Theme switch on the sign-in pages: Auto · Light · Dark at the foot of every sign-in state, nothing stored | 2 | — | [ ] | — |
+| T13 | P02 | J5 | Theme switch on the sign-in pages: Auto · Light · Dark at the foot of every sign-in state, nothing stored | 2 | — | [x] | PASS a1 — docs/reviews/T13-a1.md |
 | T14 | P02 | J5 | Link preview: Open Graph and Twitter-card tags with a 1200×630 image captured from the real sign-in page | 2 | G-Link-Preview | [ ] | — |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both

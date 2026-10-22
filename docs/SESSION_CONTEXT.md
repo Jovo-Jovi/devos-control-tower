@@ -1,6 +1,6 @@
 # TOWER — Session context
 
-**Phase:** P02 (Tower v1 pages) · **Last verdict:** T11 PASS a2 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022
+**Phase:** P02 (Tower v1 pages) · **Last verdict:** T12 PASS a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022
 
 ## Done steps
 
@@ -18,8 +18,9 @@
 | T09 | Sign-in retrofit to design v2: first paint, redirecting, checking-access interstitial, shared mark, denied, error, signed out | PASS a2 |
 | T10 | Pilot history export and import page; replay of 25 tasks labelled imported | PASS a1 |
 | T11 | Design v3.1 art: the owner's backgrounds and planet in the scene | PASS a2 |
-| T12 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | built a1 — awaiting verdict |
+| T12 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | PASS a1 |
+| T13 | Theme switch on the sign-in pages | built a1 — awaiting verdict |
 
 ## Next action
 
-Review of T12 attempt 1, then the owner's gate G-Planet-Sharp.
+Review of T13 attempt 1.

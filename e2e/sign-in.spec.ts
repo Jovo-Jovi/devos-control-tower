@@ -855,6 +855,112 @@ test("Evidence", async ({ browser }) => {
   for (const value of Object.values(shifts)) expect(value).toBe(0);
 });
 
+test("Theme switch on sign-in", async ({ browser }) => {
+  const cspMessages: string[] = [];
+  const watchCsp = (page: Page) => {
+    page.on("console", (message) => {
+      const text = message.text();
+      if (text.includes("Content Security Policy")) cspMessages.push(text);
+    });
+  };
+  const canvasColor = (page: Page) =>
+    page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--color-canvas").trim());
+  const expectApart = async (page: Page) => {
+    const switchBox = await page.locator('[data-sign-in-theme] [role="group"]').boundingBox();
+    const cardBox = await page.locator("[data-sign-in-card]").boundingBox();
+    if (!switchBox || !cardBox) throw new Error("sign-in theme or card is missing");
+    expect(switchBox.y).toBeGreaterThanOrEqual(cardBox.y + cardBox.height);
+  };
+
+  for (const path of ["/sign-in", "/sign-in?reason=not_owner", "/sign-in?reason=auth_error"]) {
+    const context = await browser.newContext({ colorScheme: "dark" });
+    const page = await context.newPage();
+    watchCsp(page);
+    await page.goto(path, { waitUntil: "load" });
+    await settle(page);
+
+    const group = page.getByRole("group", { name: "Theme" });
+    await expect(group).toBeVisible();
+    expect(
+      await group.evaluate((element) => ({
+        inTheme: Boolean(element.closest("[data-sign-in-theme]")),
+        inCard: Boolean(element.closest("[data-sign-in-card]")),
+      })),
+    ).toEqual({ inTheme: true, inCard: false });
+    await expect(page.getByRole("button", { name: "Auto" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+    expect(await canvasColor(page)).toBe("#050507");
+
+    const storageBefore = await page.evaluate(() => ({
+      local: localStorage.length,
+      session: sessionStorage.length,
+    }));
+    const cookieNamesBefore = (await context.cookies()).map((cookie) => cookie.name).sort();
+    const urlBefore = page.url();
+
+    await page.getByRole("button", { name: "Light" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(page.getByRole("button", { name: "Light" })).toHaveAttribute("aria-pressed", "true");
+    expect(await canvasColor(page)).toBe("#eef4fb");
+
+    await page.getByRole("button", { name: "Dark" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    expect(await canvasColor(page)).toBe("#050507");
+
+    const storageAfter = await page.evaluate(() => ({
+      local: localStorage.length,
+      session: sessionStorage.length,
+    }));
+    expect(storageAfter).toEqual({ local: 0, session: 0 });
+    expect(storageAfter).toEqual(storageBefore);
+    expect((await context.cookies()).map((cookie) => cookie.name).sort()).toEqual(cookieNamesBefore);
+    expect(page.url()).toBe(urlBefore);
+    await expectApart(page);
+
+    await page.reload({ waitUntil: "load" });
+    await expect(page.locator("html")).not.toHaveAttribute("data-theme");
+    await expect(page.getByRole("button", { name: "Auto" })).toHaveAttribute("aria-pressed", "true");
+    await context.close();
+  }
+
+  const callback = await browser.newContext();
+  const checking = await callback.request.get("/auth/callback");
+  expect(checking.status()).toBe(200);
+  const checkingBody = await checking.text();
+  expect(checkingBody).toContain("data-sign-in-theme");
+  expect(checkingBody).toContain('data-theme-option="light"');
+  await callback.close();
+
+  const captures = [
+    { state: "signed-out", path: "/sign-in" },
+    { state: "denied", path: "/sign-in?reason=not_owner" },
+    { state: "error", path: "/sign-in?reason=auth_error" },
+  ] as const;
+  for (const viewport of VIEWPORTS) {
+    for (const capture of captures) {
+      for (const theme of THEMES) {
+        const context = await browser.newContext({
+          viewport,
+          colorScheme: theme === "light" ? "dark" : "light",
+          reducedMotion: "reduce",
+        });
+        const page = await context.newPage();
+        watchCsp(page);
+        await page.goto(capture.path, { waitUntil: "load" });
+        await settle(page);
+        await page.getByRole("button", { name: theme === "light" ? "Light" : "Dark" }).click();
+        await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+        await settle(page);
+        await page.screenshot({ path: `.devos/screens/t13-${capture.state}-${theme}-${viewport.width}.png` });
+        await expectApart(page);
+        await context.close();
+      }
+    }
+  }
+
+  expect(cspMessages).toEqual([]);
+});
+
 function expectedLines(state: (typeof STATES)[number]): string[] {
   if (state === "signed-out") {
     return ["Control Tower", "The Tower admits one GitHub account: its owner.", "Continue with GitHub"];
