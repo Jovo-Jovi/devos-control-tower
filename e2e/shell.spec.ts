@@ -1,4 +1,4 @@
-import { chromium, expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createOwner, removeOwner, sessionCookies, type SessionCookie } from "./support/owner";
 
@@ -612,7 +612,71 @@ async function centreCrop(page: Page) {
   });
 }
 
+async function openGlobe(
+  gl: Browser,
+  baseURL: string,
+  csp: string[],
+  theme: "light" | "dark",
+  size: (typeof GLOBE_SIZES)[number],
+  reducedMotion: "no-preference" | "reduce",
+  blockWebgl: boolean,
+) {
+  const context = await gl.newContext({
+    baseURL,
+    colorScheme: theme,
+    viewport: { width: size.width, height: size.height },
+    deviceScaleFactor: size.dpr,
+    reducedMotion,
+  });
+  if (blockWebgl) {
+    await context.addInitScript(() => {
+      const prototype = HTMLCanvasElement.prototype;
+      const original = prototype.getContext;
+      prototype.getContext = function (this: HTMLCanvasElement, ...args: Parameters<HTMLCanvasElement["getContext"]>) {
+        const kind = String(args[0]);
+        if (kind === "webgl" || kind === "webgl2" || kind === "experimental-webgl") return null;
+        return original.apply(this, args);
+      } as HTMLCanvasElement["getContext"];
+    });
+  }
+  await context.addCookies(ownerCookies);
+  await armShift(context);
+  const page = await context.newPage();
+  watchCsp(page, csp);
+  await page.goto("/");
+  await page.waitForFunction(() => document.documentElement.hasAttribute("data-scene-ready"));
+  return { context, page };
+}
+
+async function backingOf(canvas: ReturnType<Page["locator"]>) {
+  return canvas.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      width: (element as HTMLCanvasElement).width,
+      height: (element as HTMLCanvasElement).height,
+      backing: Math.round(rect.width * window.devicePixelRatio),
+    };
+  });
+}
+
+async function expectStillGlobe(page: Page) {
+  await hideShell(page);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      }),
+  );
+  const first = await centreCrop(page);
+  await page.waitForTimeout(1000);
+  const second = await centreCrop(page);
+  expect(Buffer.compare(first, second)).toBe(0);
+}
+
 test("Sharp globe", async () => {
+  test.setTimeout(180_000);
   const csp: string[] = [];
   const baseURL = test.info().project.use.baseURL;
   if (!baseURL) throw new Error("missing baseURL");
@@ -620,21 +684,8 @@ test("Sharp globe", async () => {
   try {
     for (const theme of ["light", "dark"] as const) {
       for (const size of GLOBE_SIZES) {
-        const context = await gl.newContext({
-          baseURL,
-          colorScheme: theme,
-          viewport: { width: size.width, height: size.height },
-          deviceScaleFactor: size.dpr,
-          reducedMotion: "no-preference",
-        });
-        await context.addCookies(ownerCookies);
-        await armShift(context);
-        const page = await context.newPage();
-        watchCsp(page, csp);
-        await page.goto("/");
-        await page.waitForFunction(() => document.documentElement.hasAttribute("data-scene-ready"));
-
-        const canvases = page.locator("[data-planet-canvas]");
+        const motion = await openGlobe(gl, baseURL, csp, theme, size, "no-preference", false);
+        const canvases = motion.page.locator("[data-planet-canvas]");
         await expect(canvases).toHaveCount(2);
         for (const canvas of await canvases.all()) {
           await expect
@@ -642,7 +693,7 @@ test("Sharp globe", async () => {
             .not.toBeNull();
           const renderer = await canvas.getAttribute("data-planet-renderer");
           if (renderer !== "webgl") {
-            const probe = await page.evaluate(() => {
+            const probe = await motion.page.evaluate(() => {
               const created = document.createElement("canvas");
               const context = created.getContext("webgl");
               return context === null ? "null" : String(context);
@@ -654,26 +705,45 @@ test("Sharp globe", async () => {
           await expect(canvas).toHaveAttribute("data-planet-drawn", "");
           await expect(canvas).toHaveAttribute("data-planet-renderer", "webgl");
           await expect(canvas).toHaveAttribute("data-planet-running", "");
-          const metrics = await canvas.evaluate((element) => {
-            const rect = element.getBoundingClientRect();
-            return {
-              width: (element as HTMLCanvasElement).width,
-              height: (element as HTMLCanvasElement).height,
-              backing: Math.round(rect.width * window.devicePixelRatio),
-            };
-          });
+          const metrics = await backingOf(canvas);
           expect(metrics.width).toBe(size.backing);
           expect(metrics.height).toBe(size.backing);
           expect(metrics.width).toBe(metrics.backing);
           expect(metrics.height).toBe(metrics.backing);
         }
-
-        await hideShell(page);
-        const first = await centreCrop(page);
-        await page.waitForTimeout(1000);
-        const second = await centreCrop(page);
+        await hideShell(motion.page);
+        const first = await centreCrop(motion.page);
+        await motion.page.waitForTimeout(1000);
+        const second = await centreCrop(motion.page);
         expect(Buffer.compare(first, second)).not.toBe(0);
-        await context.close();
+        await motion.context.close();
+
+        const reduced = await openGlobe(gl, baseURL, csp, theme, size, "reduce", false);
+        const reducedCanvases = reduced.page.locator("[data-planet-canvas]");
+        await expect(reducedCanvases).toHaveCount(2);
+        for (const canvas of await reducedCanvases.all()) {
+          await expect(canvas).toHaveAttribute("data-planet-drawn", "", { timeout: 15_000 });
+          await expect(canvas).toHaveAttribute("data-planet-renderer", "webgl");
+          await expect(canvas).not.toHaveAttribute("data-planet-running");
+        }
+        await expectStillGlobe(reduced.page);
+        await reduced.context.close();
+
+        const flat = await openGlobe(gl, baseURL, csp, theme, size, "no-preference", true);
+        const flatCanvases = flat.page.locator("[data-planet-canvas]");
+        await expect(flatCanvases).toHaveCount(2);
+        for (const canvas of await flatCanvases.all()) {
+          await expect(canvas).toHaveAttribute("data-planet-drawn", "", { timeout: 15_000 });
+          await expect(canvas).toHaveAttribute("data-planet-renderer", "2d");
+          await expect(canvas).not.toHaveAttribute("data-planet-running");
+          const metrics = await backingOf(canvas);
+          expect(metrics.width).toBe(size.backing);
+          expect(metrics.height).toBe(size.backing);
+          expect(metrics.width).toBe(metrics.backing);
+          expect(metrics.height).toBe(metrics.backing);
+        }
+        await expectStillGlobe(flat.page);
+        await flat.context.close();
       }
     }
   } finally {
