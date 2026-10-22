@@ -1,7 +1,8 @@
 {
   "site": {
     "productName": "DEV_OS Control Tower",
-    "tagline": "A private ledger of what your projects report."
+    "tagline": "A private ledger of what your projects report.",
+    "previewAlt": "Control Tower sign-in page: a glass card over a city skyline and the planet."
   },
   "signIn": {
     "title": "Sign in",
