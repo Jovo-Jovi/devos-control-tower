@@ -245,3 +245,39 @@ readability behind the glass is judged on the screenshots in both themes at G-De
 `docs/design/v3/assets/` (they stay as the design record); the method manuals' description of `art.mjs`
 (`docs/method/AUTOMATION.md` §6, "prints the scene-art prompts"), which a method task corrects; the order of T11
 against T06–T10 (the owner's renumbering, §3).
+
+### OD-10 — A sharp globe: a per-pixel sphere replaces the displacement filter
+**Status:** DRAFT — signed when the human merges the intake PR
+**Amends:** OD-09 §1 (the globe strips and the sphere map: the strips become the v3.2 files at 2048×1024, the sphere
+map and `feDisplacementMap` leave) and `DESIGN_SYSTEM.md` §5.10's "No WebGL" (OD-06 A1 §3 allowed only `motion` as a
+library; this OD adds no library). OD-09 §2–§5 stand otherwise; the v3.2 plates the owner landed in PR #36 are kept
+as they are.
+**Requested by:** issue #35
+**1.** The planet is drawn sharp at every size and screen density. Each of the two globes (day; crimson inside the
+moving mask disc) becomes a canvas drawn by a new client component `PlanetGlobe`: its backing store is its rendered
+size × `devicePixelRatio`, and it samples its strip per device pixel on an orthographic sphere with WebGL 1 (no new
+dependency, no library), mipmapped. Size, position, shade, atmosphere, glow and the mask disc stay CSS and unchanged;
+no token changes.
+**2.** Timing is the CSS one by construction: the `.spin` (120 s, `--dur-planet-spin`) and `.turn` (half a turn over
+`--dur-scene` on the switch) wrappers stay, and the canvas reads their `translateX` every frame, so reduced motion,
+the hidden pause and the evidence filmstrips' seeking act on it as they act on the CSS today.
+**3.** A still globe in its theme's position when `prefers-reduced-motion: reduce` holds (WebGL draws on change only)
+or when WebGL is not available (a 2D canvas drawing, once per change). Until a canvas has drawn its first frame, and
+when neither path works, the strip shows flat under the shade, as the poster.
+**4.** Assets: `planet-day.webp` and `planet-crimson.webp` become the 2048×1024 files of `docs/design/v3/assets/v3.2/`,
+byte for byte; `planet-sphere-map.png` leaves `src/components/scene/assets/`. `DESIGN_SYSTEM.md` §3, §5.2, §5.10, §9
+and §10 are amended as the intake PR writes them; the byte budget becomes the size of the set, 3 847 962 bytes
+(README §15). Loading stays §9: before the first paint only the theme's plate and the theme's strip; the renderer
+reuses the strip's CSS URL, so no file is fetched under a second URL; the page never waits for an image.
+`scripts/scene/art.mjs verify` checks the seven files against `assets/v3.2/`.
+**5.** Placement: one new row, **T12** (risk 2, three stages), gate **G-Planet-Sharp**: on captures at 1280 (DPR 2) and
+390 (DPR 3), in light and dark, no squares on the globe; each canvas's backing size equals its rendered size ×
+`devicePixelRatio`; the spin and the crimson roll keep today's timing; the still globe appears with reduced motion and
+without WebGL; layout shift 0; before the first paint one strip loads. The owner signs by merging.
+**6.** No data, route, header, CSP or dependency change: the strips are same-origin images (`img-src 'self'`), and
+WebGL needs no new directive. The boundary is unchanged (no form, cookie, storage, tracker or third party), so the
+`devos:boundary` line does not change. No setting outside the repository (`docs/setup-items.json` not needed).
+**Does not decide:** a WebGL renderer for anything else (the starfield stays 2D); new art or a change to the strips'
+look; a contrast test on the plates; `docs/design/v3/README.md` §15's last paragraph ("not in this change"), which
+stays as the owner's design record; the method manual's description of `art.mjs` (`docs/method/AUTOMATION.md` §6,
+already left to a method task by OD-09).

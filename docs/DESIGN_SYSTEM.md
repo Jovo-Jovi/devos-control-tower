@@ -2,7 +2,8 @@
 
 **Status:** approved **direction** (OD-08, DRAFT until the owner merges the intake PR of issue #13; OD-06 A1
 for v2). **v3.1** amendments to §1, §3, §5, §9 and §10 (the owner's art): OD-09, DRAFT until the owner merges the
-intake PR of issue #18. Precedence 8. Supersedes v2 ("Night-shift control room"). The approved design folder
+intake PR of issue #18. The **sharp globe** amendments to §3, §5.2, §5.10, §9 and §10 (a per-pixel sphere replaces
+the displacement filter): OD-10, DRAFT until the owner merges the intake PR of issue #35. Precedence 8. Supersedes v2 ("Night-shift control room"). The approved design folder
 `docs/design/v3/` (README, mockup, assets, screens) ranks with this file. Where this file says "README §n", that
 section of `docs/design/v3/README.md` is binding as written; where the two differ, **this file holds**, because it
 records the intake decisions (§1 font names, §3 image location, §10 sizes). Each UI fence carries a Design
@@ -340,7 +341,7 @@ and the map. Glass = `--glass` with `backdrop-filter: blur(var(--blur-glass)) sa
 | Component | Look | Motion (tokens from §1, rules from §5) |
 |---|---|---|
 | `Scene` | README §3, §14 and §15 (v3.2): the owner's plates `bg-day` and `bg-night` (landscape; the `-portrait` pair at ≤ 760 px), each filling the fixed layer with `background-size: cover` anchored at the bottom centre. Day clouds are a separate transparent layer over the day plate and under the night plate. Night keeps the owner's Milky Way plate still; a canvas starfield and a faint horizon mist sit above it. `aria-hidden`, `pointer-events: none`, behind every page | the two plates crossfade by opacity (`--scene-light`/`--scene-dark`) over `--dur-scene`; clouds and mist drift by `transform` only; stars twinkle and drift on the canvas. The day plate does not scale |
-| `Planet` | README §3.4 (v3.1): the day globe (`planet-day`) and the crimson globe (`planet-crimson`, inside the `--mask-planet-crimson` disc), each through the sphere filter (`feDisplacementMap` `scale` 300), then shade and atmosphere; top end corner; × `--planet-phone-scale` at ≤ 760 px | the switch turns both globes half a turn while the mask disc sweeps across (`mask-position`, `--dur-scene`), so the crimson night side rolls over; one spin loop (`--dur-planet-spin`) per §5 B; glow = two layers crossfading by opacity, never an animated shadow |
+| `Planet` | README §3.4 (v3.1): the day globe (`planet-day`) and the crimson globe (`planet-crimson`, inside the `--mask-planet-crimson` disc), each drawn as a sphere by `PlanetGlobe` (OD-10): a canvas whose backing store is its rendered size × `devicePixelRatio`, sampling the 2048×1024 strip per device pixel (WebGL; without WebGL a still 2D drawing; until its first frame the strip shows flat), then shade and atmosphere; top end corner; × `--planet-phone-scale` at ≤ 760 px | the switch turns both globes half a turn while the mask disc sweeps across (`mask-position`, `--dur-scene`), so the crimson night side rolls over; one spin loop (`--dur-planet-spin`) per §5 B. The spin and turn stay CSS (`.spin`, `.turn`); the canvas reads their `translateX` every frame, so timing, reduced motion and the hidden pause are the CSS ones. Reduced motion or no WebGL: a still globe in its theme's position; glow = two layers crossfading by opacity, never an animated shadow |
 | `ThemeSwitch` (new) | segmented **Auto · Light · Dark**, `aria-pressed`, in the top bar | the pressed segment's wash moves `--dur-quick`; the theme itself changes at once (§5 A) |
 | `AppSidebar` (new) | README §2: glass, product mark, "DEV_OS", links to routes that exist only; current link `--color-energy-wash` + `--nav-bar` energy bar at the start edge; a strip above the content at ≤ 980 px | none |
 | `AppHeader` (top bar) | glass, "Control Tower", `LiveMark` (from T05), `ThemeSwitch`, avatar (alt = login), login in `<bdi>`, sign-out | none |
@@ -380,8 +381,8 @@ v2's rules, with the amendments OD-08 signs (README §8):
    watching, now" and are bound by B.
 2. **Animated properties:** `transform`, `opacity`, `clip-path`, and (amendment **C**) `stroke-dashoffset`,
    `offset-distance` and `mask-position`. `filter` and `box-shadow` are never animated. Static blur is allowed on
-   its own elements only: the blades' glow path and the 340 px globes' sphere displacement (v3.1 removes the
-   cloud sea and its SVG blur).
+   its own elements only: the blades' glow path (v3.1 removes the cloud sea and its SVG blur; OD-10 removes the
+   globes' sphere displacement).
 3. **Durations from tokens only.** Nothing interactive above `--dur-slow`, except (amendment **A**) the theme
    switch: `--dur-scene` (1.8 s, `--ease-in-out`) for the scene and the planet; it answers *what changed* and blocks
    nothing. Total first-paint choreography ≤ 740 ms.
@@ -401,8 +402,9 @@ v2's rules, with the amendments OD-08 signs (README §8):
    evidence), images after the first paint, every loop paused when hidden.
 10. **Library:** CSS transitions/keyframes and the View Transitions API first; **Motion** (`motion`,
     `motion/react`) for FLIP, odometer and gesture-driven pieces. No other animation library and no Lottie.
-    The one canvas is the night starfield (`Starfield`): it draws with `requestAnimationFrame`, not React
-    state, and it is still under reduced motion. No WebGL.
+    The canvases are the night starfield (`Starfield`) and the two globes (`PlanetGlobe`, OD-10): they draw
+    with `requestAnimationFrame`, not React state, and they are still under reduced motion and stop while
+    hidden. WebGL only in `PlanetGlobe` (WebGL 1, no library); nowhere else.
 
 ## 6. Quality floor
 
@@ -443,13 +445,14 @@ final check of motion feel at each UI gate.
 The scene's images are bundled with the code, not served from `public/`: every path outside `/_next/`, `/api/`
 and the sign-in and auth routes is behind the sign-in proxy (`src/proxy.ts`), so a `public/scene/` file could not
 reach `/sign-in` without a proxy change. They live in `src/components/scene/assets/` under the baseline names and
-are referenced from the scene's CSS modules (and the sphere map through a static import), so they are served from
-`/_next/static/media/`.
+are referenced from the scene's CSS modules, so they are served from `/_next/static/media/`.
 
 **v3.2.** The bundled plates are the owner's JPEG files, copied byte for byte from `docs/design/v3/assets/v3.2/`
 (README §15). Night is that file unchanged, Milky Way included. Day is the same file; its clouds in the open
-sky are a separate transparent texture, `sky-clouds.webp`, also kept in `assets/v3.2/`. The globe strips and
-the sphere map stay the v3.1 files. The old v3.1 WebP plates leave `src/components/scene/assets/`.
+sky are a separate transparent texture, `sky-clouds.webp`, also kept in `assets/v3.2/`. The old v3.1 WebP plates
+leave `src/components/scene/assets/`. **OD-10:** the globe strips become the v3.2 strips at 2048×1024 (README §15,
+byte for byte from `assets/v3.2/`), drawn per device pixel by `PlanetGlobe`; `planet-sphere-map.png` and the
+`feDisplacementMap` filter leave the bundle. Every bundled scene file now comes from `assets/v3.2/`.
 
 | File | Size | Alpha | Seamless in x | Bytes | Role |
 |---|---|---|---|---|---|
@@ -458,16 +461,17 @@ the sphere map stay the v3.1 files. The old v3.1 WebP plates leave `src/componen
 | `bg-day-portrait.jpg` | 1440×2560 | no | no | 421 534 | day plate, ≤ 760 px |
 | `bg-night-portrait.jpg` | 1440×2560 | no | no | 762 660 | night plate, ≤ 760 px |
 | `sky-clouds.webp` | 2048×1152 | yes | soft edge fade | 440 388 | day cloud layer, two speeds, under the night plate |
-| `planet-day.webp` | 1360×680 | no | yes | 169 748 | day globe strip, clouds baked in (shown at 680×340) |
-| `planet-crimson.webp` | 1360×680 | no | yes | 114 850 | crimson night globe strip, city lights screened on |
-| `planet-sphere-map.png` | 340×340 | no | — | 15 372 | displacement map at scale 300, lossless |
+| `planet-day.webp` | 2048×1024 | no | yes | 567 430 | day globe strip, clouds baked in (one turn = the strip's width) |
+| `planet-crimson.webp` | 2048×1024 | no | yes | 406 100 | crimson night globe strip, city lights screened on |
 
-Budget: the eight files together at most 3 400 000 bytes (this set: 3 174 402). **Loading:** before the first
-paint only the theme's plate for the viewport (the system theme, since nothing is stored) and that theme's globe
-strip load, from CSS rules under `prefers-color-scheme` and the 760 px query; in light, the cloud texture loads
-with the day plate. The other theme's plate and strip, and the cloud texture if the first theme is dark, load
-after hydration (`:root[data-scene-ready]`); a viewport never loads the other orientation's pair; the sphere
-map is a static import. The map and the page never wait for an image.
+Budget: the seven files together at most 3 847 962 bytes, the size of this set (README §15: "the byte budget
+becomes the size of this set"; 367 325 + 882 525 + 421 534 + 762 660 + 440 388 + 567 430 + 406 100). **Loading:**
+before the first paint only the theme's plate for the viewport (the system theme, since nothing is stored) and that
+theme's globe strip load, from CSS rules under `prefers-color-scheme` and the 760 px query; in light, the cloud
+texture loads with the day plate. The other theme's plate and strip, and the cloud texture if the first theme is
+dark, load after hydration (`:root[data-scene-ready]`); a viewport never loads the other orientation's pair. The
+globe renderer takes each strip's URL from its CSS background (the same file, never a second URL), and until its
+first frame the strip shows flat under the shade. The map and the page never wait for an image.
 
 ## 10. Realistic art (README §13)
 
@@ -481,8 +485,9 @@ the same images by hand in Cursor's editor with the prompts the task commits, th
 still apply.
 
 **v3.2.** The owner's plates are bundled byte for byte (README §15). `scripts/scene/art.mjs verify` checks that
-set: the eight names and no other, byte identity with `assets/v3.2/` for the plates and the cloud texture and
-with `assets/v3.1/` for the globe, size and format as §9, and the byte budget. The night plates are not
+set: the seven names of §9 and no other, byte identity with `assets/v3.2/` for every file (OD-10: the globe strips
+too; the sphere map is gone), size and format as §9, a seam line for each file seamless in x (the cloud texture and the two strips), and the byte
+budget. The night plates are not
 regenerated. The cloud texture is a transparent layer; it is not painted into the plates.
 
 ## 11. What this system does not decide
