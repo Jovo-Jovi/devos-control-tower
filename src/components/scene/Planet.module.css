@@ -33,17 +33,22 @@
   border-radius: var(--radius-pill);
 }
 
-.filter {
-  position: absolute;
-  inline-size: 0;
-  block-size: 0;
-}
-
 .globe {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  filter: url(#sphere);
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  opacity: 0;
+}
+
+.canvas[data-planet-drawn] {
+  opacity: 1;
 }
 
 .spin {

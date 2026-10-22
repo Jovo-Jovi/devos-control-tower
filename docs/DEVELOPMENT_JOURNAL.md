@@ -287,3 +287,16 @@ Attempt 1 built S1–S6 and halted on a fence defect: the geometry comment conta
 rejects, and `.crimsonMask` had a one-value `mask-size`, so the crimson disc did not cover the globe
 in dark. Attempt 2 fixed the comment and the mask size, then did the guide and the ledgers. Awaiting
 the verdict. A PASS stops at gate G-Design-v3.1 for the owner.
+
+## 2026-10-22 — T12 Sharp globe (attempt 1)
+
+The displacement filter and the 340×340 sphere map are gone. Each globe is a canvas that samples the
+2048×1024 strip per device pixel on an orthographic sphere. `PlanetGlobe` takes WebGL 1 when that
+context exists: a frame loop while motion is allowed, and one draw per change when reduced motion, a
+hidden pause or a hidden document asks for a still globe. When WebGL is missing it draws the same
+sphere on a 2D canvas, still. Until the first draw, the flat strip stays as the poster. The 120 s spin
+and the theme-switch half-turn stay on the CSS wrappers; the canvas reads their `translateX`. A lost
+WebGL context drops the drawn frame and rebuilds on restore. Evidence from the shell spec's Sharp
+globe test is `.devos/screens/planet-*.png` (the page, the slot, reduced motion, no WebGL, and the
+roll frames `planet-roll-0000.png` through `planet-roll-1800.png`) and `planet-layout-shift.json`.
+Awaiting the verdict. A PASS stops at gate G-Planet-Sharp for the owner.

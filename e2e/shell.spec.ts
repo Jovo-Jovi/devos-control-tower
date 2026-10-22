@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { chromium, expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createOwner, removeOwner, sessionCookies, type SessionCookie } from "./support/owner";
 
@@ -9,7 +9,6 @@ const SCENE_FILES = [
   "bg-night-portrait",
   "planet-day",
   "planet-crimson",
-  "planet-sphere-map",
 ];
 
 function sceneName(url: string): string | null {
@@ -24,7 +23,7 @@ function sceneName(url: string): string | null {
 function sceneCounts(urls: string[]): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const name of SCENE_FILES) counts[name] = 0;
-  for (const url of urls) {
+  for (const url of new Set(urls)) {
     const name = sceneName(url);
     if (name) counts[name] += 1;
   }
@@ -332,7 +331,7 @@ test("Not found and sign-in on the scene", async ({ browser }) => {
   await expect
     .poll(() => {
       const counts = sceneCounts(media);
-      const landscape = ["bg-day", "bg-night", "planet-day", "planet-crimson", "planet-sphere-map"];
+      const landscape = ["bg-day", "bg-night", "planet-day", "planet-crimson"];
       return (
         landscape.every((name) => counts[name] === 1) &&
         counts["bg-day-portrait"] === 0 &&
@@ -470,9 +469,7 @@ test("Scene art v3.1", async ({ browser }) => {
   });
   await lightPage.goto("/sign-in", { waitUntil: "networkidle" });
   expect(lightNames).toEqual(expect.arrayContaining(["bg-day", "planet-day"]));
-  expect(lightNames.every((name) => name === "bg-day" || name === "planet-day" || name === "planet-sphere-map")).toBe(
-    true,
-  );
+  expect(lightNames.every((name) => name === "bg-day" || name === "planet-day")).toBe(true);
   await lightOff.close();
 
   const darkOff = await browser.newContext({ ...beforeHydration, colorScheme: "dark" });
@@ -485,9 +482,7 @@ test("Scene art v3.1", async ({ browser }) => {
   });
   await darkPage.goto("/sign-in", { waitUntil: "networkidle" });
   expect(darkNames).toEqual(expect.arrayContaining(["bg-night", "planet-crimson"]));
-  expect(
-    darkNames.every((name) => name === "bg-night" || name === "planet-crimson" || name === "planet-sphere-map"),
-  ).toBe(true);
+  expect(darkNames.every((name) => name === "bg-night" || name === "planet-crimson")).toBe(true);
   await darkOff.close();
 
   const phone = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: "light" });
@@ -507,7 +502,6 @@ test("Scene art v3.1", async ({ browser }) => {
         counts["bg-night-portrait"] === 1 &&
         counts["planet-day"] === 1 &&
         counts["planet-crimson"] === 1 &&
-        counts["planet-sphere-map"] === 1 &&
         counts["bg-day"] === 0 &&
         counts["bg-night"] === 0
       );
@@ -525,7 +519,9 @@ test("Scene art v3.1", async ({ browser }) => {
     structurePage.locator("[data-scene] polygon, [data-scene] polyline, [data-scene] rect, [data-scene] ellipse"),
   ).toHaveCount(0);
   await expect(structurePage.locator("[data-planet-globe]")).toHaveCount(2);
-  await expect(structurePage.locator("feDisplacementMap")).toHaveAttribute("scale", "300");
+  await expect(structurePage.locator("feDisplacementMap")).toHaveCount(0);
+  await expect(structurePage.locator("[data-planet-canvas]")).toHaveCount(2);
+  await expect(structurePage.locator('[data-planet-crimson-mask] [data-planet-canvas="crimson"]')).toHaveCount(1);
   const dayPlate = await structurePage.locator('[data-scene-plate="day"]').evaluate((element) => {
     const style = getComputedStyle(element);
     return {
@@ -587,4 +583,230 @@ test("Scene art v3.1", async ({ browser }) => {
   expect(await mask.evaluate((element) => getComputedStyle(element).maskPosition)).toBe("300px -90px");
   expect(csp).toEqual([]);
   await roll.close();
+});
+
+const GLOBE_SIZES = [
+  { width: 1280, height: 900, dpr: 2, backing: 680 },
+  { width: 390, height: 844, dpr: 3, backing: 632 },
+] as const;
+
+async function hideShell(page: Page) {
+  await page.evaluate(() => {
+    for (const child of document.body.children) {
+      if (!(child instanceof HTMLElement) || child.matches("[data-scene]")) continue;
+      child.style.visibility = "hidden";
+    }
+  });
+}
+
+async function centreCrop(page: Page) {
+  const box = await page.locator('[data-planet-canvas="day"]').boundingBox();
+  if (!box) throw new Error("day canvas has no box");
+  return page.screenshot({
+    clip: {
+      x: box.x + box.width / 4,
+      y: box.y + box.height / 4,
+      width: box.width / 2,
+      height: box.height / 2,
+    },
+  });
+}
+
+async function openGlobe(
+  gl: Browser,
+  baseURL: string,
+  csp: string[],
+  theme: "light" | "dark",
+  size: (typeof GLOBE_SIZES)[number],
+  reducedMotion: "no-preference" | "reduce",
+  blockWebgl: boolean,
+) {
+  const context = await gl.newContext({
+    baseURL,
+    colorScheme: theme,
+    viewport: { width: size.width, height: size.height },
+    deviceScaleFactor: size.dpr,
+    reducedMotion,
+  });
+  if (blockWebgl) {
+    await context.addInitScript(() => {
+      const prototype = HTMLCanvasElement.prototype;
+      const original = prototype.getContext;
+      prototype.getContext = function (this: HTMLCanvasElement, ...args: Parameters<HTMLCanvasElement["getContext"]>) {
+        const kind = String(args[0]);
+        if (kind === "webgl" || kind === "webgl2" || kind === "experimental-webgl") return null;
+        return original.apply(this, args);
+      } as HTMLCanvasElement["getContext"];
+    });
+  }
+  await context.addCookies(ownerCookies);
+  await armShift(context);
+  const page = await context.newPage();
+  watchCsp(page, csp);
+  await page.goto("/");
+  await page.waitForFunction(() => document.documentElement.hasAttribute("data-scene-ready"));
+  return { context, page };
+}
+
+async function backingOf(canvas: ReturnType<Page["locator"]>) {
+  return canvas.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      width: (element as HTMLCanvasElement).width,
+      height: (element as HTMLCanvasElement).height,
+      backing: Math.round(rect.width * window.devicePixelRatio),
+    };
+  });
+}
+
+async function twoFrames(page: Page) {
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      }),
+  );
+}
+
+async function expectStillGlobe(page: Page) {
+  await hideShell(page);
+  await twoFrames(page);
+  const first = await centreCrop(page);
+  await page.waitForTimeout(1000);
+  const second = await centreCrop(page);
+  expect(Buffer.compare(first, second)).toBe(0);
+}
+
+test("Sharp globe", async () => {
+  test.setTimeout(300_000);
+  const csp: string[] = [];
+  const shifts: Record<string, number> = {};
+  const baseURL = test.info().project.use.baseURL;
+  if (!baseURL) throw new Error("missing baseURL");
+  const gl = await chromium.launch({ args: ["--enable-unsafe-swiftshader"] });
+  try {
+    for (const theme of ["light", "dark"] as const) {
+      for (const size of GLOBE_SIZES) {
+        const motion = await openGlobe(gl, baseURL, csp, theme, size, "no-preference", false);
+        const canvases = motion.page.locator("[data-planet-canvas]");
+        await expect(canvases).toHaveCount(2);
+        for (const canvas of await canvases.all()) {
+          await expect
+            .poll(async () => canvas.getAttribute("data-planet-renderer"), { timeout: 15_000 })
+            .not.toBeNull();
+          const renderer = await canvas.getAttribute("data-planet-renderer");
+          if (renderer !== "webgl") {
+            const probe = await motion.page.evaluate(() => {
+              const created = document.createElement("canvas");
+              const context = created.getContext("webgl");
+              return context === null ? "null" : String(context);
+            });
+            throw new Error(
+              `motion renderer is ${String(renderer)}; document.createElement("canvas").getContext("webgl") returned ${probe}`,
+            );
+          }
+          await expect(canvas).toHaveAttribute("data-planet-drawn", "");
+          await expect(canvas).toHaveAttribute("data-planet-renderer", "webgl");
+          await expect(canvas).toHaveAttribute("data-planet-running", "");
+          const metrics = await backingOf(canvas);
+          expect(metrics.width).toBe(size.backing);
+          expect(metrics.height).toBe(size.backing);
+          expect(metrics.width).toBe(metrics.backing);
+          expect(metrics.height).toBe(metrics.backing);
+        }
+        shifts[`${theme}-${size.width}-motion`] = await readShift(motion.page);
+        await motion.page.screenshot({
+          path: `.devos/screens/planet-${theme}-${size.width}-page.png`,
+        });
+        await hideShell(motion.page);
+        await motion.page.locator("[data-planet-slot]").screenshot({
+          path: `.devos/screens/planet-${theme}-${size.width}.png`,
+        });
+        const first = await centreCrop(motion.page);
+        await motion.page.waitForTimeout(1000);
+        const second = await centreCrop(motion.page);
+        expect(Buffer.compare(first, second)).not.toBe(0);
+        await motion.context.close();
+
+        const reduced = await openGlobe(gl, baseURL, csp, theme, size, "reduce", false);
+        const reducedCanvases = reduced.page.locator("[data-planet-canvas]");
+        await expect(reducedCanvases).toHaveCount(2);
+        for (const canvas of await reducedCanvases.all()) {
+          await expect(canvas).toHaveAttribute("data-planet-drawn", "", { timeout: 15_000 });
+          await expect(canvas).toHaveAttribute("data-planet-renderer", "webgl");
+          await expect(canvas).not.toHaveAttribute("data-planet-running");
+        }
+        shifts[`${theme}-${size.width}-reduced`] = await readShift(reduced.page);
+        await expectStillGlobe(reduced.page);
+        await reduced.page.locator("[data-planet-slot]").screenshot({
+          path: `.devos/screens/planet-${theme}-${size.width}-reduced.png`,
+        });
+        await reduced.context.close();
+
+        const flat = await openGlobe(gl, baseURL, csp, theme, size, "no-preference", true);
+        const flatCanvases = flat.page.locator("[data-planet-canvas]");
+        await expect(flatCanvases).toHaveCount(2);
+        for (const canvas of await flatCanvases.all()) {
+          await expect(canvas).toHaveAttribute("data-planet-drawn", "", { timeout: 15_000 });
+          await expect(canvas).toHaveAttribute("data-planet-renderer", "2d");
+          await expect(canvas).not.toHaveAttribute("data-planet-running");
+          const metrics = await backingOf(canvas);
+          expect(metrics.width).toBe(size.backing);
+          expect(metrics.height).toBe(size.backing);
+          expect(metrics.width).toBe(metrics.backing);
+          expect(metrics.height).toBe(metrics.backing);
+        }
+        shifts[`${theme}-${size.width}-nowebgl`] = await readShift(flat.page);
+        await expectStillGlobe(flat.page);
+        await flat.page.locator("[data-planet-slot]").screenshot({
+          path: `.devos/screens/planet-${theme}-${size.width}-nowebgl.png`,
+        });
+        await flat.context.close();
+      }
+    }
+
+    const roll = await openGlobe(gl, baseURL, csp, "light", GLOBE_SIZES[0], "no-preference", false);
+    const rollCanvases = roll.page.locator("[data-planet-canvas]");
+    await expect(rollCanvases).toHaveCount(2);
+    for (const canvas of await rollCanvases.all()) {
+      await expect(canvas).toHaveAttribute("data-planet-drawn", "", { timeout: 15_000 });
+      await expect(canvas).toHaveAttribute("data-planet-renderer", "webgl");
+    }
+    await roll.page.evaluate(() => {
+      const button = document.querySelector<HTMLButtonElement>('[data-theme-option="dark"]');
+      if (!button) throw new Error("missing dark");
+      button.click();
+      for (const animation of document.getAnimations()) animation.pause();
+      for (const child of document.body.children) {
+        if (!(child instanceof HTMLElement) || child.matches("[data-scene]")) continue;
+        child.style.visibility = "hidden";
+      }
+    });
+    const rollFrames = new Map<number, Buffer>();
+    for (const ms of [0, 450, 900, 1350, 1800]) {
+      await seek(roll.page, ms);
+      await twoFrames(roll.page);
+      const buffer = await roll.page.locator("[data-planet-slot]").screenshot({
+        path: `.devos/screens/planet-roll-${String(ms).padStart(4, "0")}.png`,
+      });
+      rollFrames.set(ms, buffer);
+    }
+    const frame0 = rollFrames.get(0);
+    const frame900 = rollFrames.get(900);
+    const frame1800 = rollFrames.get(1800);
+    if (!frame0 || !frame900 || !frame1800) throw new Error("missing roll frame");
+    expect(Buffer.compare(frame0, frame900)).not.toBe(0);
+    expect(Buffer.compare(frame0, frame1800)).not.toBe(0);
+    expect(Buffer.compare(frame900, frame1800)).not.toBe(0);
+    await roll.context.close();
+
+    writeFileSync(".devos/screens/planet-layout-shift.json", `${JSON.stringify(shifts, null, 2)}\n`);
+    expect(Object.keys(shifts)).toHaveLength(12);
+    for (const value of Object.values(shifts)) expect(value).toBe(0);
+  } finally {
+    await gl.close();
+  }
+  expect(csp).toEqual([]);
 });
