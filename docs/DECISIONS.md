@@ -281,3 +281,40 @@ WebGL needs no new directive. The boundary is unchanged (no form, cookie, storag
 look; a contrast test on the plates; `docs/design/v3/README.md` §15's last paragraph ("not in this change"), which
 stays as the owner's design record; the method manual's description of `art.mjs` (`docs/method/AUTOMATION.md` §6,
 already left to a method task by OD-09).
+
+### OD-11 — The theme switch on the sign-in pages, and a link preview
+**Status:** DRAFT — signed when the human merges the intake PR
+**Amends:** OD-08 §1 (the switch was placed "in the header"; the sign-in pages have none, so it also stands at their
+foot) and OD-01 §2 only in what it implies for crawlers (a link preview's tags and image are not a page and hold no
+data). OD-08 §3 (nothing stored), §7 (bundled images) and every other OD stand.
+**Requested by:** issue #40
+**1.** The sign-in pages are not dark-only: they follow **Auto** (the system setting, OD-08 §1), so a device in dark
+mode always sees dark there, because the switch exists only in the signed-in top bar. The existing `ThemeSwitch`
+(Auto · Light · Dark, the catalogue's `theme.*` labels, no new key) is added to every state of `SignInCard`
+(signed-out, denied, error, checking: `/sign-in`, its 403, `/sign-in?reason=auth_error`, `/auth/callback`), centred at
+the page's block-end foot, outside the card, so the card's size, place and choreography do not change.
+**2.** Behaviour is OD-08 §3's, unchanged: the switch sets `data-theme` on `<html>` for the open document only;
+nothing is stored (no cookie, browser storage, URL parameter or database value); a reload, or the round trip
+through GitHub, returns to Auto.
+**3.** Every page's HTML carries a link preview: Open Graph `og:type` `website`, `og:site_name` and `og:title` =
+`site.productName`, `og:description` = `site.tagline`, `og:image` with its width, height, type and alt, and
+`twitter:card` `summary_large_image`. The image is **made from the actual site**: a 1200×630 JPEG of no more than
+300 000 bytes, captured from the production build's `/sign-in` in the dark theme with reduced motion (the still
+planet), by a committed script so it can be captured again; the reviewer and the owner look at it. Its alt text is
+one new catalogue key, `site.previewAlt`.
+**4.** The image is bundled with the code (imported by the root layout, served from `/_next/static/media/`, as
+OD-08 §7 does for the scene), a path the sign-in proxy already leaves open, so `src/proxy.ts`, `next.config.ts`, the
+CSP, every header and every route stay unchanged. Absolute URLs come from `metadataBase` = `TOWER_URL` (already a
+Production variable, `devos/setup.json`) when it parses as an `http(s)` URL, otherwise Next's default. A crawler
+asking for `/` gets today's `302` to `/sign-in`, whose `<head>` carries the tags for WhatsApp's agent.
+**5.** Placement: two new rows. **T13** (risk 2): the switch on the sign-in pages, with its evidence in both themes.
+**T14** (risk 2) with gate **G-Link-Preview**: the tags, the image, its capture script and tests. The owner signs by
+merging T14 after pasting the production URL into WhatsApp and seeing the preview (WhatsApp caches a preview per
+URL; a link already shared before the deploy may keep its old, empty one).
+**6.** The boundary is unchanged: no form, input, cookie, storage, tracker, analytics or third party; the image is a
+static file and a crawler's request is not kept. The `devos:boundary` line does not change. No dependency (the
+capture uses the Playwright already in `devDependencies`), no data, no setting outside the repository
+(`docs/setup-items.json` not needed).
+**Does not decide:** theme persistence (still OD-08's: a cookie is a Boundary amendment); the switch on the
+not-found page; a public landing page, indexing or `robots`; a preview image per page; recapturing the image
+automatically when the design changes; the light-theme image (the owner can ask for it as a small change).
