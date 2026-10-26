@@ -11,7 +11,7 @@ PR-19). `guard:data` applies as copied from the pilot. Names are the contract's 
 | `anon` | the publishable key, from a browser or a signed-out server render | **nothing**: RLS denies every row; no table grants `anon` any write (`guard:data` rule 5); `owner_allowlist` grants it nothing at all |
 | `authenticated` (the owner's session) | the publishable key with the session JWT | read every row where the policy `using (public.is_owner())` holds — i.e. everything, once `is_owner()` is true; writes only on `projects` (`/projects/new`) and `ingest_keys` (M2) through server actions |
 | `authenticated` (anyone else) | same path, a GitHub identity not in the allow-list | **nothing**: `is_owner()` is false, every policy fails, and the app gate signs the session out with `403` |
-| service role (`SUPABASE_SECRET_KEY`) | server-only modules under `src/lib/supabase/server/` (`guard:data` rule 6) | the machine routes' inserts: `events`, `event_usage`, `runs`, `event_rejections`, `webhook_deliveries`, `observations`; the import page's inserts |
+| service role (`SUPABASE_SECRET_KEY`) | server-only modules under `src/lib/supabase/server/` (`guard:data` rule 6) | the machine routes' inserts: `events`, `event_usage`, `runs`, `event_rejections`, `webhook_deliveries`, `observations`; the import page's inserts; every write to `link_requests`, `link_audit` and the `projects` an approval creates or a deletion removes, only through the §4 link functions (OD-12 §3), called by `/api/link` and by the owner's link-request server actions after `requireOwner()` |
 
 The service-role key is read only in server-only modules and never through a `NEXT_PUBLIC_` name.
 The browser never calls Supabase directly for anything but the Auth redirect flow.
@@ -70,6 +70,35 @@ otherwise `null`) · `payload_ref text` (the delivery id). Unknown repositories 
 `id uuid pk` · `project_id` · `label text` · `key_hash bytea unique` · `created_at` · `revoked_at
 timestamptz`. The key itself is shown once and never stored.
 
+### 2.10 `link_requests` (`LinkRequest`) — T15 (OD-12)
+One row per repository and owner that asked to be linked. **Personal data** (`PROTECTION_MODEL.md` §2).
+- `id uuid primary key default gen_random_uuid()`
+- `repository text not null check (repository ~ '^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$')`, the OIDC claim
+  `repository`
+- `owner_github_id text not null check (owner_github_id ~ '^[0-9]{1,20}$')`, the claim `repository_owner_id`
+- `proposed_key text not null check (proposed_key ~ '^[A-Z][A-Z0-9_-]{1,31}$')`, as first asked
+- `engine_version text not null check (engine_version ~ '^[!-~]{1,32}$')`
+- `contract_version text not null check (contract_version ~ '^[!-~]{1,32}$')`
+- `state text not null default 'pending' check (state in ('pending', 'approved', 'declined'))`
+- `project_id uuid references public.projects (id) on delete set null`: the project an approval created or linked to
+- `first_requested_at timestamptz not null default now()`, `last_requested_at timestamptz not null default now()`,
+  `decided_at timestamptz`
+- `unique (repository, owner_github_id)`
+- `check ((state = 'pending') = (decided_at is null))`, `check (state <> 'pending' or project_id is null)` and
+  `check (state <> 'approved' or project_id is not null)`
+
+A request in state `declined` with a `project_id` is a **disconnected** project. The last check means that the
+project of a linked request can only be removed through `delete_link_request`, which deletes the request first.
+
+### 2.11 `link_audit` (`LinkAudit`) — T15 (OD-12 §6)
+- `id bigint generated always as identity primary key`
+- `at timestamptz not null default now()`
+- `action text not null check (action in ('requested', 'approved', 'declined', 'deleted', 'exported', 'purged'))`
+- `request_id uuid not null`: no foreign key, so the row outlives a deleted request
+
+Three columns of meaning, and never a repository, an owner id, a key or a body. One row is written by every link
+function that changes or exports a request. It is kept: it holds no personal data.
+
 ## 3. Privileges and RLS, per role
 
 - Every table: `alter table … enable row level security`. `guard:data` rule 3; pgTAP asserts it.
@@ -80,6 +109,12 @@ timestamptz`. The key itself is shown once and never stored.
 - `revoke insert, update, delete, truncate on all tables in schema public from anon` (rule 5).
 - The machine routes write with the service role, which bypasses RLS by design; their authentication is
   the OIDC/key/HMAC check in code (`SECURITY_MODEL.md` §3), never a policy.
+- `link_requests` and `link_audit` (T15, OD-12 §3) have exactly one policy each, `<table>_owner_select`,
+  `for select to authenticated using (public.is_owner())`. Grants: `revoke all … from anon, authenticated`, then
+  `grant select … to authenticated`. Neither `anon` nor `authenticated` inserts, updates or deletes either table.
+  `service_role` keeps Supabase's default privileges, and every write is a §4 link function it executes. So the
+  invariants stand: no `DELETE` policy anywhere, and the seven policies
+  on the five ingest tables.
 
 ## 4. Functions
 
@@ -88,6 +123,12 @@ timestamptz`. The key itself is shown once and never stored.
 | `public.is_owner() returns boolean` | the only identity check: `auth.identities` (`provider = 'github'`, `user_id = auth.uid()`) joined to `public.owner_allowlist` | `language sql`, `stable`, **`security definer`**, `set search_path = ''`, fully qualified names, `execute` granted to `authenticated` only (ADR-002). The **only** `security definer` function in the database — pgTAP asserts the count |
 | `public.ingest_event(payload jsonb, src text) returns jsonb` (T02) | the atomic write: upsert `runs`, insert `events` with `body_hash`, insert `event_usage` rows, decide `stored` / `duplicate` / `conflict` (writing the rejection row for a conflict) — one transaction, because the route cannot open one through the JS client | `security invoker`; `execute` granted to `service_role` only; called by `/api/ingest` and the import action after authentication and schema validation |
 | `public.verify_reported_events(run uuid)` (T07) | sets `origin = 'verified'` on reported `checks`/`verdict`/`gate` events whose `evidence` commit has an observation with context `devos/<step>` and a matching state | `security invoker`; called inside `ingest_event` for the event's run and after each observation insert |
+| `public.request_link(p_repository text, p_owner_github_id text, p_proposed_key text, p_engine_version text, p_contract_version text) returns jsonb` (T15) | `/api/link`'s decision (OD-12 §2). An existing row's `last_requested_at`, `engine_version` and `contract_version` are updated; then `declined` → `{"result":"declined"}`; `approved` → `{"result":"linked","key":<its project's key>}`; otherwise a project with this `repo` and `owner_github_id` → `linked` with its key; a pending row → `{"result":"pending"}`; no row and 50 pending → `{"result":"rate_limited"}`; no row → insert pending, audit `requested`, `pending` | `security invoker`, `set search_path = ''`; `execute` to `service_role` only |
+| `public.approve_link_request(p_request uuid) returns jsonb` (T15) | no row → `not_found`; not pending → `not_pending`; a project with this `repo` and another owner → `repo_taken` (nothing changes); the same `repo` and owner → link to it; otherwise insert the project with the first free key (`proposed_key`, then `left(proposed_key, 32 − length('-' \|\| n)) \|\| '-' \|\| n` for n = 2, 3, …). Then `approved`, `decided_at = now()`, `project_id`, audit `approved` → `{"result":"approved","key":<key>}` | as above |
+| `public.decline_link_request(p_request uuid) returns jsonb` (T15) | no row → `not_found`; already declined → `not_pending`; pending or approved → `declined`, `decided_at = now()`, `project_id` kept, audit `declined` → `{"result":"declined"}` | as above |
+| `public.delete_link_request(p_request uuid) returns jsonb` (T15) | no row → `not_found`; otherwise delete the request, then its project if any (cascading to `runs`, `events`, `event_usage`, `observations`), audit `deleted` → `{"result":"deleted","project_deleted":true\|false}` | as above |
+| `public.export_link_request(p_request uuid) returns jsonb` (T15) | no row → `not_found`; otherwise `{"result":"exported","request":{…every §2.10 column},"project":null \| {key, repo, owner_github_id, stale_after_minutes, created_at},"step_events":[{run, seq, phase, task, step, status, at, received_at, evidence, origin, source}, … by runs.created_at, seq]}` and audit `exported` | as above |
+| `public.purge_link_requests() returns integer` (T15) | retention (`PROTECTION_MODEL.md` §5): deletes requests without a project in state `pending` or `declined` whose `last_requested_at` is older than 180 days, and disconnected requests (declined, with a project) whose `decided_at` is older than 365 days together with their project; audit `purged` per request; returns the number of requests removed | as above; run daily at 03:17 UTC by the `pg_cron` job `tower-link-retention` |
 
 ## 5. Views
 
@@ -99,7 +140,9 @@ underlying tables applies; `anon` sees no row.
 
 The GitHub provider only. The owner's identity row in `auth.identities` carries `provider_id` = the
 GitHub numeric id, written by Supabase on the server. Nothing in `public` refers to a person except
-`owner_allowlist.github_id` and `observations.actor_login` (owner or bot). Email/password, magic links
+`owner_allowlist.github_id`, `observations.actor_login` (owner or bot) and, from T15 (OD-12 §6), the developers'
+repositories and owner ids in `link_requests` and in the `projects` an approval creates, with those projects'
+events (`PROTECTION_MODEL.md`). Email/password, magic links
 and every other provider are disabled in the dashboard and asserted off in T01's review.
 
 ## 7. Clients and keys (`src/lib/supabase/`)
@@ -107,8 +150,9 @@ and every other provider are disabled in the dashboard and asserted off in T01's
 - `client.ts` (browser): publishable key only, used for the Auth redirect and nothing else.
 - `server/session.ts`: server client with the session cookie; calls `select public.is_owner()` for the
   app gate.
-- `server/admin.ts`: service-role client, imported only by `src/app/api/**/route.ts` and the import
-  server action; `guard:data` rule 6 and `guard:surfaces` keep it server-only.
+- `server/admin.ts`: service-role client, imported only by `src/app/api/**/route.ts`, the import
+  server action and (T16, OD-12 §3) the link-request server actions, each after `requireOwner()`;
+  `guard:data` rule 6 and `guard:surfaces` keep it server-only.
 
 ## 8. Generated types
 
@@ -122,10 +166,16 @@ id). pgTAP in `supabase/tests/`: RLS enabled on every table; every policy refere
 `public.is_owner()`; `anon` reads 0 rows from every table; `owner_allowlist` has no policy and no grant;
 `is_owner()` is `security definer` with `proconfig = {search_path=}` and is the only such function; the
 `event_usage` check constraint; the `events` unique key; `usage_by_attempt` returns 0 rows to `anon`.
+T15 adds two synthetic link requests (`fixture-dev/demo-shop` pending, `fixture-dev/declined-app` declined, owner id
+`0`, no project), and `006_link_requests.sql` and `007_link_protection.sql`. They prove the two tables' RLS and
+grants, every §4 link function's answers and its `service_role`-only execute, the key suffix, the 50-pending cap, the
+cascade of a delete, the export's shape, the 180/365-day retention, and the `pg_cron` job.
 
 ## 10. Migrations (forward-only, expand-then-contract)
 
 `supabase/migrations/<14-digit timestamp>_<snake_name>.sql`; a migration on `main` is never edited
 (`guard:data` rules 1–2). T01: `owner_allowlist`, `is_owner()`. T02: `projects`, `runs`, `events`,
 `event_usage`, `event_rejections`. T03: `webhook_deliveries`, `observations`. T06: `usage_by_attempt`.
-T07: `verify_reported_events`. Each has a down file under `supabase/down/` for rollback (`M1.md` §10).
+T07: `verify_reported_events`. T15: `link_requests` (the two tables and `request_link`, `approve_link_request`,
+`decline_link_request`) and `link_protection` (`delete_link_request`, `export_link_request`, `purge_link_requests`,
+the `pg_cron` extension and its job). Each has a down file under `supabase/down/` for rollback (`M1.md` §10).

@@ -318,3 +318,123 @@ capture uses the Playwright already in `devDependencies`), no data, no setting o
 **Does not decide:** theme persistence (still OD-08's: a cookie is a Boundary amendment); the switch on the
 not-found page; a public landing page, indexing or `robots`; a preview image per page; recapturing the image
 automatically when the design changes; the light-theme image (the owner can ask for it as a small change).
+
+### OD-12 — Link requests: a DEV_OS project asks, the owner approves, the Tower adds it
+**Status:** DRAFT — signed when the human merges the intake PR
+**Amends:** OD-01 §2 (a third machine route, `POST /api/link`) and §4 (personal data: the Tower now keeps other
+developers' repository names and GitHub owner ids, so the `owner` zone holds personal data and the Personal-Data
+Protection gate applies, PR-19); OD-04 §2 (the list of production-only machine routes); `SCOPE.md` §2's "other owners'
+projects, consent" for the link path only; `DATA_MODEL.md` §1 and §7 (which code may use the service-role client).
+OD-01 §1 and §3, OD-02, OD-05 and event contract v1 stand unchanged.
+**Requested by:** issue #46
+**1. What a link is.** A developer who opts in when they set up the DEV_OS Engine has their project's workflow ask
+the Tower to link it. A request registers nothing. The owner approves or declines each request once, on the overview.
+Approval creates the `projects` row, and from then on the project's events (contract v1) are stored as today. The
+engine works the same whether a link is approved, pending, declined or never asked: the Tower's answers never
+change a project's step, verdict, merge or deploy (OD-01 §1, OD-05 §5). Engine users never get access to the Tower;
+the owner stays its only user (OD-02). For other developers' projects this replaces the GitHub App registration
+planned in `devos-plan` (plan label TR1). T03's webhook receiver is unchanged.
+**2. `POST /api/link`.** Production host only (OD-04 §2; `404` elsewhere). Like `/api/ingest`, it has no session,
+no cookie and no CSP: the proxy lets it through untouched. Checks, in this order:
+(1) host. (2) `Authorization: Bearer <token>` present, otherwise `401 {"error":"no_token"}`.
+(3) `verifyGithubOidc` with audience `TOWER_URL`, as `/api/ingest` uses it. Failures answer `401 {"error":"expired" |
+"bad_issuer" | "bad_audience" | "bad_signature"}`; a key set that cannot be fetched answers `503`. Each `401` writes one
+reason-only `event_rejections` row, as `/api/ingest` does.
+(4) The claims. `repository` must be `owner/name` (`^[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}$`) and
+`repository_owner_id` must be digits (`^[0-9]{1,20}$`), otherwise `401 bad_signature` with its row. The repository
+and its owner come only from these claims, never from the body.
+(5) The body: at most 1 024 bytes of JSON, an object with exactly `v` (the integer `1`), `key`
+(`^[A-Z][A-Z0-9_-]{1,31}$`), `engine` and `contract`. `engine` and `contract` are each 1–32 printable ASCII characters
+without spaces (`^[!-~]{1,32}$`). That is the Tower's reading of "a string of at most 32 characters": no control or
+direction character can reach the owner's panel. Anything else, an oversized body included, answers
+`400 {"error":"schema"}`.
+(6) The answer. A declined request → `403 {"status":"declined"}`. An approved request, or a `projects` row with this
+`repo` and `owner_github_id` → `200 {"status":"linked","key":"<that project's key>"}`. A pending request →
+`202 {"status":"pending"}`. A new repository → a pending request is created, `202 {"status":"pending"}`; with 50
+requests already pending → `429 {"error":"rate_limited"}`, and nothing is created. A database error → `500`.
+Wherever a request row exists, the call updates `last_requested_at`, `engine_version` and `contract_version`. The
+request asked this for pending rows; the Tower does it for every state, so that retention (§6) counts from the last
+request. The proposed key stays as first asked.
+Authentication comes before the body. So a `POST` without a token answers `401 no_token`, which is the owner's
+production check. (`/api/ingest` reads its body first, and it does not change.) Every answer is JSON with
+`Cache-Control: no-store` and never `Set-Cookie`, and nothing is logged.
+**3. Data.** Two new tables, `link_requests` and `link_audit` (`DATA_MODEL.md` §2.10–§2.11). Every write goes through
+`security invoker` functions that only `service_role` may execute (§4 there). The owner reads both tables under RLS
+(`is_owner()`). The owner's Approve, Decline, Export and Delete reach those functions only through server actions
+that call `requireOwner()` first and then use the service-role client. That is the import action's pattern, and it
+keeps the invariants proven today: no `DELETE` policy anywhere, and no write grant to an API role on these tables.
+Unique `(repository, owner_github_id)`: a transferred repository is a new request.
+**4. Approve and decline.** Approve creates the project with `repo` and `owner_github_id` from the request and the
+default stale window, then marks the request `approved` with its decision time and project. The key is the proposed
+key, or, when a project already has it, the proposed key with `-2`, `-3` and so on: the first free one, cut at the
+end so it stays within 32 characters (`left(key, 32 − length(suffix)) || suffix`). A repository already registered
+under another owner id cannot be approved: the panel says so and the request stays pending. Decline marks a pending
+or an approved request `declined`. A declined approved request is a **disconnected** project: its `projects` row
+and history stay for the record, and it shows as `disconnected` (§7). A decline is not undone in place. The owner can
+Delete the declined request, and the developer's next request then starts pending again.
+**5. `/api/ingest`.** Its answers and contract v1 do not change. An approved repository's events are stored as today.
+A pending, declined or unknown repository has no matching project row and keeps `401 repo_not_registered`. One
+refusal is added inside the route: a project whose link request is `declined` (disconnected) is refused with the
+same `401 repo_not_registered` and its rejection row. That is the Tower's reading of "any other repository keeps
+repo_not_registered" together with "declined later … shows as disconnected".
+**6. Personal data and its protection.** A repository's full name (which carries the developer's GitHub login when a
+person owns it), the owner's numeric GitHub id, the request times and a linked project's workflow events are
+personal data of members of the public (Egypt, Law 151 of 2020). So the `owner` zone becomes
+`"personal_data": true` in the `devos:boundary` line, and the Personal-Data Protection gate (handbook §10.3, PR-19)
+applies from T15 on. `docs/PROTECTION_MODEL.md` states each field's purpose, who reads it, and the rest of the
+protection:
+- **Retention** is scheduled daily in the database by `pg_cron`. Pending and declined requests without a project
+  are deleted 180 days after their last request. A disconnected project and its request are deleted 365 days after
+  the decline. A linked project is kept while it is linked.
+- **Deletion and export** are the owner's Delete and Export in the panel.
+- **The audit** is a reason-only `link_audit` row per change, with no personal data in it.
+- **Backups** are encrypted (PR-18). The seeds and tests are synthetic.
+- **Law 151:** the obligations are listed for the owner to confirm.
+The method requires **a private repository before the zone ships** (PR-19). The repository is public today
+(B0). The first deploy that accepts a link request is T17's merge, so the owner makes the repository private before
+merging T17. The T17 review states the visibility it observed. A private repository's Actions runs count against the
+account's minutes, and `resume.relay = "public"` then relays no long waits (PR-31): that is the owner's choice of
+plan, not a repository change.
+**7. The panel.** A "Link requests" panel on `/`, for the signed-in owner only. There is no new page, and no new
+public route except `/api/link`. It lists the requests in three groups:
+- **Pending**, with every field (repository in `<bdi>`, owner id, proposed key, engine, contract, first and last
+  request with their ages) and **Approve** · **Decline**.
+- **Linked by request**, with **Decline**, which disconnects the project.
+- **Declined**.
+Every row has **Export**, a JSON download made in the browser with nothing stored, and **Delete**, which asks for
+confirmation. A disconnected project shows the link state `disconnected` on its card, list row, detail panel and
+project page. Its blade is drawn like `silent`'s, never live. It appears under "All" only. The System overview counts
+it under its own word. The Ingestion health rejection count then covers both machine routes, and its label says
+"Rejected requests, last 24 h".
+**8. Contract document.** `docs/contract/LINK_CONTRACT.md` documents `/api/link` next to event contract v1:
+transport, the body and its schema, the order of checks, the answers and what a sender does with each, the claims
+used, and a change log. It is written by T17. `EVENT_CONTRACT.md` does not change.
+**9. Placement.** Four new rows, Phase P03 (link requests):
+- **T15**, risk 3, two stages: the data layer, `DATA_MODEL.md` §2.10–§2.11 and §4 (both migrations, pgTAP, seed,
+  types, `pg_cron`), the glossary rows, and nothing visible.
+- **T16**, risk 3: the panel and its four server actions.
+- **T17**, risk 3: the route, the proxy pass-through, the `/api/ingest` refusal of §5, the contract document and
+  the route tests. The repository is private before its merge.
+- **T18**, risk 3, gate **G-Link-Requests**: the `disconnected` state, the label of §7, and an end-to-end test of
+  the whole flow against the CI database.
+
+At G-Link-Requests the owner checks on production:
+- `curl -s -X POST https://devos-control-tower.vercel.app/api/link` answers `401 {"error":"no_token"}` with no
+  `set-cookie`.
+- A real opted-in project's request shows as pending. Approve answers it `linked` with the key, and its next event is
+  stored. Decline turns its next request into `403` and its next event into `401 repo_not_registered`.
+- The panel is visible only signed in.
+- Supabase → Advisors → Security shows no error and no warning.
+- The repository is private.
+
+The owner signs by merging T18.
+**10. Nothing else moves.** There is no new dependency. There is no new secret or variable: `TOWER_URL` and
+`SUPABASE_SECRET_KEY` already exist (`devos/setup.json`), and `pg_cron` is enabled by T15's migration, so
+`docs/setup-items.json` is not needed. Headers and the CSP are unchanged. There is no tracker, form for the public or
+public page, so the Boundary gate holds for visitors as before.
+**Does not decide:** re-approving a declined request in place (Delete, then a new request, is the path); notifying
+the owner of a new request (no email, push or third party); the engine side (`devos-engine`'s opt-in, its sender
+and what it tells the developer, which Law 151's transparency requires of it); a per-repository request rate; the
+GitHub App on linked repositories; an ADR for link registration; a change to event contract v1; the `devos-plan`
+rows for TR1 (the owner updates `plan/ID-MAP.md`); the exact Law 151 periods, registration and cross-border-transfer
+steps, which the owner confirms with counsel before G-Link-Requests (`PROTECTION_MODEL.md` §10).

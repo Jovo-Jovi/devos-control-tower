@@ -28,10 +28,15 @@ The runner reads the table below, and `guard:phases` checks it.
 | T12 | P02 | J5 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | 2 | G-Planet-Sharp | [x] | PASS a1 — docs/reviews/T12-a1.md |
 | T13 | P02 | J5 | Theme switch on the sign-in pages: Auto · Light · Dark at the foot of every sign-in state, nothing stored | 2 | — | [x] | PASS a1 — docs/reviews/T13-a1.md |
 | T14 | P02 | J5 | Link preview: Open Graph and Twitter-card tags with a 1200×630 image captured from the real sign-in page | 2 | G-Link-Preview | [x] | PASS a1 — docs/reviews/T14-a1.md |
+| T15 | P03 | J4 | Link requests data layer: `link_requests`, `link_audit`, service-role functions, retention job, pgTAP, seed, types | 3 | — | [ ] | — |
+| T16 | P03 | J5 | Link requests panel on the overview: pending, linked and declined groups; approve, decline, export, delete | 3 | — | [ ] | — |
+| T17 | P03 | J4 | `POST /api/link`: OIDC-verified link requests on the production host; `/api/ingest` refuses disconnected projects; link contract | 3 | — | [ ] | — |
+| T18 | P03 | J5 | Disconnected projects on the map, list and project page; whole-flow e2e of link, approve, ingest, decline | 3 | G-Link-Requests | [ ] | — |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both
 belong to milestone M1 of `devos-plan`; the CK1 checkpoint between T02/PM01 and T03 is an owner gate
-recorded in `docs/DEVELOPMENT_JOURNAL.md`, not a row.
+recorded in `docs/DEVELOPMENT_JOURNAL.md`, not a row. Phase P03 = link requests from DEV_OS projects (OD-12,
+issue #46).
 
 Phase outlines (method track):
 
@@ -130,3 +135,48 @@ Phase outlines (method track):
   ≤ 300 000 bytes) and proves `/` still answers 302. `src/proxy.ts`, `next.config.ts` and the headers stay unchanged;
   if WhatsApp's agent gets the tags outside `<head>`, the builder HALTs (a `next.config.ts` change needs its own
   decision). The owner signs G-Link-Preview by merging after the WhatsApp check on production (OD-11 §5).
+- **T15 — Link requests data layer (OD-12 §3, §4, §6; issue #46, `docs/requests/issue-46.md`; risk 3, two stages,
+  schema gate).** Nothing visible.
+  - **Stage 1:** `supabase/migrations/20261026090000_link_requests.sql` with its down file creates `link_requests`
+    and `link_audit` (`DATA_MODEL.md` §2.10–§2.11, owner SELECT only) and three functions: `request_link`
+    (linked · pending · declined · rate_limited at 50 pending), `approve_link_request` (key, `-2`, `-3`… within 32
+    characters; `repo_taken`) and `decline_link_request`, all `security invoker` and executable by `service_role`
+    only. It also adds `supabase/tests/006_link_requests.sql`, two synthetic requests in the seed, and the
+    regenerated types.
+  - **Stage 2:** `20261026090100_link_protection.sql` with its down file adds `delete_link_request` (the cascade of
+    the project), `export_link_request` and `purge_link_requests` (180/365 days), and enables `pg_cron` with the
+    daily job `tower-link-retention`. It adds `supabase/tests/007_link_protection.sql`, the `GLOSSARY.md` rows
+    `LinkRequest`/`LinkAudit`, the term "linked · disconnected" and the route segment `link`, carry-forwards CF-023
+    and CF-024 of `docs/reviews/T14-a1.md`, and the ledgers.
+  - Fence: `docs/fences/T15.md`.
+- **T16 — Link requests panel (OD-12 §3, §4, §7; risk 3: personal data on screen, server actions).** The panel on `/`
+  is read through the owner's session (RLS) on the server render and refreshed after each action. A pure helper
+  turns rows into the three groups. `src/app/_link-requests/actions.ts` holds Approve · Decline · Export · Delete:
+  each calls `requireOwner()` first, then the T15 function through the service-role client, and maps every result
+  (`approved` with the key, `repo_taken`, `not_pending`, `not_found`, `deleted`) to a toast or a field message from
+  the catalogue. Export downloads the JSON in the browser and stores nothing. Delete asks for confirmation. The
+  panel's states in both themes at 1280 and 390, with the runner's captures: empty, pending only, all three groups,
+  after approve, `repo_taken`, the delete confirmation and an error. It is written against `DESIGN_SYSTEM.md` §3–§6.
+  `DATA_MODEL.md` §7 already names the new importer of `server/admin.ts`.
+- **T17 — `POST /api/link` (OD-12 §2, §5, §8; risk 3).** A pure parser in `src/lib/contract/link-request.ts` with
+  its tests. `createLinkHandler({ jwks? })` in `src/lib/supabase/server/link.ts` runs the order of checks of OD-12
+  §2. `src/app/api/link/route.ts` holds only the export. `src/proxy.ts` passes `/api/link` through untouched, as it
+  does `/api/ingest`. `src/lib/supabase/server/ingest.ts` refuses a disconnected project with `repo_not_registered`.
+  It writes `docs/contract/LINK_CONTRACT.md`. Route tests cover every answer: 404 off the production host; no token,
+  expired, bad audience, bad signature and bad claims → 401 with their rejection rows; an extra field, `v: 2`, a bad
+  key, a 33-character engine and 1 025 bytes → 400; new, pending, linked, declined, 429; no `set-cookie` and
+  `no-store` on every answer. Ingest tests cover an approved project's event stored, a pending repository's refused,
+  and a disconnected project's refused. **The owner makes the repository private before merging T17** (OD-12 §6).
+- **T18 — Disconnected projects and the whole flow (OD-12 §5, §7, §9; risk 3, gate G-Link-Requests).**
+  `aggregatePortfolio` gains the link state `disconnected` (from `link_requests.state = 'declined'` with a
+  `project_id`). The blade is drawn like `silent`'s, with no particles or hum, and the project is counted only under
+  "All" and in the System overview. The card, list row, detail panel and project page say "disconnected". The
+  Ingestion health label becomes "Rejected requests, last 24 h". The whole flow runs against the CI database. The
+  machine side goes through `createLinkHandler` and `createIngestHandler` with a local key set, in a vitest
+  integration suite as T02's (the local server is not the production host, so `/api/link` answers 404 there over
+  HTTP). The owner's side goes through the panel in a new `e2e/link.spec.ts` with the seeded owner
+  (`e2e/support/owner.ts`). The flow: request → pending → the owner approves in the panel → linked with the key → an
+  event stored → decline in the panel → 403 → the project shows disconnected → its event is refused
+  `repo_not_registered`; then a second repository with the same key → `-2`; then export and delete. Captures of the
+  disconnected states in both themes at 1280 and 390. The owner signs G-Link-Requests by merging after the
+  production checks of OD-12 §9.

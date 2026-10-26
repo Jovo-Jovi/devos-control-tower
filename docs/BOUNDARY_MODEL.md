@@ -2,9 +2,12 @@
 
 Precedence 4.
 
-<!-- devos:boundary {"profile":"A","zones":[{"name":"owner","src":["src/app/**","src/lib/supabase/**","src/proxy.ts"],"urls":["/"],"personal_data":false}]} -->
+<!-- devos:boundary {"profile":"A","zones":[{"name":"owner","src":["src/app/**","src/lib/supabase/**","src/proxy.ts"],"urls":["/"],"personal_data":true}]} -->
 
 The line above is read by `guard:boundary` (PR-19) exactly as in the pilot. Only a signed OD changes it.
+**OD-12 (issue #46)** set `personal_data` to `true`. The zone now keeps the repositories and GitHub owner ids of
+developers whose projects ask to be linked, so `docs/PROTECTION_MODEL.md` and the Personal-Data Protection gate apply
+inside it. Visitors are unchanged: nothing public accepts or keeps their data.
 The Tower has **no public page**: the whole application is the `owner` zone, declared by OD-01 §2. Inside
 it, forms, the owner's session cookie and route handlers are allowed; analytics, trackers and
 third-party scripts are **never** allowed, zone or not.
@@ -43,12 +46,12 @@ https://<TOWER_URL>/api/ingest` shows no `set-cookie` (machine routes never star
 |---|---|
 | Source | `src/app/**`, `src/lib/supabase/**`, `src/proxy.ts` |
 | URLs | every page and API under `/` |
-| Who | the owner only (`DATA_MODEL.md` §1, §6); the two machine routes accept machines authenticated by OIDC, ingest key or HMAC and start no session |
-| Personal data | **none from the public**. The owner's identity lives in Supabase Auth's `auth` schema; `public` holds the allow-list row and bot/owner logins in observations |
-| Allowed inside | forms (`/projects/new`, `/projects/[key]/import`, M2 `/projects/[key]/keys`), server actions, the Supabase Auth session cookie, route handlers (`/api/ingest`, `/api/github/webhook`, `/api/projects`, M5 `/api/github/reconcile`) |
+| Who | the owner only (`DATA_MODEL.md` §1, §6); the three machine routes (`/api/ingest`, `/api/github/webhook`, `/api/link` from T17) accept machines authenticated by OIDC, ingest key or HMAC and start no session |
+| Personal data | **developers', not visitors'** (OD-12 §6): from T15, the repository names and GitHub owner ids of linking projects in `link_requests`, and in the `projects` an approval creates with their events, under `PROTECTION_MODEL.md`. The owner's identity lives in Supabase Auth's `auth` schema; `public` also holds the allow-list row and bot or owner logins in observations |
+| Allowed inside | forms (`/projects/new`, `/projects/[key]/import`, M2 `/projects/[key]/keys`), server actions (the link-request actions of T16 included), the Supabase Auth session cookie, route handlers (`/api/ingest`, `/api/github/webhook`, `/api/projects`, `/api/link` from T17, M5 `/api/github/reconcile`) |
 | Never allowed, even inside | analytics, trackers, third-party scripts, beacons, browser storage of anything but the Auth helper's own cookie, logging bodies or credentials, a browser call to Supabase beyond the Auth redirect |
 | Proof | `guard:boundary` (zone-aware), `guard:data`, `guard:secrets`, the pgTAP RLS tests, the reviewer's no-`set-cookie` check on the machine routes |
 
-A zone with personal data from the public would need a new OD, `docs/PROTECTION_MODEL.md` and the
-Personal-Data Protection gate (handbook §10.3). Viewer access for other people (`PROPOSALS.md` P-04) is
-such a change and is not in M1.
+OD-12 is that change for developers' link requests: `docs/PROTECTION_MODEL.md`, the Personal-Data
+Protection gate (handbook §10.3), and a private repository before T17 merges. Viewer access for other people
+(`PROPOSALS.md` P-04) would be another such change and is not decided.
