@@ -29,7 +29,7 @@ The runner reads the table below, and `guard:phases` checks it.
 | T13 | P02 | J5 | Theme switch on the sign-in pages: Auto · Light · Dark at the foot of every sign-in state, nothing stored | 2 | — | [x] | PASS a1 — docs/reviews/T13-a1.md |
 | T14 | P02 | J5 | Link preview: Open Graph and Twitter-card tags with a 1200×630 image captured from the real sign-in page | 2 | G-Link-Preview | [x] | PASS a1 — docs/reviews/T14-a1.md |
 | T15 | P03 | J4 | Link requests data layer: `link_requests`, `link_audit`, service-role functions, retention job, pgTAP, seed, types | 3 | — | [x] | PASS a1 — docs/reviews/T15-a1.md |
-| T16 | P03 | J5 | Link requests panel on the overview: pending, linked and declined groups; approve, decline, export, delete | 3 | — | [ ] | — |
+| T16 | P03 | J5 | Link requests panel on the overview: pending, linked and declined groups; approve, decline, export, delete | 3 | — | [ ] | FAIL a1 — docs/reviews/T16-a1.md |
 | T17 | P03 | J4 | `POST /api/link`: OIDC-verified link requests on the production host; `/api/ingest` refuses disconnected projects; link contract | 3 | — | [ ] | — |
 | T18 | P03 | J5 | Disconnected projects on the map, list and project page; whole-flow e2e of link, approve, ingest, decline | 3 | G-Link-Requests | [ ] | — |
 
