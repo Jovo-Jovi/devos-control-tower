@@ -296,12 +296,42 @@ function RequestRow({
       >
         {notice ?? "\u00a0"}
       </p>
-      <div className={styles.decision}>
-        <div
-          className={styles.actions}
-          data-held={confirming ? "" : undefined}
-          inert={confirming ? true : undefined}
-        >
+      {confirming ? (
+        <div className={styles.confirm} data-delete-confirm="">
+          <p className={styles.confirmCopy} id={confirmId}>
+            {row.projectKey !== null
+              ? isolateKey(fill(copy.deleteProject, { key: row.projectKey }), row.projectKey)
+              : copy.deleteRequest}
+          </p>
+          <div className={styles.actions}>
+            <button
+              ref={cancelRef}
+              aria-describedby={confirmId}
+              className={styles.action}
+              data-action="cancel"
+              disabled={locked}
+              type="button"
+              onClick={closeConfirm}
+            >
+              <StableLabel current={copy.cancel} other={copy.working} />
+            </button>
+            <button
+              aria-describedby={confirmId}
+              className={styles.action}
+              data-action="confirm"
+              disabled={locked}
+              type="button"
+              onClick={() => run("delete")}
+            >
+              <StableLabel
+                current={pressed === "delete" ? copy.working : copy.confirmDelete}
+                other={pressed === "delete" ? copy.confirmDelete : copy.working}
+              />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className={styles.actions}>
           {ROW_ACTIONS[row.state].map((action) => (
             <button
               key={action}
@@ -319,42 +349,7 @@ function RequestRow({
             </button>
           ))}
         </div>
-        {confirming ? (
-          <div className={styles.confirm}>
-            <p className={styles.confirmCopy} id={confirmId}>
-              {row.projectKey !== null
-                ? isolateKey(fill(copy.deleteProject, { key: row.projectKey }), row.projectKey)
-                : copy.deleteRequest}
-            </p>
-            <div className={styles.actions}>
-              <button
-                ref={cancelRef}
-                aria-describedby={confirmId}
-                className={styles.action}
-                data-action="cancel"
-                disabled={locked}
-                type="button"
-                onClick={closeConfirm}
-              >
-                <StableLabel current={copy.cancel} other={copy.working} />
-              </button>
-              <button
-                aria-describedby={confirmId}
-                className={styles.action}
-                data-action="confirm"
-                disabled={locked}
-                type="button"
-                onClick={() => run("delete")}
-              >
-                <StableLabel
-                  current={pressed === "delete" ? copy.working : copy.confirmDelete}
-                  other={pressed === "delete" ? copy.confirmDelete : copy.working}
-                />
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </div>
+      )}
     </article>
   );
 }
@@ -391,50 +386,52 @@ export function LinkRequestsPanel({
   }
 
   return (
-    <section
-      aria-labelledby="link-requests-title"
-      className={styles.panel}
-      data-link-requests=""
-      data-state={mode}
-    >
-      <h2 className={styles.title} id="link-requests-title">
-        {copy.title}
-      </h2>
-      <p className={styles.lead}>{copy.lead}</p>
-      {mode === "unavailable" ? <StateBlock kind="error" message={copy.unavailable} /> : null}
-      {mode === "empty" ? <StateBlock kind="empty" message={copy.empty} /> : null}
-      {grouped ? (
-        <div className={styles.groups}>
-          <RequestGroup
-            copy={copy}
-            label={copy.pending}
-            name="pending"
-            noticeFor={(id) => notices[id] ?? null}
-            onNotice={setNotice}
-            onToast={showToast}
-            rows={grouped.pending}
-          />
-          <RequestGroup
-            copy={copy}
-            label={copy.linked}
-            name="linked"
-            noticeFor={(id) => notices[id] ?? null}
-            onNotice={setNotice}
-            onToast={showToast}
-            rows={grouped.linked}
-          />
-          <RequestGroup
-            copy={copy}
-            label={copy.declined}
-            name="declined"
-            noticeFor={(id) => notices[id] ?? null}
-            onNotice={setNotice}
-            onToast={showToast}
-            rows={grouped.declined}
-          />
-        </div>
-      ) : null}
+    <>
+      <section
+        aria-labelledby="link-requests-title"
+        className={styles.panel}
+        data-link-requests=""
+        data-state={mode}
+      >
+        <h2 className={styles.title} id="link-requests-title">
+          {copy.title}
+        </h2>
+        <p className={styles.lead}>{copy.lead}</p>
+        {mode === "unavailable" ? <StateBlock kind="error" message={copy.unavailable} /> : null}
+        {mode === "empty" ? <StateBlock kind="empty" message={copy.empty} /> : null}
+        {grouped ? (
+          <div className={styles.groups}>
+            <RequestGroup
+              copy={copy}
+              label={copy.pending}
+              name="pending"
+              noticeFor={(id) => notices[id] ?? null}
+              onNotice={setNotice}
+              onToast={showToast}
+              rows={grouped.pending}
+            />
+            <RequestGroup
+              copy={copy}
+              label={copy.linked}
+              name="linked"
+              noticeFor={(id) => notices[id] ?? null}
+              onNotice={setNotice}
+              onToast={showToast}
+              rows={grouped.linked}
+            />
+            <RequestGroup
+              copy={copy}
+              label={copy.declined}
+              name="declined"
+              noticeFor={(id) => notices[id] ?? null}
+              onNotice={setNotice}
+              onToast={showToast}
+              rows={grouped.declined}
+            />
+          </div>
+        ) : null}
+      </section>
       {toast ? <Toast key={toast.key} message={toast.text} /> : null}
-    </section>
+    </>
   );
 }

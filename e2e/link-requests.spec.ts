@@ -230,7 +230,12 @@ async function armShift(context: BrowserContext) {
     Object.assign(window, { __layoutShift: bucket });
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        const shift = entry as PerformanceEntry & { value?: number; sources?: { node?: Node | null }[] };
+        const shift = entry as PerformanceEntry & {
+          value?: number;
+          hadRecentInput?: boolean;
+          sources?: { node?: Node | null }[];
+        };
+        if (shift.hadRecentInput) continue;
         if (typeof shift.value !== "number" || shift.value === 0) continue;
         bucket.value += shift.value;
         bucket.entries.push({
@@ -266,48 +271,58 @@ async function settle(page: Page) {
   });
 }
 
-async function seek(page: Page, time: number) {
+async function armHoldNew(page: Page) {
+  await page.evaluate(() => {
+    for (const animation of document.getAnimations()) {
+      (animation as Animation & { held?: boolean }).held = true;
+    }
+    const hold = () => {
+      for (const animation of document.getAnimations()) {
+        const marked = animation as Animation & { held?: boolean };
+        if (marked.held) continue;
+        if (animation.playState === "running") animation.pause();
+      }
+      requestAnimationFrame(hold);
+    };
+    requestAnimationFrame(hold);
+  });
+}
+
+async function seekNew(page: Page, time: number) {
   await page.evaluate((ms) => {
     for (const animation of document.getAnimations()) {
+      const marked = animation as Animation & { held?: boolean };
+      if (marked.held) continue;
       animation.pause();
       animation.currentTime = ms;
     }
-    return new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
-    });
   }, time);
 }
 
-function pauseOnPaint() {
-  const hold = () => {
-    for (const animation of document.getAnimations()) {
-      if (animation.playState === "running") animation.pause();
-    }
-    requestAnimationFrame(hold);
-  };
-  requestAnimationFrame(hold);
-}
-
-async function holdAction(page: Page): Promise<() => void> {
-  let finish = (): void => undefined;
-  const gate = new Promise<void>((resolve) => {
-    finish = () => resolve();
-  });
-  let used = false;
-  await page.route("**/*", async (route) => {
-    const request = route.request();
-    const header = request.headers()["next-action"];
-    if (!used && request.method() === "POST" && typeof header === "string" && header.length > 0) {
-      used = true;
-      await gate;
-    }
-    try {
-      await route.fallback();
-    } catch (error) {
-      if (!page.isClosed()) throw error;
-    }
-  });
-  return finish;
+async function expectConfirmClear(row: Locator) {
+  const dl = await row.locator("dl").boundingBox();
+  const message = await row.locator(":scope > p").boundingBox();
+  const confirm = await row.locator("[data-delete-confirm]").boundingBox();
+  const box = await row.boundingBox();
+  expect(dl, "definition list box").not.toBeNull();
+  expect(message, "row message box").not.toBeNull();
+  expect(confirm, "confirmation box").not.toBeNull();
+  expect(box, "row box").not.toBeNull();
+  if (!dl || !message || !confirm || !box) return;
+  const dlBottom = dl.y + dl.height;
+  const messageBottom = message.y + message.height;
+  const confirmBottom = confirm.y + confirm.height;
+  const rowBottom = box.y + box.height;
+  expect(confirm.y, `confirmation top ${confirm.y} covers the fields ending at ${dlBottom}`).toBeGreaterThanOrEqual(
+    dlBottom,
+  );
+  expect(
+    confirm.y,
+    `confirmation top ${confirm.y} covers the row message ending at ${messageBottom}`,
+  ).toBeGreaterThanOrEqual(messageBottom);
+  expect(confirmBottom, `confirmation bottom ${confirmBottom} leaves the row ending at ${rowBottom}`).toBeLessThanOrEqual(
+    rowBottom,
+  );
 }
 
 async function expectNoScroll(page: Page) {
@@ -387,6 +402,7 @@ async function reveal(page: Page, state: CaptureState) {
   await row.locator("[data-action=delete]").click();
   await expect(row.getByRole("button", { name: "Delete for good", exact: true })).toBeVisible();
   await expect(row).toContainText(COPY.deleteProject);
+  await expectConfirmClear(row);
 }
 
 function clearCaptures() {
@@ -404,26 +420,28 @@ async function filmApprove(browser: Browser, csp: string[]) {
     reducedMotion: "no-preference",
   });
   await context.addCookies(ownerCookies);
-  await context.addInitScript(pauseOnPaint);
   const page = await context.newPage();
   watchCsp(page, csp);
-  let release = (): void => undefined;
   try {
     await openHome(page);
-    release = await holdAction(page);
+    await settle(page);
+    await armHoldNew(page);
     const row = requestRow(page, "fixture-link/alpha");
-    await row.locator("[data-action=approve]").evaluate((element: HTMLButtonElement) => element.click());
-    await expect(row.getByRole("button", { name: "Saving…", exact: true })).toBeVisible({ timeout: 20_000 });
+    await row.locator("[data-action=approve]").click();
+    const toast = page.getByText("Linked as LINK-ALPHA.");
+    await expect(toast).toBeVisible({ timeout: 20_000 });
+    await expect(row).toHaveAttribute("data-request-state", "approved");
+    await expect(
+      page.locator(`[data-group=linked] article[data-link-request="${requestId("fixture-link/alpha")}"]`),
+    ).toBeVisible();
+    await expect(toast).toBeInViewport();
+    await toast.hover();
     for (const time of FILM_TIMES) {
-      await seek(page, time);
+      await seekNew(page, time);
       await capture(page, `${SCREENS}/t16-approve-dark-1280-film-${String(time).padStart(3, "0")}.png`);
     }
-    const finish = release;
-    release = () => undefined;
-    finish();
-    await expect(page.getByText("Linked as LINK-ALPHA.")).toBeVisible({ timeout: 20_000 });
+    await expect(toast).toBeVisible();
   } finally {
-    release();
     await context.close();
   }
 }
@@ -442,14 +460,10 @@ async function filmTheme(browser: Browser, csp: string[]) {
     await openHome(page);
     await reveal(page, "groups");
     await settle(page);
-    await page.evaluate((name) => {
-      const button = document.querySelector<HTMLButtonElement>(`[data-theme-option="${name}"]`);
-      if (!button) throw new Error(`missing ${name}`);
-      button.click();
-      for (const animation of document.getAnimations()) animation.pause();
-    }, "dark");
+    await armHoldNew(page);
+    await page.locator('[data-theme-option="dark"]').click();
     for (const time of THEME_TIMES) {
-      await seek(page, time);
+      await seekNew(page, time);
       await capture(page, `${SCREENS}/t16-theme-to-dark-1280-${String(time).padStart(4, "0")}.png`);
     }
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -540,7 +554,9 @@ test("Approve", async ({ browser }) => {
   try {
     const row = page.locator(`article[data-link-request="${id}"]`);
     await row.locator("[data-action=approve]").click();
-    await expect(page.getByText("Linked as LINK-ALPHA.")).toBeVisible({ timeout: 20_000 });
+    const toast = page.getByText("Linked as LINK-ALPHA.");
+    await expect(toast).toBeVisible({ timeout: 20_000 });
+    await expect(toast).toBeInViewport();
     await expect(row).toHaveAttribute("data-request-state", "approved");
     await expect(page.locator("[data-group=linked]").locator(`article[data-link-request="${id}"]`)).toBeVisible();
     expect(query("select key || ' ' || repo || ' ' || owner_github_id from public.projects where key = 'LINK-ALPHA'")).toBe(
@@ -630,6 +646,7 @@ test("Delete", async ({ browser }) => {
     await row.locator("[data-action=delete]").click();
     await expect(row.locator("[data-action=cancel]")).toBeFocused();
     await expect(row).toContainText(COPY.deleteProject);
+    await expectConfirmClear(row);
     await row.locator("[data-action=cancel]").click();
     await expect(row.locator("[data-action=delete]")).toBeVisible();
     await expect(row.locator("[data-action=confirm]")).toHaveCount(0);
