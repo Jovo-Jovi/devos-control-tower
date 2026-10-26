@@ -15,6 +15,8 @@
 | `Observation` | One fact the GitHub App reported about a commit or pull request: `workflow_run`, `check_run`, `status` (with its context, e.g. `devos/verdict`), `pull_request` | `observations` |
 | `OwnerAllowlist` | The single row holding the owner's GitHub numeric id, inserted by the owner in the SQL editor; read only by `public.is_owner()` | `owner_allowlist` |
 | `IngestKey` (M2) | A per-project write-only key, shown once, stored hashed, revocable | `ingest_keys` |
+| `LinkRequest` | One DEV_OS project's request to be linked to the Tower: the repository `owner/name` and its owner's numeric GitHub id from the OIDC token, the proposed key, the engine and contract versions, its state (pending · approved · declined), first and last request, decision time (OD-12) | `link_requests` |
+| `LinkAudit` | The reason-only trace of one change to a link request: time, action (requested · approved · declined · deleted · exported · purged) and the request's id; never a repository or a person's id (OD-12) | `link_audit` |
 
 ## 2. Terms
 
@@ -38,6 +40,7 @@
   reviewer; `docs/reports/Tnn.md` by the builder (its `## Usage (generated — do not edit)` section by the
   runner); `docs/reviews/Tnn-aN.md` by the reviewer; the runner is `devos-cycle` on GitHub or
   `scripts/devos/loop.mjs` locally.
+- **Linked / disconnected**: a project created by approving a link request is **linked**; declined later, it is **disconnected** — its row and history stay for the record, and `/api/ingest` refuses its events (OD-12 §4–§5).
 
 ## 3. Forbidden bare nouns
 
@@ -59,5 +62,5 @@ Qualified replacements:
 - `item`, `info`, `data` → **forbidden.** Name the entity.
 
 PascalCase entity names are permitted only as the exact names in §1 (plus the qualified type names above).
-Route segments in use: `projects`, `new`, `usage`, `import`, `keys` (M2), `scope` (M5), `api`, `ingest`,
+Route segments in use: `projects`, `new`, `usage`, `import`, `keys` (M2), `scope` (M5), `api`, `ingest`, `link` (T17),
 `github`, `webhook`, `reconcile` (M5), `sign-in` — none is a forbidden noun.

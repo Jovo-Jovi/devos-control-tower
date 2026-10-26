@@ -1,7 +1,7 @@
 # TOWER — Carry-forwards
 
 Every finding becomes a row. The reviewer describes the row in a verdict; the landing task allocates
-the id from the live maximum and reports it. **Live maximum: CF-022.**
+the id from the live maximum and reports it. **Live maximum: CF-024.**
 
 Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` · `HANDOVER`.
 
@@ -29,3 +29,5 @@ Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` 
 | CF-020 | Recent activity at ≥ 761 px wraps `task · step · status` over two or three lines (`docs/reviews/T05-a5.md` c). | the human at G-Design-v3 | OPEN | G-Design-v3 |
 | CF-021 | `e2e/shell.spec.ts` "Evidence" read a layout shift of 0.032 at `sign-in-dark-390-reduced` in the runner's T05 a5 run. The a2–a4 runs, the builder's a5 run and the runner's own 12 sign-in readings were 0. The page is outside every a5 change, and the cause is unknown (the observer keeps no entry sources). Have the spec record each layout-shift entry's `sources` so the moving node is named (`docs/reviews/T05-a5.md` e). The sources are recorded in `.devos/screens/t09-layout-shift-sources.json` and `.devos/screens/v3-layout-shift-sources.json`. | the reviewer writing T09 | CLOSED at T09 | T09 |
 | CF-022 | `docs/SECURITY_MODEL.md` §3, `/auth/callback` row, says 'The server renders no query value'. The T09 page reads no `searchParams`, but Next 16 seeds its router from the request URL. `getRSCPayload` puts `c: url.pathname + url.search` and `q: getRenderedSearch(query)` into the initial payload (`node_modules/next/dist/server/app-render/app-render.js:1156,1239–1240`), so the OAuth code appears in the HTML that `/auth/callback?code=…` returns. The risk is low: the code is already in the address bar and history, it is single-use and bound to the PKCE verifier cookie, and the page is `private, no-store` with `Referrer-Policy: no-referrer`. Suggested amendment: 'The page reads no query value and its markup shows none; Next's router payload carries the request URL.' (`docs/reviews/T07-a2.md` Carry-forwards logged). | human (a SECURITY_MODEL §3 amendment through intake) | OPEN | document amendment |
+| CF-023 | Node v24 is ahead of v22 on the automated builder's PATH again in T14 a1 (a recurrence of CF-003) (`docs/reviews/T14-a1.md` a). | human opens a "Dev OS method fix" issue (PR-28) | OPEN | method fix |
+| CF-024 | A fence that closes a gate must say `Review gate: deep`, because the runner reviews gates deep (`docs/reviews/T14-a1.md` b). | the reviewer | OPEN | T18 (the fence that closes G-Link-Requests) |
