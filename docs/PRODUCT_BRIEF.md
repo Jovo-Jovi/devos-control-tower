@@ -36,6 +36,10 @@ of the Dev OS ecosystem is traced from day one.
   are registered as.
 - **The GitHub App `devos-control-tower`**, as a machine: it delivers signed webhooks for the installed
   repositories (observed facts). It reads nothing it was not granted (ADR-003).
+- **DEV_OS projects of developers who opted in** (OD-12, issue #46), as machines: their GitHub Actions
+  workflow asks to be linked with its OIDC token (`POST /api/link`). The owner approves or declines each
+  request once; an approved project then reports like any other. The developers never sign in and are not
+  users of the Tower. What the Tower keeps about them is governed by `PROTECTION_MODEL.md`.
 - Nobody else. No public page, no visitor, no second account until a signed OD adds one.
 
 ## Stack

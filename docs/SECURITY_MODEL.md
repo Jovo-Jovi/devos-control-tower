@@ -11,6 +11,7 @@ this repository.
 | Server (user path) | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Vercel env (all environments) | client and session helpers |
 | Server (machine path) | `SUPABASE_SECRET_KEY` (service role) | Vercel env **Production**, Sensitive; CI uses the local stack | `src/lib/supabase/server/admin.ts` only |
 | GitHub Actions run of a registered project | OIDC JWT, `aud = TOWER_URL`, `iss = https://token.actions.githubusercontent.com` | minted per job, never stored | `/api/ingest` (pilot ADR-005) |
+| GitHub Actions run of a DEV_OS project asking to be linked (OD-12) | the same OIDC JWT; only its `repository` and `repository_owner_id` claims are used | minted per job, never stored | `/api/link` (T17) |
 | Local runner (M2) | per-project ingest key, write-only, hashed at rest | the owner's OS keychain | `/api/ingest` |
 | GitHub App `devos-control-tower` | `GITHUB_WEBHOOK_SECRET` (HMAC-SHA256 of the body) | Vercel env Production, Sensitive; the App's settings | `/api/github/webhook` (Tower ADR-003) |
 | Deploy | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`; `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, `SUPABASE_DB_PASSWORD`, `DEVOS_BACKUP_PASSPHRASE` | GitHub repository secrets | `devos-deploy` only |
@@ -44,6 +45,7 @@ Machine routes answer `application/json` with `Cache-Control: no-store` and no C
 | `/` and every page | owner session | 1 session? else `302 /sign-in` · 2 `select public.is_owner()` true? else sign out + `403` page | HTML |
 | `/api/projects`, read APIs | owner session | as pages, but `401` without a session, `403` for a non-owner | JSON |
 | `POST /api/ingest` (T02) | OIDC (CI) · ingest key (M2) | 1 production host (`VERCEL_ENV === 'production'` and `Host` = host of `TOWER_URL`) else `404` · 2 `Content-Length`/body ≤ 2 048 bytes else `413` · 3 schema (incl. the `usage` rule) else `400 schema` · 4 bearer: JWT → JWKS of the issuer, `iss`, `aud = TOWER_URL`, signature, `exp`; claim `repository` = a registered project's `repo`; `repository_owner_id` = that project's `owner_github_id`; or `key_…` path → hash lookup, not revoked, same project; else `401 { error: <reason> }` + one `event_rejections` row · 5 insert (`runs` upsert, `events` on conflict, `event_usage`) → `200` / `200 duplicate` / `409 duplicate_conflict` | JSON, exactly contract §8 |
+| `POST /api/link` (T17, OD-12 §2) | OIDC (CI) | 1 production host else `404` · 2 bearer present else `401 no_token` · 3 JWT → JWKS of the issuer, `iss`, `aud = TOWER_URL`, signature, `exp` else `401 { error: <reason> }` (`503` when the key set cannot be fetched) · 4 claims `repository` = `owner/name` and `repository_owner_id` = digits else `401 bad_signature`; every `401` adds one `event_rejections` row · 5 body ≤ 1 024 bytes, exactly `{ v: 1, key, engine, contract }` else `400 schema` · 6 `request_link` → `200 linked` / `202 pending` / `403 declined` / `429 rate_limited` (50 pending) / `500` | JSON, `no-store`, never `Set-Cookie`; `docs/contract/LINK_CONTRACT.md` |
 | `POST /api/github/webhook` (T03) | HMAC | 1 production host else `404` · 2 `X-Hub-Signature-256` valid else `401`, nothing stored · 3 delivery id seen → `202`, nothing · 4 repository registered? else `202`, nothing · 5 store delivery + observation(s) → `202` | JSON |
 | `POST /api/github/reconcile` (M5) | App installation token, server-side | per Tower ADR-003 | JSON |
 | `/sign-in` | none | renders the GitHub button; states signed-out, denied (`?reason=not_owner`), error (`?reason=auth_error`) | HTML |
@@ -51,7 +53,9 @@ Machine routes answer `application/json` with `Cache-Control: no-store` and no C
 | `GET /auth/confirm` (T09, OD-07 §4) | OAuth code + the Auth helper's PKCE verifier cookie | 1 code present and exchanged for a session, else `303 /sign-in?reason=auth_error` · 2 `select public.is_owner()` false → sign out + `303 /sign-in?reason=not_owner` · 3 `303 /` (exactly T01's callback logic, moved) | redirect |
 
 Rate limiting: Vercel's platform limits plus one in-route cap on `/api/ingest` of 60 requests per
-minute per project (`429`, contract §8) — a sender journals and retries later. Sessions: Supabase Auth
+minute per project (`429`, contract §8) — a sender journals and retries later. `/api/link` caps the pending
+requests at 50 (`429` for a new repository beyond that), so a flood of tokens from strangers' workflows cannot fill
+the owner's panel. From T17, `/api/ingest` also refuses a disconnected project with `401 repo_not_registered` (OD-12 §5). Sessions: Supabase Auth
 defaults; the session cookie is `HttpOnly`, `Secure`, `SameSite=Lax`, scoped to the Tower origin. Recovery:
 none in-app (ADR-002).
 
