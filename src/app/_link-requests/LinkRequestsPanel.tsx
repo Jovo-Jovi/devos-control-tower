@@ -72,6 +72,17 @@ function Fact({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+function StableLabel({ current, other }: { current: string; other: string }) {
+  return (
+    <span className={styles.label}>
+      <span>{current}</span>
+      <span aria-hidden="true" className={styles.sizer}>
+        {other}
+      </span>
+    </span>
+  );
+}
+
 function RequestGroup({
   name,
   label,
@@ -277,44 +288,20 @@ function RequestRow({
           </Fact>
         )}
       </dl>
-      {notice ? (
-        <p className={styles.rowNotice} data-row-message="" role="status">
-          {notice}
-        </p>
-      ) : null}
-      {confirming ? (
-        <div className={styles.confirm}>
-          <p className={styles.confirmCopy} id={confirmId}>
-            {row.projectKey !== null
-              ? isolateKey(fill(copy.deleteProject, { key: row.projectKey }), row.projectKey)
-              : copy.deleteRequest}
-          </p>
-          <div className={styles.actions}>
-            <button
-              ref={cancelRef}
-              aria-describedby={confirmId}
-              className={styles.action}
-              data-action="cancel"
-              disabled={locked}
-              type="button"
-              onClick={closeConfirm}
-            >
-              {copy.cancel}
-            </button>
-            <button
-              aria-describedby={confirmId}
-              className={styles.action}
-              data-action="confirm"
-              disabled={locked}
-              type="button"
-              onClick={() => run("delete")}
-            >
-              {pressed === "delete" ? copy.working : copy.confirmDelete}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className={styles.actions}>
+      <p
+        className={styles.rowNotice}
+        {...(notice
+          ? { "data-row-message": "", role: "status" as const }
+          : { "aria-hidden": true as const })}
+      >
+        {notice ?? "\u00a0"}
+      </p>
+      <div className={styles.decision}>
+        <div
+          className={styles.actions}
+          data-held={confirming ? "" : undefined}
+          inert={confirming ? true : undefined}
+        >
           {ROW_ACTIONS[row.state].map((action) => (
             <button
               key={action}
@@ -325,11 +312,49 @@ function RequestRow({
               type="button"
               onClick={action === "delete" ? askDelete : () => run(action)}
             >
-              {pressed === action ? copy.working : copy[action]}
+              <StableLabel
+                current={pressed === action ? copy.working : copy[action]}
+                other={pressed === action ? copy[action] : copy.working}
+              />
             </button>
           ))}
         </div>
-      )}
+        {confirming ? (
+          <div className={styles.confirm}>
+            <p className={styles.confirmCopy} id={confirmId}>
+              {row.projectKey !== null
+                ? isolateKey(fill(copy.deleteProject, { key: row.projectKey }), row.projectKey)
+                : copy.deleteRequest}
+            </p>
+            <div className={styles.actions}>
+              <button
+                ref={cancelRef}
+                aria-describedby={confirmId}
+                className={styles.action}
+                data-action="cancel"
+                disabled={locked}
+                type="button"
+                onClick={closeConfirm}
+              >
+                <StableLabel current={copy.cancel} other={copy.working} />
+              </button>
+              <button
+                aria-describedby={confirmId}
+                className={styles.action}
+                data-action="confirm"
+                disabled={locked}
+                type="button"
+                onClick={() => run("delete")}
+              >
+                <StableLabel
+                  current={pressed === "delete" ? copy.working : copy.confirmDelete}
+                  other={pressed === "delete" ? copy.confirmDelete : copy.working}
+                />
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </article>
   );
 }

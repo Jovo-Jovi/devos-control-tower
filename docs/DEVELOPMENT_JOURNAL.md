@@ -312,3 +312,7 @@ Every page's head now carries an Open Graph website card and a Twitter summary-l
 ## 2026-10-26 — T15 Link requests data layer (attempt 1)
 
 The link-request tables and the three decision functions were already on this branch. This attempt adds `delete_link_request`, `export_link_request` and `purge_link_requests`, each `security invoker` with execute only for `service_role`, and the daily `pg_cron` job `tower-link-retention` at 03:17 UTC. pgTAP proves deletion, export, the 180-day and 365-day retention, and the job. The glossary names `LinkRequest` and `LinkAudit`. Awaiting the verdict. A PASS stops at the schema gate for the owner.
+
+## 2026-10-26 — T16 Link requests panel (attempt 2)
+
+The overview shows pending, linked and declined link requests for the owner only. Approve, decline, export and delete go through the service-role functions after `requireOwner()`. Export is a browser download and is stored nowhere; a failure shows only the catalogue message. `e2e/link-requests.spec.ts` proves the groups, the four actions, the refusals and the captures, with layout shift 0. CF-025 through CF-029 are logged, and CF-027 closes here. Awaiting the verdict.

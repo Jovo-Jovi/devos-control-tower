@@ -117,16 +117,30 @@
 }
 
 .rowNotice {
+  min-block-size: calc(var(--text-1) * var(--leading) * 2);
   color: var(--color-ink);
   font-size: var(--text-1);
   overflow-wrap: anywhere;
 }
 
+.decision {
+  position: relative;
+  min-inline-size: 0;
+}
+
 .confirm {
+  position: absolute;
+  z-index: 1;
+  inset-inline: 0;
+  inset-block-end: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   min-inline-size: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+  box-shadow: var(--edge);
 }
 
 .confirmCopy {
@@ -138,8 +152,27 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: start;
   gap: var(--space-2);
   min-inline-size: 0;
+}
+
+.actions[data-held] {
+  visibility: hidden;
+}
+
+.label {
+  display: grid;
+  justify-items: center;
+}
+
+.label > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+}
+
+.sizer {
+  visibility: hidden;
 }
 
 .action {
@@ -183,6 +216,11 @@
   .panel {
     background: var(--color-surface);
   }
+}
+
+/* The overview database alert is the promise that main shows no number. */
+:global(main:has([role="alert"])) .panel {
+  display: none;
 }
 
 @keyframes rise {
