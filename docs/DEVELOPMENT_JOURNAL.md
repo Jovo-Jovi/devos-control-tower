@@ -320,3 +320,7 @@ The overview shows pending, linked and declined link requests for the owner only
 ## 2026-10-26 — T16 Link requests panel (attempt 3)
 
 The delete confirmation sits in the row, below the fields, so it covers none of them. The toast is a sibling of the panel and stays in the viewport. The Approve and theme filmstrips record the outcome after the click, and layout shift stays 0 when input-driven entries are left out. CF-030 and CF-031 are logged. Awaiting the verdict.
+
+## 2026-10-26 — T17 Link route and safeguards (attempt 1)
+
+`POST /api/link` verifies a GitHub Actions OIDC token on the production host and calls `request_link`. The repository and the owner id come from the token's claims. Every `401` stores a reason-only rejection row, and every answer is JSON with `Cache-Control: no-store` and no `Set-Cookie`. Any other host answers `404`. `/api/ingest` refuses a disconnected project with `401 repo_not_registered`. The safeguards migration re-checks each purge, keeps one request per project, caps one owner at 3 pending requests beside the cap of 50, and exports usage and observations. `docs/contract/LINK_CONTRACT.md` is v1. `e2e/link-route.spec.ts` covers the local `404`. CF-025, CF-026, CF-028 and CF-029 close here. CF-032, CF-033 and CF-034 are open. Awaiting the verdict. A PASS stops at the schema gate: the owner makes the repository private before merging.
