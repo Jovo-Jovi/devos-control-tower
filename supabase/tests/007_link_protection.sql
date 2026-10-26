@@ -223,14 +223,14 @@ select is(
 
 do $purge$
 begin
-  perform public.request_link('fixture-dev/t15-old-pend', '0', 'OLDPEND-T15', '0.2.9', '0-draft-3');
-  perform public.request_link('fixture-dev/t15-old-decl', '0', 'OLDDECL-T15', '0.2.9', '0-draft-3');
+  perform public.request_link('fixture-dev/t15-old-pend', '999', 'OLDPEND-T15', '0.2.9', '0-draft-3');
+  perform public.request_link('fixture-dev/t15-old-decl', '999', 'OLDDECL-T15', '0.2.9', '0-draft-3');
   perform public.decline_link_request(r.id)
     from public.link_requests r
     where r.repository = 'fixture-dev/t15-old-decl';
-  perform public.request_link('fixture-dev/t15-young', '0', 'YOUNG-T15', '0.2.9', '0-draft-3');
+  perform public.request_link('fixture-dev/t15-young', '999', 'YOUNG-T15', '0.2.9', '0-draft-3');
 
-  perform public.request_link('fixture-dev/t15-old-disc', '0', 'OLDDISC-T15', '0.2.9', '0-draft-3');
+  perform public.request_link('fixture-dev/t15-old-disc', '999', 'OLDDISC-T15', '0.2.9', '0-draft-3');
   perform public.approve_link_request(r.id)
     from public.link_requests r
     where r.repository = 'fixture-dev/t15-old-disc';
@@ -238,7 +238,7 @@ begin
     from public.link_requests r
     where r.repository = 'fixture-dev/t15-old-disc';
 
-  perform public.request_link('fixture-dev/t15-young-disc', '0', 'YOUNGDISC-T15', '0.2.9', '0-draft-3');
+  perform public.request_link('fixture-dev/t15-young-disc', '999', 'YOUNGDISC-T15', '0.2.9', '0-draft-3');
   perform public.approve_link_request(r.id)
     from public.link_requests r
     where r.repository = 'fixture-dev/t15-young-disc';
