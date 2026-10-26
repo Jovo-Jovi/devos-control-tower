@@ -32,6 +32,7 @@ The runner reads the table below, and `guard:phases` checks it.
 | T16 | P03 | J5 | Link requests panel on the overview: pending, linked and declined groups; approve, decline, export, delete | 3 | — | [ ] | — |
 | T17 | P03 | J4 | `POST /api/link`: OIDC-verified link requests on the production host; `/api/ingest` refuses disconnected projects; link contract | 3 | — | [ ] | — |
 | T18 | P03 | J5 | Disconnected projects on the map, list and project page; whole-flow e2e of link, approve, ingest, decline | 3 | G-Link-Requests | [ ] | — |
+| T19 | PM | M | Method fix: a task without its fence waits instead of failing; supervisor, request closing and planning notes | 3 | G-Method-50 | [ ] | — |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both
 belong to milestone M1 of `devos-plan`; the CK1 checkpoint between T02/PM01 and T03 is an owner gate
@@ -45,6 +46,11 @@ Phase outlines (method track):
   motion filmstrip (0, 80, 160, 320, 640 ms after first paint or the named interaction), a reduced-motion
   screenshot and the layout-shift value, in `.devos/screens/motion.json`; the evidence pack and the reviewer
   prompt carry them (`docs/DESIGN_SYSTEM.md` §7). Runs before the open product tasks (PR-28); lands before T04.
+- **T19 (PM, issue #50, `docs/requests/issue-50.md`):** a task whose fence is not on main waits, with a notice
+  (resolve output `fence_missing`, no dispatch from `devos-advance`), instead of failing the cycle. The supervisor
+  recognises a missing fence, reports it once and never re-runs it. A request stays open until every task its plan
+  names is PASS. Every planning comment starts with `Dev OS: `, and the notes filter ignores runner comments. Two
+  stages. Runs before the open product tasks (PR-28); nothing to resume.
 
 ## Phase outlines
 
