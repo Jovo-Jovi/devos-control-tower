@@ -1,6 +1,6 @@
 # TOWER — Session context
 
-**Phase:** P02 (Tower v1 pages) · **Last verdict:** T13 PASS a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022
+**Phase:** P03 (Link requests) · **Last verdict:** T14 PASS a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-024
 
 ## Done steps
 
@@ -20,8 +20,9 @@
 | T11 | Design v3.1 art: the owner's backgrounds and planet in the scene | PASS a2 |
 | T12 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | PASS a1 |
 | T13 | Theme switch on the sign-in pages | PASS a1 |
-| T14 | Link preview | built a1 — awaiting verdict |
+| T14 | Link preview | PASS a1 |
+| T15 | Link requests data layer | built a1 — awaiting verdict |
 
 ## Next action
 
-Review of T14 attempt 1, then the owner's gate G-Link-Preview.
+Review of T15 attempt 1 (deep), then the owner's merge at the schema gate.

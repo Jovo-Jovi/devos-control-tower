@@ -219,11 +219,20 @@ isOneToOne: false
 "decline_link_request":
 { Args: { "p_request": string }; Returns: Json
                            },
+"delete_link_request":
+{ Args: { "p_request": string }; Returns: Json
+                           },
+"export_link_request":
+{ Args: { "p_request": string }; Returns: Json
+                           },
 "ingest_event":
 { Args: { "payload": Json,"src": string }; Returns: Json
                            },
 "is_owner":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"purge_link_requests":
+{ Args: Record<PropertyKey, never>; Returns: number
                            },
 "request_link":
 { Args: { "p_contract_version": string,"p_engine_version": string,"p_owner_github_id": string,"p_proposed_key": string,"p_repository": string }; Returns: Json

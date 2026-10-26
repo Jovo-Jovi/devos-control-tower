@@ -308,3 +308,7 @@ The existing ThemeSwitch sits at the foot of every sign-in state, outside the ca
 ## 2026-10-22 — T14 Link preview (attempt 1)
 
 Every page's head now carries an Open Graph website card and a Twitter summary-large-image card. The image is a 1200×630 JPEG captured from the production build's `/sign-in` in the dark theme with reduced motion, by `scripts/site/link-preview.mjs`. It is imported by the root layout and served from `/_next/static/media/`. Absolute URLs use `TOWER_URL` when that value is an http or https URL. The proxy, headers and routes are unchanged. Awaiting the verdict. A PASS stops at gate G-Link-Preview for the owner.
+
+## 2026-10-26 — T15 Link requests data layer (attempt 1)
+
+The link-request tables and the three decision functions were already on this branch. This attempt adds `delete_link_request`, `export_link_request` and `purge_link_requests`, each `security invoker` with execute only for `service_role`, and the daily `pg_cron` job `tower-link-retention` at 03:17 UTC. pgTAP proves deletion, export, the 180-day and 365-day retention, and the job. The glossary names `LinkRequest` and `LinkAudit`. Awaiting the verdict. A PASS stops at the schema gate for the owner.
