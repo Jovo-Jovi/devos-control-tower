@@ -155,3 +155,24 @@ update public.runs as r
 set created_at = r.created_at - interval '3 hours'
 where r.project_id = (select id from public.projects where key = 'TRACE')
   and r.run_key = 'import-c0ffee0';
+
+insert into public.link_requests (repository, owner_github_id, proposed_key, engine_version, contract_version)
+values ('fixture-dev/demo-shop', '0', 'DEMO-SHOP', '0.2.9', '0-draft-3');
+
+insert into public.link_requests (
+  repository,
+  owner_github_id,
+  proposed_key,
+  engine_version,
+  contract_version,
+  state,
+  decided_at
+) values (
+  'fixture-dev/declined-app',
+  '0',
+  'DECLINED-APP',
+  '0.2.9',
+  '0-draft-3',
+  'declined',
+  '2026-10-20T00:00:00Z'
+);

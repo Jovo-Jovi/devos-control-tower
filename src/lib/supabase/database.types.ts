@@ -83,6 +83,40 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"link_audit": {
+                  Row: {
+                    "action": string,"at": string,"id": number,"request_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"at"?: string,"id"?: never,"request_id": string
+                  }
+                  Update: {
+                    "action"?: string,"at"?: string,"id"?: never,"request_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"link_requests": {
+                  Row: {
+                    "contract_version": string,"decided_at": string | null,"engine_version": string,"first_requested_at": string,"id": string,"last_requested_at": string,"owner_github_id": string,"project_id": string | null,"proposed_key": string,"repository": string,"state": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "contract_version": string,"decided_at"?: string | null,"engine_version": string,"first_requested_at"?: string,"id"?: string,"last_requested_at"?: string,"owner_github_id": string,"project_id"?: string | null,"proposed_key": string,"repository": string,"state"?: string
+                  }
+                  Update: {
+                    "contract_version"?: string,"decided_at"?: string | null,"engine_version"?: string,"first_requested_at"?: string,"id"?: string,"last_requested_at"?: string,"owner_github_id"?: string,"project_id"?: string | null,"proposed_key"?: string,"repository"?: string,"state"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "link_requests_project_id_fkey"
+      columns: ["project_id"]
+isOneToOne: false
+      referencedRelation: "projects"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"observations": {
                   Row: {
                     "actor_login": string | null,"at": string,"context": string | null,"id": number,"kind": string,"payload_ref": string,"project_id": string,"received_at": string,"sha": string,"state": string
@@ -179,11 +213,20 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "ingest_event":
+            "approve_link_request":
+{ Args: { "p_request": string }; Returns: Json
+                           },
+"decline_link_request":
+{ Args: { "p_request": string }; Returns: Json
+                           },
+"ingest_event":
 { Args: { "payload": Json,"src": string }; Returns: Json
                            },
 "is_owner":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"request_link":
+{ Args: { "p_contract_version": string,"p_engine_version": string,"p_owner_github_id": string,"p_proposed_key": string,"p_repository": string }; Returns: Json
                            },
 "verify_reported_events":
 { Args: { "run": string }; Returns: number
