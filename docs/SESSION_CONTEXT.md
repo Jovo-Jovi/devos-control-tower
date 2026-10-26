@@ -1,6 +1,6 @@
 # TOWER — Session context
 
-**Phase:** P03 (Link requests) · **Last verdict:** T14 PASS a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-024
+**Phase:** P03 (Link requests) · **Last verdict:** T16 FAIL a2 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-024, CF-025, CF-026, CF-028, CF-029, CF-030, CF-031
 
 ## Done steps
 
@@ -21,8 +21,9 @@
 | T12 | Sharp globe: a per-pixel WebGL sphere on the 2048 strips replaces the displacement filter | PASS a1 |
 | T13 | Theme switch on the sign-in pages | PASS a1 |
 | T14 | Link preview | PASS a1 |
-| T15 | Link requests data layer | built a1 — awaiting verdict |
+| T15 | Link requests data layer | PASS a1 |
+| T16 | Link requests panel | built a3 — awaiting verdict |
 
 ## Next action
 
-Review of T15 attempt 1 (deep), then the owner's merge at the schema gate.
+Review of T16 attempt 3 (deep), then the owner's merge.

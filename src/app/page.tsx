@@ -1,7 +1,9 @@
 import { AppShell } from "./AppShell";
+import { LinkRequestsPanel } from "./_link-requests/LinkRequestsPanel";
 import { Overview } from "./Overview";
 import { getMessages } from "@/i18n/messages";
 import type { OverviewCopy } from "@/lib/portfolio/copy";
+import { readLinkRequests } from "@/lib/supabase/server/link-requests";
 import { requireOwner } from "@/lib/supabase/server/session";
 import styles from "./page.module.css";
 
@@ -69,6 +71,7 @@ export default async function HomePage({
   searchParams: Promise<{ registered?: string | string[] }>;
 }) {
   const owner = await requireOwner();
+  const linkRequests = await readLinkRequests();
   const messages = getMessages();
   const params = await searchParams;
   const registered = Array.isArray(params.registered) ? params.registered[0] : params.registered;
@@ -81,6 +84,10 @@ export default async function HomePage({
         <p className={styles.lead}>{messages.overview.lead}</p>
       </div>
       <Overview copy={overviewCopy(messages)} registeredKey={registered ?? null} />
+      <LinkRequestsPanel
+        copy={messages.linkRequests}
+        requests={linkRequests === "unavailable" ? null : linkRequests}
+      />
     </AppShell>
   );
 }
