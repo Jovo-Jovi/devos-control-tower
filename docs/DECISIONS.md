@@ -438,3 +438,56 @@ and what it tells the developer, which Law 151's transparency requires of it); a
 GitHub App on linked repositories; an ADR for link registration; a change to event contract v1; the `devos-plan`
 rows for TR1 (the owner updates `plan/ID-MAP.md`); the exact Law 151 periods, registration and cross-border-transfer
 steps, which the owner confirms with counsel before G-Link-Requests (`PROTECTION_MODEL.md` §10).
+
+### OD-13 — Link-request safeguards before `/api/link` goes live
+**Status:** DRAFT — signed when the human merges the intake PR
+**Amends:** OD-12 §2 (6) (`rate_limited` also answers a fourth pending request of one owner), §4 (a project is linked
+by one request only), §6 (the export covers a linked project's usage and observations; the retention job re-checks
+each row) and §9 (T17's and T18's scope). The `/api/link` body, its order of checks, its answers and their status
+codes, event contract v1, the boundary and every other OD stand.
+**Requested by:** issue #49 (the owner's answers in the issue thread: placement (b); the `007` fixture owner `999`)
+**1. Retention without races.** `purge_link_requests()` deletes a row only if it still meets its condition when it is
+deleted: each `delete … where` repeats the condition it was selected by (no project, `pending` or `declined`, and
+`last_requested_at` older than 180 days; or `declined`, a project, and `decided_at` older than 365 days). A row that no
+longer meets it (approved, or asked again, while the 03:17 run is in progress) is skipped: it is not deleted, gets no
+audit row and is not counted, and its project is not touched. The function still returns the number of requests it
+removed.
+**2. One request per project.** `link_requests.project_id` is unique where it is not null (a partial unique index). In
+`approve_link_request`, when the project with this `repo` and owner already has a link request (any state),
+the answer is `{"result":"project_linked"}` and nothing changes: no update, no audit row, the request stays pending.
+The check sits after `repo_taken` and before any write. Deleting or purging one request can then never break another
+request's `approved` check (`23514`) and roll back a whole purge.
+**3. A pending cap per owner.** Besides the 50 pending requests in all, `request_link` creates no new request for an
+`owner_github_id` that already has 3 pending requests. It answers `{"result":"rate_limited"}` and nothing is created,
+so `/api/link` answers `429 {"error":"rate_limited"}` as OD-12 §2 (6) already says. Before counting, the function takes
+one transaction-scoped lock (a fixed advisory lock key), so two concurrent new requests cannot both pass either cap. A
+repeat call for an existing row (pending, approved, declined or a matching project) is answered as today and is never
+counted against a cap.
+**4. A full export.** `export_link_request` also returns the linked project's usage rows (`event_usage`, each with its
+event's run and `seq`) and its `observations`, under the keys `event_usage` and `observations`. Both are `[]` when
+the request has no project. Every existing key and its content stay as they are.
+**5. Placement (the owner's answer 1, option (b)).** No new row, nothing renumbered, `docs/fences/T16.md` unchanged.
+- **T17** (row unchanged, risk 3) lands §1–§4 **first**, in one new forward migration with its down file, before its
+  route work, so the data layer is safe before `/api/link` is live. Its pgTAP proves: a purge leaves an approved
+  request and its project in place; a second request cannot be linked to an already linked project
+  (`project_linked`, nothing changed); the fourth pending request of one owner answers `rate_limited` and creates
+  nothing, while another owner's new request still goes pending; the export includes usage and observations. The
+  only change to an existing test is the owner's answer 2: in `supabase/tests/007_link_protection.sql`, the owner id
+  argument of the `request_link` calls in the purge set-up block (lines 226–247 on `main` at the intake) changes from
+  `'0'` to `'999'`. Every assertion, description and plan count there stays as it is, and
+  `006_link_requests.sql` is unchanged. Every existing pgTAP, unit and e2e test still passes.
+  `docs/contract/LINK_CONTRACT.md` (written by T17) states both caps under `429`. The reviewer writing T17's fence
+  judges its size (PR-38) and may split it into stages, the migration being the first.
+- **T18** (row unchanged, risk 3, gate G-Link-Requests): the panel's Approve maps `project_linked` to its own field
+  message from the catalogue (one new key) in the row, which stays pending. Its whole-flow e2e covers it. Until T18,
+  T16's mapping shows the generic failure message for it, and nothing changes in the database.
+**6. Carry-forwards.** §1–§4 answer carry-forwards (a), (b), (d) and (e) of `docs/reviews/T15-a1.md`. T17 closes the
+rows T16 lands for them (`docs/method/CARRY_FORWARDS.md`) when its migration passes review.
+**7. Nothing else moves.** There is no new table, column, route, header, dependency, secret or variable
+(`docs/setup-items.json` not needed). The `devos:boundary` line and the zones do not change, and the Boundary gate holds
+for visitors as before. Each function keeps `security invoker`, `set search_path = ''` and `execute` for
+`service_role` only. Production holds no link request before T17 deploys `/api/link`, so the unique index cannot meet
+duplicates there. At the T17 schema gate, Supabase → Advisors → Security shows no error and no warning.
+**Does not decide:** a per-repository request rate (still OD-12's "Does not decide"); a way for the owner to change
+either cap without a migration; notifying a developer that they are rate limited beyond the `429`; exporting
+`event_rejections` (not personal, `PROTECTION_MODEL.md` §2); re-linking a disconnected project to a new request.
