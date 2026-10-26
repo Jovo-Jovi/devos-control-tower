@@ -12,6 +12,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { P, config, parsePhases, nextOpenTask, emit } from "./lib.mjs";
+import { ENV_RE, FONTS_RE, FENCE_MISSING_RE, runFailureRule, idleIncident, tasksNamedByPlan } from "./supervisor-rules.mjs";
 
 const argv = process.argv.slice(2);
 const cmd = argv[0] || "scan";
@@ -67,7 +68,7 @@ function collect() {
   const intakePrs = prs.filter((p) => p.head.startsWith("intake/"));
   const rescueRefs = api(`repos/${REPO}/git/matching-refs/heads/rescue/`) || [];
   const rescues = (Array.isArray(rescueRefs) ? rescueRefs : []).map((r) => ({ ref: r.ref.replace("refs/heads/", ""), sha: r.object.sha }));
-  // Open change requests and method fixes (closed by rule 5 once every task their plan added is done).
+  // Open change requests and method fixes (closed by rule 5 once every task their plan names is PASS on main).
   const reqJson = api(`repos/${REPO}/issues?state=open&per_page=100`) || [];
   const requests = (Array.isArray(reqJson) ? reqJson : [])
     .filter((i) => !i.pull_request && i.labels.some((l) => ["devos:request", "devos:method"].includes(l.name)))
@@ -75,7 +76,7 @@ function collect() {
   const facts = {
     at: new Date().toISOString(), repo: REPO, requests,
     event: { name: process.env.EVENT_NAME || "", workflow: (process.env.WF_PATH || "").split("/").pop().replace(/\.ya?ml$/, "") || process.env.WF_NAME || "", run: process.env.WF_RUN_ID || "", conclusion: process.env.WF_CONCLUSION || "" },
-    next_task: next ? { task: next.task, name: next.name, phase: next.phase } : null,
+    next_task: next ? { task: next.task, name: next.name, phase: next.phase, fence: existsSync(P(`docs/fences/${next.task}.md`)) } : null,
     runs, active: active.map((r) => r.id), task_prs: taskPrs, intake_prs: intakePrs.map((p) => p.number), rescues,
   };
   writeFileSync(`${DIR}/facts.json`, JSON.stringify(facts, null, 2));
@@ -90,7 +91,7 @@ function failingStep(runId) {
       const log = gh(["api", `repos/${REPO}/actions/jobs/${j.id}/logs`], { allowFail: true });
       const lines = log.replace(/\x1b\[[0-9;]*m/g, "").split("\n");
       // The last lines, plus any earlier line that names an outside failure (a retry loop can push it up).
-      const hits = lines.slice(0, -160).filter((l) => ENV_RE.test(l) || FONTS_RE.test(l)).slice(-10);
+      const hits = lines.slice(0, -160).filter((l) => ENV_RE.test(l) || FONTS_RE.test(l) || FENCE_MISSING_RE.test(l)).slice(-10);
       const tail = [...hits, ...lines.slice(-160)].join("\n");
       return { job: j.name, step: step?.name || "", tail };
     }
@@ -112,10 +113,6 @@ const taskOf = (s) => (String(s).match(/\bT\d\d\b/) || [""])[0];
 const attemptOf = (s) => Number((String(s).match(/attempt (\d+)/) || [0, 0])[1]) || 0;
 
 // ---------- incident rules (cheap first; Claude only for what no rule explains) ----------
-const ENV_RE = /ECONNRESET|ETIMEDOUT|EAI_AGAIN|Could not resolve host|50[234] (Bad Gateway|Service Unavailable|Gateway Timeout)|rate limit exceeded|toomanyrequests|failed to pull|registry\.npmjs\.org.*(timeout|ECONN)|The operation was canceled|runner has received a shutdown signal|lost communication with the server/i;
-
-const FONTS_RE = /Google Fonts download failed|could not download the Google Fonts|next\/font\/google queries|fonts\.(googleapis|gstatic)\.com|Failed to fetch .*Google Fonts/i;
-
 function detect(facts) {
   const inc = [];
   const add = (o) => inc.push({ id: `${o.kind}-${o.task || "x"}-${Date.now().toString(36)}-${inc.length}`, ...o });
@@ -155,23 +152,9 @@ function detect(facts) {
     if (later) continue;
     const f = failingStep(r.id);
     const base = { kind: "runner-failure", task, attempt, run: r.id, url: r.url, step: f.step, evidence: f.tail.slice(-6000), review_only: /review only/i.test(r.title) };
-    if (/exceeds max_attempts/.test(f.tail)) {
-      // A resume that lost its revision flag (fixed in next-task.mjs; kept as a rule for old runs).
-      add({ ...base, key: `${task}:a${attempt}:attempt-limit:${r.id}`, cause: "the resumed run lost its revision flag and was refused as an attempt over max_attempts", action: "redispatch" });
-      continue;
-    }
-    const rescue = (f.tail.match(/saved on branch (rescue\/\S+?)[ .(]/) || [])[1];
-    if (/conflicts with this task's work/.test(f.tail)) {
-      add({ ...base, key: `${task}:a${attempt}:push-conflict`, cause: "main changed during the run and the push conflicted", action: rescue ? "recover-rescue" : "redispatch", rescue });
-    } else if (/has timed out/.test(f.tail)) {
-      add({ ...base, key: `${task}:a${attempt}:step-timeout`, cause: `step "${f.step}" timed out`, action: "redispatch" });
-    } else if (ENV_RE.test(f.tail) || /^(Install|Set up|Run actions\/|Supabase CLI|Firebase CLI|Local module services|Check out)/.test(f.step)) {
-      add({ ...base, key: `${task}:a${attempt}:env:${f.step}`, cause: `an environment failure in "${f.step}"`, action: "rerun-failed" });
-    } else if (/no Cursor key|no Claude|set secret|Setup needed|permission/i.test(f.tail)) {
-      add({ ...base, key: `${task}:setup`, cause: "a missing secret, variable or permission", action: "setup" });
-    } else {
-      add({ ...base, key: `${task}:a${attempt}:unknown:${f.step}`, cause: "", action: "ask-claude" });
-    }
+    const ruled = runFailureRule({ step: f.step, tail: f.tail, task, attempt, run: r.id });
+    if (ruled.rule === "fence-missing") base.task = ruled.fence;
+    add({ ...base, ...ruled });
   }
 
   // 2. Task PRs the cycle left halted or parked.
@@ -192,11 +175,16 @@ function detect(facts) {
         const runId = (body.match(/actions\/runs\/(\d+)/) || [])[1];
         if (runId && !failedRuns.some((r) => String(r.id) === runId)) {
           const f = failingStep(runId);
-          const rescue = (f.tail.match(/saved on branch (rescue\/\S+?)[ .(]/) || [])[1];
-          const conflict = /conflicts with this task's work/.test(f.tail);
-          add({ ...base, run: Number(runId), step: f.step, evidence: f.tail.slice(-6000),
-            key: `${task}:a${attempt}:runner:${f.step}`, cause: conflict ? "main changed during the run and the push conflicted" : "",
-            action: conflict ? (rescue ? "recover-rescue" : "redispatch") : ENV_RE.test(f.tail) ? "redispatch" : "ask-claude", rescue });
+          if (FENCE_MISSING_RE.test(f.tail)) {
+            const ruled = runFailureRule({ step: f.step, tail: f.tail, task, attempt, run: Number(runId) });
+            add({ ...base, ...ruled, task: ruled.fence, run: Number(runId), step: f.step, evidence: f.tail.slice(-6000) });
+          } else {
+            const rescue = (f.tail.match(/saved on branch (rescue\/\S+?)[ .(]/) || [])[1];
+            const conflict = /conflicts with this task's work/.test(f.tail);
+            add({ ...base, run: Number(runId), step: f.step, evidence: f.tail.slice(-6000),
+              key: `${task}:a${attempt}:runner:${f.step}`, cause: conflict ? "main changed during the run and the push conflicted" : "",
+              action: conflict ? (rescue ? "recover-rescue" : "redispatch") : ENV_RE.test(f.tail) ? "redispatch" : "ask-claude", rescue });
+          }
         }
       } else {
         add({ ...base, key: `${task}:a${attempt}:halt`, cause: "", action: "ask-claude" });
@@ -220,17 +208,23 @@ function detect(facts) {
     }
   }
 
-  // 4. Nothing moving although work is waiting.
+  // 4. Nothing moving although work is waiting. A next task with no fence waits; it is never dispatched.
   const lastRun = facts.runs[0];
   const waitingForOwner = facts.task_prs.some((p) => p.labels.some((l) => ["devos:human-gate", "devos:quota-wait", "devos:halted", "devos:needs-you"].includes(l)));
-  if (!busy && !waitingForOwner && !inc.length && facts.next_task && facts.intake_prs.length === 0 &&
-      (!lastRun || minutesSince(lastRun.updated) > S.idle_minutes) &&
-      !facts.task_prs.some((p) => p.head === `task/${facts.next_task.task}`)) {
-    add({ kind: "idle", task: facts.next_task.task, attempt: 1, key: `${facts.next_task.task}:idle`,
-      cause: `nothing has run for ${lastRun ? Math.round(minutesSince(lastRun.updated)) : "?"} min and ${facts.next_task.task} is waiting`, action: "dispatch-next" });
-  }
-  // 5. Requests that are finished: the plan PR (intake/issue-N) is merged and every task row it added to
-  //    docs/PHASES.md is ticked PASS on main (a task's PASS reaches main only through its merge).
+  const idle = idleIncident({
+    next: facts.next_task,
+    fence: facts.next_task?.fence === true,
+    busy,
+    waitingForOwner,
+    otherIncidents: inc.length,
+    intakePrs: facts.intake_prs.length,
+    minutesSinceLastRun: lastRun ? minutesSince(lastRun.updated) : null,
+    idleMinutes: S.idle_minutes,
+    taskPrHeads: facts.task_prs.map((p) => p.head),
+  });
+  if (idle) add(idle);
+  // 5. Requests that are finished: the plan PR (intake/issue-N) is merged and every task it names
+  //    is ticked PASS on main (a task's PASS reaches main only through its merge).
   const doneNow = new Set(parsePhases().rows.filter((r) => r.done).map((r) => r.task));
   for (const req of facts.requests || []) {
     if (req.labels.includes("devos:quota-wait")) continue;
@@ -239,13 +233,13 @@ function detect(facts) {
     const open = plan.tasks.filter((t) => !doneNow.has(t));
     if (open.length) continue;
     add({ kind: "request-done", task: "", attempt: 0, issue: req.number, plan_pr: plan.pr, tasks: plan.tasks, key: `issue-${req.number}:done`,
-      cause: `request #${req.number} is finished: its plan (PR #${plan.pr}) ${plan.tasks.length ? `added ${plan.tasks.join(", ")}, and every one is PASS and merged` : "added no task, and it is merged"}`,
+      cause: `request #${req.number} is finished: its plan (PR #${plan.pr}) ${plan.tasks.length ? `names ${plan.tasks.join(", ")}, and every one is PASS and merged` : "names no task"}`,
       action: "close-request" });
   }
   return inc;
 }
 
-// The task rows a request's merged plan PR added: PHASES.md at the merge commit minus at its first parent.
+// The tasks a request's merged plan names: ids in the lines it added to docs/PHASES.md, plus fences it changed.
 function plannedTasks(issue) {
   const owner = REPO.split("/")[0];
   const prs = api(`repos/${REPO}/pulls?state=closed&head=${owner}:intake/issue-${issue}&per_page=10`) || [];
@@ -253,14 +247,16 @@ function plannedTasks(issue) {
   if (!merged?.merge_commit_sha) return null;
   const parent = api(`repos/${REPO}/commits/${merged.merge_commit_sha}`)?.parents?.[0]?.sha;
   if (!parent) return null;
-  const ids = (sha) => {
-    const f = api(`repos/${REPO}/contents/docs/PHASES.md?ref=${sha}`);
-    const text = f?.content ? Buffer.from(f.content, "base64").toString("utf8") : "";
-    return new Set([...text.matchAll(/^\| (T\d{2}) \|/gm)].map((m) => m[1]));
+  const textAt = (sha) => {
+    const got = api(`repos/${REPO}/contents/docs/PHASES.md?ref=${sha}`);
+    return got?.content ? Buffer.from(got.content, "base64").toString("utf8") : null;
   };
-  const before = ids(parent), after = ids(merged.merge_commit_sha);
-  if (!after.size) return null;
-  return { pr: merged.number, tasks: [...after].filter((t) => !before.has(t)) };
+  const beforeText = textAt(parent);
+  const afterText = textAt(merged.merge_commit_sha);
+  if (afterText == null) return null;
+  const compare = api(`repos/${REPO}/compare/${parent}...${merged.merge_commit_sha}`);
+  const files = Array.isArray(compare?.files) ? compare.files.map((entry) => entry.filename).filter((name) => typeof name === "string") : [];
+  return { pr: merged.number, tasks: tasksNamedByPlan(beforeText ?? "", afterText, files) };
 }
 
 // ---------- the supervisor issue: one comment per incident, with a machine-readable marker ----------
@@ -398,6 +394,10 @@ if (cmd === "scan") {
     }
     if (i.action === "setup" || i.action === "none") {
       report(issue, i, { done: false, note: i.action === "setup" ? "nothing I can change: a secret, variable or permission is missing (see the \"Dev OS: setup needed\" issue)" : "no action needed" });
+      continue;
+    }
+    if (i.action === "fence-wait") {
+      report(issue, i, { done: false, note: `nothing I can start: ${i.task} has no fence on main; I never re-run or dispatch it` });
       continue;
     }
     if (["method-issue", "request-issue"].includes(i.action)) {

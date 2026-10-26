@@ -2,7 +2,7 @@
 // Resolve which task the runner works on, and everything the workflow needs to know about it.
 // Usage: node scripts/devos/next-task.mjs [--task T01] [--attempt 1] [--revision true]
 import { execFileSync } from "node:child_process";
-import { parsePhases, nextOpenTask, isHumanGate, isMethodRow, reviewerModel, reviewerEffort, taskAfter, config, emit, fail } from "./lib.mjs";
+import { parsePhases, nextOpenTask, isHumanGate, isMethodRow, reviewerModel, reviewerEffort, taskAfter, config, emit, fail, existsSync, P } from "./lib.mjs";
 
 const arg = (name) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -44,6 +44,18 @@ if (row.done) fail(`task ${row.task} is already ticked PASS in docs/PHASES.md`);
 const earlierOpen = isMethodRow(row) ? null : rows.slice(0, rows.indexOf(row)).find((r) => !r.done && !isMethodRow(r));
 if (earlierOpen) fail(`task ${row.task} cannot start: ${earlierOpen.task} is not PASS yet`);
 
+// Present when the fence is in this checkout, or already on the task branch (a reissue).
+// Any git error counts as absent: the task waits, and this script still exits 0.
+let fence_missing = "false";
+if (!existsSync(P(`docs/fences/${row.task}.md`))) {
+  fence_missing = "true";
+  try {
+    execFileSync("git", ["fetch", "-q", "--depth=300", "origin", `+refs/heads/task/${row.task}:refs/remotes/origin/task/${row.task}`], { stdio: "ignore" });
+    execFileSync("git", ["cat-file", "-e", `origin/task/${row.task}:docs/fences/${row.task}.md`], { stdio: "ignore" });
+    fence_missing = "false";
+  } catch { /* absent */ }
+}
+
 const next = taskAfter(rows, row.task);
 emit({
   done: "false",
@@ -63,4 +75,5 @@ emit({
   reviewer_effort: reviewerEffort(row, cfg),
   reviewer_fallback: cfg.reviewer.fallback_model && cfg.reviewer.fallback_model !== reviewerModel(row, cfg) ? cfg.reviewer.fallback_model : "",
   next_task: next ? next.task : "",
+  fence_missing,
 });

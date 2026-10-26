@@ -163,7 +163,7 @@ const fenceChanged = changedPaths().filter((p) => p.startsWith("docs/fences/"));
 if (verdict === "PASS") {
   if (next && !existsSync(P(`docs/fences/${next.task}.md`))) {
     notes.push(`PASS but docs/fences/${next.task}.md was not written; the cycle cannot continue on its own`);
-    finish("PASS", "human_gate", { summary: structured.summary, fence: null, human: `Write or request the fence for ${next.task}, then re-run the cycle.` });
+    finish("PASS", "human_gate", { summary: structured.summary, fence: null, human: `${next.task} has no fence yet, so merging this PR will not start it: ${next.task} waits until docs/fences/${next.task}.md is on main (a reviewer session writes it); then the supervisor starts it, or run devos-cycle with task=${next.task} attempt=1.` });
   }
   // PR-17: a schema change always stops for the human, whatever the task's risk or gate. Merging it
   // is what lets the next production deploy apply the migration.
