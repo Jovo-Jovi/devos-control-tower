@@ -22,6 +22,11 @@ const PROJECTS = [
   { key: "OWNED", repo: "fixture-org/owned-repo", owner_github_id: "1003" },
 ] as const;
 
+const LINKED = { key: "ING-LINK", repo: "fixture-org/ing-linked", owner_github_id: "1004" } as const;
+const PENDING = { key: "ING-PEND", repo: "fixture-org/ing-pending", owner_github_id: "1005" } as const;
+const DISCONNECTED = { key: "ING-DISC", repo: "fixture-org/ing-disc", owner_github_id: "1006" } as const;
+const LINK_REPOS = [LINKED.repo, PENDING.repo, DISCONNECTED.repo] as const;
+
 type Handler = (request: Request) => Promise<Response>;
 
 let admin: ReturnType<typeof createAdminClient>;
@@ -121,6 +126,37 @@ async function rejectionCount(reason?: string): Promise<number> {
   const { count, error } = await query;
   if (error) throw new Error(error.code ?? "rejections");
   return count ?? 0;
+}
+
+async function removeLinkFixtures(): Promise<void> {
+  const found = await admin.from("link_requests").select("id").in("repository", [...LINK_REPOS]);
+  if (found.error) throw new Error(found.error.code ?? "select-requests");
+  const ids = (found.data ?? []).map((row) => row.id);
+  if (ids.length > 0) {
+    const audit = await admin.from("link_audit").delete().in("request_id", ids);
+    if (audit.error) throw new Error(audit.error.code ?? "delete-audit");
+  }
+  // Requests first: an approved request's project cannot be deleted before the request (23514).
+  const requests = await admin.from("link_requests").delete().in("repository", [...LINK_REPOS]);
+  if (requests.error) throw new Error(requests.error.code ?? "delete-requests");
+  const projects = await admin.from("projects").delete().in("repo", [...LINK_REPOS]);
+  if (projects.error) throw new Error(projects.error.code ?? "delete-projects");
+}
+
+async function insertPendingRequest(repository: string, ownerGithubId: string, proposedKey: string): Promise<string> {
+  const { data, error } = await admin
+    .from("link_requests")
+    .insert({
+      repository,
+      owner_github_id: ownerGithubId,
+      proposed_key: proposedKey,
+      engine_version: "0.2.0",
+      contract_version: "v1",
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(error?.code ?? "insert-request");
+  return data.id;
 }
 
 async function expectUntouched(status: number, body: unknown, run: () => Promise<Response>) {
@@ -369,4 +405,85 @@ describe("U-T02-3 createIngestHandler", () => {
     expect(await response.json()).toEqual({ error: "rate_limited" });
     expect(await eventCount("RATE")).toBe(60);
   }, 60_000);
+
+  describe("link-request refusals", () => {
+    beforeAll(async () => {
+      await removeLinkFixtures();
+
+      const linkedId = await insertPendingRequest(LINKED.repo, LINKED.owner_github_id, LINKED.key);
+      const approved = await admin.rpc("approve_link_request", { p_request: linkedId });
+      if (approved.error) throw new Error(approved.error.code ?? "approve");
+      expect(approved.data).toEqual({ result: "approved", key: LINKED.key });
+
+      await insertPendingRequest(PENDING.repo, PENDING.owner_github_id, PENDING.key);
+      const pendingProject = await admin.from("projects").select("id").eq("repo", PENDING.repo).maybeSingle();
+      if (pendingProject.error) throw new Error(pendingProject.error.code ?? "pending-project");
+      expect(pendingProject.data).toBeNull();
+
+      const disconnectedId = await insertPendingRequest(
+        DISCONNECTED.repo,
+        DISCONNECTED.owner_github_id,
+        DISCONNECTED.key,
+      );
+      const approvedDisconnected = await admin.rpc("approve_link_request", { p_request: disconnectedId });
+      if (approvedDisconnected.error) throw new Error(approvedDisconnected.error.code ?? "approve");
+      expect(approvedDisconnected.data).toEqual({ result: "approved", key: DISCONNECTED.key });
+      const declined = await admin.rpc("decline_link_request", { p_request: disconnectedId });
+      if (declined.error) throw new Error(declined.error.code ?? "decline");
+      expect(declined.data).toEqual({ result: "declined" });
+      const disconnected = await admin
+        .from("link_requests")
+        .select("state, project_id")
+        .eq("id", disconnectedId)
+        .single();
+      if (disconnected.error || !disconnected.data.project_id) throw new Error(disconnected.error?.code ?? "disconnected");
+      expect(disconnected.data.state).toBe("declined");
+    });
+
+    afterAll(async () => {
+      await removeLinkFixtures();
+    });
+
+    it("stores an event for a project linked by an approved request", async () => {
+      const before = await eventCount(LINKED.key);
+      const reasons = await rejectionCount();
+      const token = await sign(LINKED.repo, LINKED.owner_github_id);
+      const response = await post(handler, JSON.stringify(plain(LINKED.key)), {
+        authorization: `Bearer ${token}`,
+      });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ stored: true, duplicate: false });
+      expect(await eventCount(LINKED.key)).toBe(before + 1);
+      expect(await rejectionCount()).toBe(reasons);
+    });
+
+    it("answers 401 repo_not_registered for a repository with only a pending request and no project", async () => {
+      const before = await eventCount(PENDING.key);
+      const reasons = await rejectionCount("repo_not_registered");
+      const token = await sign(PENDING.repo, PENDING.owner_github_id);
+      const response = await post(handler, JSON.stringify(plain(PENDING.key)), {
+        authorization: `Bearer ${token}`,
+      });
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ error: "repo_not_registered" });
+      expect(await eventCount(PENDING.key)).toBe(before);
+      expect(await rejectionCount("repo_not_registered")).toBe(reasons + 1);
+      const project = await admin.from("projects").select("id").eq("repo", PENDING.repo).maybeSingle();
+      if (project.error) throw new Error(project.error.code ?? "project");
+      expect(project.data).toBeNull();
+    });
+
+    it("answers 401 repo_not_registered for a disconnected project and stores no event", async () => {
+      const before = await eventCount(DISCONNECTED.key);
+      const reasons = await rejectionCount("repo_not_registered");
+      const token = await sign(DISCONNECTED.repo, DISCONNECTED.owner_github_id);
+      const response = await post(handler, JSON.stringify(plain(DISCONNECTED.key)), {
+        authorization: `Bearer ${token}`,
+      });
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ error: "repo_not_registered" });
+      expect(await eventCount(DISCONNECTED.key)).toBe(before);
+      expect(await rejectionCount("repo_not_registered")).toBe(reasons + 1);
+    });
+  });
 });

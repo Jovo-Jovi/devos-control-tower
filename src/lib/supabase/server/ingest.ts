@@ -146,11 +146,19 @@ export function createIngestHandler(options?: {
 
     const { data: project, error } = await admin
       .from("projects")
-      .select("repo, owner_github_id")
+      .select("id, repo, owner_github_id")
       .eq("key", event.project)
       .maybeSingle();
     if (error) return empty(500);
     if (!project || project.repo !== verdict.repository) return reject(admin, "repo_not_registered");
+    const { data: declined, error: linkError } = await admin
+      .from("link_requests")
+      .select("id")
+      .eq("project_id", project.id)
+      .eq("state", "declined")
+      .maybeSingle();
+    if (linkError) return empty(500);
+    if (declined) return reject(admin, "repo_not_registered");
     if (project.owner_github_id !== verdict.repositoryOwnerId) return reject(admin, "owner_mismatch");
 
     return store(admin, event);
