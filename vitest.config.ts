@@ -27,6 +27,7 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     env: testEnv(),
+    fileParallelism: false,
   },
   resolve: {
     alias: {
