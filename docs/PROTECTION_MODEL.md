@@ -61,7 +61,9 @@ The `pg_cron` job `tower-link-retention` runs `public.purge_link_requests()` dai
 | a linked project and its request | while it is linked | — |
 | `link_audit` rows | kept (no personal data) | — |
 
-pgTAP (`supabase/tests/007_link_protection.sql`) proves both limits on each side and the job's schedule.
+pgTAP (`supabase/tests/007_link_protection.sql`) proves both limits on each side and the job's schedule. From T17
+(OD-13 §1) each deletion re-checks its condition, so a request approved or asked again while the job runs is kept with
+its project (`008_link_safeguards.sql`).
 
 ## 6. Deletion
 
@@ -74,7 +76,8 @@ set (§10).
 ## 7. Export
 
 The owner's **Export** (T16) calls `export_link_request`. It returns the request, the project and its step events
-as one JSON document, and writes an audit `exported` row. The browser downloads it, and nothing is stored on the
+(and, from T17, OD-13 §4, the project's usage rows and observations, which §2 lists as personal data) as one
+JSON document, and writes an audit `exported` row. The browser downloads it, and nothing is stored on the
 server or in the browser. Its shape is in `DATA_MODEL.md` §4.
 
 ## 8. Audit
