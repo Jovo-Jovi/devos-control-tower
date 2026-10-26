@@ -180,3 +180,18 @@ Phase outlines (method track):
   `repo_not_registered`; then a second repository with the same key → `-2`; then export and delete. Captures of the
   disconnected states in both themes at 1280 and 390. The owner signs G-Link-Requests by merging after the
   production checks of OD-12 §9.
+- **T17 and T18 gain the link-request safeguards (OD-13, issue #49, `docs/requests/issue-49.md`; rows and ids
+  unchanged).** The reviewer who writes the T17 fence puts first in T17's scope one new forward migration
+  (`supabase/migrations/<timestamp>_link_safeguards.sql` with its down file, timestamp after `20261026090100`) that
+  replaces, with `create or replace` and the same signatures, `security invoker`, `search_path = ''` and grants:
+  `purge_link_requests` (each `delete … where` repeats its selection condition; a skipped row gets no audit and no
+  count, and its project stays); `approve_link_request` (`project_linked` when the project already has a link request,
+  nothing changed); `request_link` (one advisory transaction lock, then the 50 cap and at most 3 pending per
+  `owner_github_id`, both `rate_limited`); `export_link_request` (adds `event_usage` and `observations`, `[]` without a
+  project). It also adds the partial unique index on `link_requests (project_id) where project_id is not null`. A new pgTAP
+  file `supabase/tests/008_link_safeguards.sql` proves the four checks of OD-13 §5. In `007_link_protection.sql`, only
+  the owner id argument of the purge set-up block's `request_link` calls (lines 226–247) changes, from `'0'` to
+  `'999'`. `006` is unchanged. The regenerated types should not differ (no table or signature changes). The link
+  contract states both caps under `429`. The size is judged with PR-38, and two stages are likely: the migration,
+  then the route. T18's fence adds `{ kind: "project_linked" }` to `LinkOutcome`, one catalogue key for its field
+  message, a capture of that state, and the case in the whole-flow e2e.
