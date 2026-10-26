@@ -316,3 +316,7 @@ The link-request tables and the three decision functions were already on this br
 ## 2026-10-26 — T16 Link requests panel (attempt 2)
 
 The overview shows pending, linked and declined link requests for the owner only. Approve, decline, export and delete go through the service-role functions after `requireOwner()`. Export is a browser download and is stored nowhere; a failure shows only the catalogue message. `e2e/link-requests.spec.ts` proves the groups, the four actions, the refusals and the captures, with layout shift 0. CF-025 through CF-029 are logged, and CF-027 closes here. Awaiting the verdict.
+
+## 2026-10-26 — T16 Link requests panel (attempt 3)
+
+The delete confirmation sits in the row, below the fields, so it covers none of them. The toast is a sibling of the panel and stays in the viewport. The Approve and theme filmstrips record the outcome after the click, and layout shift stays 0 when input-driven entries are left out. CF-030 and CF-031 are logged. Awaiting the verdict.

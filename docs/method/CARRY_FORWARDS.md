@@ -1,7 +1,7 @@
 # TOWER — Carry-forwards
 
 Every finding becomes a row. The reviewer describes the row in a verdict; the landing task allocates
-the id from the live maximum and reports it. **Live maximum: CF-029.**
+the id from the live maximum and reports it. **Live maximum: CF-031.**
 
 Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` · `HANDOVER`.
 
@@ -36,3 +36,5 @@ Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` 
 | CF-027 | The link-request actions map every database error to a generic catalogue message and never echo or log its detail, and Delete's confirmation says a linked project's history goes with it (`docs/reviews/T15-a1.md` c). | the reviewer writing the T16 fence | CLOSED at T16 | T16 |
 | CF-028 | `PROTECTION_MODEL.md` §2 lists a linked project's usage and observations as personal data, but the export leaves them out (`docs/reviews/T15-a1.md` d). | human (issue #49) | OPEN | issue #49 |
 | CF-029 | The cap of 50 pending requests is checked without a lock, and any repository with a valid OIDC token can fill it (`docs/reviews/T15-a1.md` e). | human (issue #49) and the reviewer of T17 | OPEN | issue #49 |
+| CF-030 | The Delete confirmation is worded from the row the page rendered. If the request is approved in another tab, it still says 'Delete this request?' while `delete_link_request` also deletes the project and its history (the function takes no expected state, and the toast ignores `projectDeleted`). A stale Decline toast says 'Declined' for a disconnect (`docs/reviews/T16-a2.md` a). | the reviewer writing the T18 fence | OPEN | T18 |
+| CF-031 | `PROTECTION_MODEL.md` §9 names only owner id `0` and test ids `424242` and `999` as synthetic, while the tests use other numeric ids, always with `fixture-*` repositories. Suggested amendment: 'numeric ids used only with `fixture-*` repositories' (`docs/reviews/T16-a2.md` b). | human (a `PROTECTION_MODEL.md` amendment through intake) | OPEN | document amendment |
