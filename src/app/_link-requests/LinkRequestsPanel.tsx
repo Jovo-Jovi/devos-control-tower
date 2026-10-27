@@ -177,7 +177,7 @@ function RequestRow({
         return;
       case "deleted":
         onNotice(row.id, null);
-        onToast(copy.deleted);
+        onToast(outcome.projectDeleted ? copy.deletedProject : copy.deleted);
         return;
       case "exported":
         onNotice(row.id, null);
@@ -185,6 +185,9 @@ function RequestRow({
         return;
       case "repo_taken":
         onNotice(row.id, copy.repoTaken);
+        return;
+      case "project_linked":
+        onNotice(row.id, copy.projectLinked);
         return;
       case "not_pending":
         onNotice(row.id, copy.notPending);
