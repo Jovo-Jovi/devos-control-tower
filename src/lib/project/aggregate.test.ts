@@ -49,6 +49,7 @@ function report(input: Partial<ProjectAggregateInput>, now = NOW) {
       runRows: [],
       stepEventRows: [],
       observationRows: [],
+      disconnected: false,
       ...input,
     },
     now,
@@ -208,5 +209,10 @@ describe("aggregateProject", () => {
       ],
     });
     expect(result.observations.map((item) => item.id)).toEqual([3, 2, 1]);
+  });
+
+  it("passes disconnected through unchanged", () => {
+    expect(report({ disconnected: true }).disconnected).toBe(true);
+    expect(report({ disconnected: false }).disconnected).toBe(false);
   });
 });

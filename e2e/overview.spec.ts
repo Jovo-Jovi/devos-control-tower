@@ -325,7 +325,7 @@ test("Link states and overflow", async ({ browser }) => {
   await fulfillJson(page, syntheticPortfolio(now, 8));
   await page.goto("/");
   await expect(page.locator("[data-map-card]")).toHaveCount(8);
-  for (const state of LINK_STATES) {
+  for (const state of LINK_STATES.filter((candidate) => candidate !== "disconnected")) {
     const card = page.locator(`[data-map-card][data-link-state="${state}"]`);
     await expect(card).toHaveCount(1);
     const slot = await card.getAttribute("data-slot");

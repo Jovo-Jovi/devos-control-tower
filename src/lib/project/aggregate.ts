@@ -6,6 +6,7 @@ export type ProjectReport = {
   phases: ProjectPhase[];
   runs: ProjectRun[];
   observations: ProjectObservation[];
+  disconnected: boolean;
 };
 
 export type ProjectPhase = {
@@ -94,6 +95,7 @@ export type ProjectAggregateInput = {
   runRows: ProjectRunRow[];
   stepEventRows: ProjectStepEventRow[];
   observationRows: ProjectObservationRow[];
+  disconnected: boolean;
 };
 
 const COMMIT_ONLY = /^@([0-9a-f]{7,40})$/;
@@ -284,5 +286,6 @@ export function aggregateProject(input: ProjectAggregateInput, now: Date): Proje
     phases,
     runs,
     observations,
+    disconnected: input.disconnected,
   };
 }

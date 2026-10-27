@@ -7,6 +7,7 @@ export const LINK_STATES = [
   "down",
   "stale",
   "silent",
+  "disconnected",
 ] as const;
 
 export type LinkState = (typeof LINK_STATES)[number];
@@ -96,6 +97,7 @@ export type AggregateInput = {
   measuredEventIds: readonly number[];
   deliveriesLast24h: number;
   rejectionsLast24h: number;
+  disconnectedProjectIds: readonly string[];
 };
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -111,6 +113,7 @@ function emptyByLinkState(): Record<LinkState, number> {
     down: 0,
     stale: 0,
     silent: 0,
+    disconnected: 0,
   };
 }
 
@@ -230,6 +233,7 @@ export function aggregatePortfolio(input: AggregateInput, now: Date): Portfolio 
   const keyByProject = new Map<string, string>();
   for (const row of input.projectRows) keyByProject.set(row.id, row.key);
 
+  const disconnectedIds = new Set(input.disconnectedProjectIds);
   const projects = input.projectRows.map((project) => {
     const rows = eventsByProject.get(project.id) ?? [];
     const latestRow = rows.reduce<StepEventRow | null>((best, row) => (best === null ? row : laterRow(best, row)), null);
@@ -257,7 +261,7 @@ export function aggregatePortfolio(input: AggregateInput, now: Date): Portfolio 
         phaseId === null
           ? null
           : { id: phaseId, ...taskCounts(rows.filter((row) => row.phase === phaseId)) },
-      linkState: linkStateOf(latestRow, freshness),
+      linkState: disconnectedIds.has(project.id) ? "disconnected" : linkStateOf(latestRow, freshness),
       recent: recentRows.map((row) => toStepEvent(row, project.key)),
     } satisfies PortfolioProject;
   });
@@ -270,7 +274,7 @@ export function aggregatePortfolio(input: AggregateInput, now: Date): Portfolio 
   let tasksSeen = 0;
   for (const project of projects) {
     byLinkState[project.linkState] += 1;
-    if (project.freshness === "fresh") fresh += 1;
+    if (project.freshness === "fresh" && project.linkState !== "disconnected") fresh += 1;
     if (project.linkState === "stale" || project.linkState === "silent") staleOrSilent += 1;
     tasksPassed += project.tasks.passed;
     tasksSeen += project.tasks.seen;

@@ -13,12 +13,13 @@ function statusOf(state: LinkState): { step: string; status: string } {
   return { step: "checks", status: "pass" };
 }
 
-export function syntheticPortfolio(now: Date, count: number): Portfolio {
+export function syntheticPortfolio(now: Date, count: number, disconnected: readonly string[] = []): Portfolio {
+  const states = LINK_STATES.filter((state) => state !== "disconnected");
   const projectRows = [];
   const stepEventRows = [];
   const runRows = [];
   for (let index = 0; index < count; index += 1) {
-    const state: LinkState = LINK_STATES[index] ?? "silent";
+    const state: LinkState = states[index] ?? "silent";
     const key = KEYS[index] ?? `P${index}`;
     const id = `fixture-${key}`;
     projectRows.push({
@@ -72,6 +73,7 @@ export function syntheticPortfolio(now: Date, count: number): Portfolio {
       measuredEventIds: [],
       deliveriesLast24h: 0,
       rejectionsLast24h: 0,
+      disconnectedProjectIds: disconnected.map((key) => `fixture-${key}`),
     },
     now,
   );

@@ -85,6 +85,17 @@ function runsOf(rows: unknown[]): RunRow[] | "unavailable" {
   return runs;
 }
 
+function disconnectedIdsOf(rows: unknown[]): string[] | "unavailable" {
+  const ids: string[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== "object") return "unavailable";
+    const projectId = (row as Record<string, unknown>).project_id;
+    if (typeof projectId !== "string") return "unavailable";
+    ids.push(projectId);
+  }
+  return ids;
+}
+
 function measuredOf(rows: unknown[]): number[] | "unavailable" {
   const ids: number[] = [];
   for (const row of rows) {
@@ -145,6 +156,19 @@ export async function loadPortfolio(): Promise<Portfolio | "unavailable"> {
     .gte("received_at", since);
   if (rejections.error || rejections.count === null) return "unavailable";
 
+  const declinedPage = await readPages((from, to) =>
+    supabase
+      .from("link_requests")
+      .select("project_id")
+      .eq("state", "declined")
+      .not("project_id", "is", null)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (declinedPage === "unavailable") return "unavailable";
+  const disconnectedProjectIds = disconnectedIdsOf(declinedPage);
+  if (disconnectedProjectIds === "unavailable") return "unavailable";
+
   return aggregatePortfolio(
     {
       projectRows,
@@ -153,6 +177,7 @@ export async function loadPortfolio(): Promise<Portfolio | "unavailable"> {
       measuredEventIds,
       deliveriesLast24h: deliveries.count,
       rejectionsLast24h: rejections.count,
+      disconnectedProjectIds,
     },
     now,
   );
