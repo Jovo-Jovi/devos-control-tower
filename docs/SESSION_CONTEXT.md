@@ -1,6 +1,6 @@
 # TOWER — Session context
 
-**Phase:** P03 (Link requests) · **Last verdict:** T16 PASS a3 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-024, CF-030, CF-031, CF-032, CF-033, CF-034
+**Phase:** P03 (Link requests) · **Last verdict:** T17 PASS a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-031, CF-033, CF-035
 
 ## Done steps
 
@@ -23,9 +23,10 @@
 | T14 | Link preview | PASS a1 |
 | T15 | Link requests data layer | PASS a1 |
 | T16 | Link requests panel | PASS a3 |
-| T17 | Link route and safeguards | built a1 — awaiting verdict |
+| T17 | Link route and safeguards | PASS a1 |
+| T18 | Disconnected projects and the whole flow | built a1 — awaiting verdict |
 | T19 | Method fix: a task without its fence waits instead of failing; supervisor, request closing and planning notes | built — awaiting verdict |
 
 ## Next action
 
-Review of T19 attempt 1 (deep), then the owner's gate G-Method-50. T17 attempt 1 remains awaiting review; the owner makes the repository private and merges at the schema gate.
+Review of T18 attempt 1 (deep), then the owner's production checks of OD-12 §9 and the merge that signs G-Link-Requests.
