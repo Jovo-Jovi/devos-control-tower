@@ -210,3 +210,87 @@ test("The supervisor's idle rule", () => {
   assert.equal(idleIncident({ ...base, fence: true, busy: true }), null);
   assert.equal(idleIncident({ ...base, fence: true, taskPrHeads: ["task/T16"] }), null);
 });
+
+function intakeSteps() {
+  const raw = execFileSync(
+    "python3",
+    ["-c", "import sys, yaml, json; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))", join(ROOT, ".github/workflows/devos-intake.yml")],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  return JSON.parse(raw).jobs.intake.steps;
+}
+
+function programMatching(run, source, contains) {
+  const re = new RegExp(source, "g");
+  let match;
+  while ((match = re.exec(run))) {
+    if (match[1].includes(contains)) return match[1];
+  }
+  assert.fail(`no program containing ${contains}`);
+}
+
+const NOTES_ISSUE = {
+  title: "Method fix: X",
+  body: "B",
+  labels: [],
+  comments: [
+    { authorAssociation: "OWNER", body: LIMIT_NOTICE },
+    { authorAssociation: "OWNER", body: "/devos intake resume\nAlso in this fix: keep #49 open." },
+    { authorAssociation: "OWNER", body: "Dev OS: starting T05 attempt 1 now." },
+    { authorAssociation: "NONE", body: "drive-by note" },
+  ],
+};
+
+test("The intake workflow's own programs: the comment is prefixed, and the notes skip runner comments", () => {
+  const steps = intakeSteps();
+  const prepare = steps.find((step) => step.name === "Prepare the request and the branch");
+  const act = steps.find((step) => step.name === "Act on the decision");
+  assert.equal(typeof prepare?.run, "string");
+  assert.equal(typeof act?.run, "string");
+
+  const notesProgram = programMatching(prepare.run, "node --input-type=module -e '([^']*)'", "request.md");
+  const notesDir = mkdtempSync(join(tmpdir(), "devos-notes-"));
+  resolveDirs.push(notesDir);
+  mkdirSync(join(notesDir, "scripts/devos"), { recursive: true });
+  mkdirSync(join(notesDir, ".devos"), { recursive: true });
+  copyFileSync(join(ROOT, "scripts/devos/lib.mjs"), join(notesDir, "scripts/devos/lib.mjs"));
+  writeFileSync(join(notesDir, ".devos/issue.json"), JSON.stringify(NOTES_ISSUE));
+  writeFileSync(join(notesDir, "notes.mjs"), notesProgram);
+  const notes = spawnSync("node", ["notes.mjs"], { cwd: notesDir, encoding: "utf8" });
+  assert.equal(notes.status, 0, notes.stderr);
+  assert.equal(
+    readFileSync(join(notesDir, ".devos/request.md"), "utf8"),
+    "# Method fix: X\n\nB\n\n## The human's answers and notes in the issue thread\n\n- Also in this fix: keep #49 open.\n",
+  );
+
+  const decisionProgram = programMatching(act.run, "node -e '([^']*)'", "intake-comment.md");
+  const runDecision = (intake, MODE, GUARDS) => {
+    const dir = mkdtempSync(join(tmpdir(), "devos-decision-"));
+    resolveDirs.push(dir);
+    mkdirSync(join(dir, ".devos"), { recursive: true });
+    writeFileSync(join(dir, ".devos/intake.json"), intake);
+    writeFileSync(join(dir, ".devos/intake.err"), "");
+    writeFileSync(join(dir, "prog.cjs"), decisionProgram);
+    const child = spawnSync("node", ["prog.cjs"], {
+      cwd: dir,
+      encoding: "utf8",
+      env: { ...process.env, MODE, ISSUE: "50", GUARDS },
+    });
+    assert.equal(child.status, 0, child.stderr);
+    return {
+      decision: readFileSync(join(dir, ".devos/decision"), "utf8"),
+      comment: readFileSync(join(dir, ".devos/intake-comment.md"), "utf8"),
+    };
+  };
+
+  const limit = runDecision('{"is_error":true,"result":"Claude AI usage limit reached"}', "intake", "failure");
+  assert.equal(limit.decision, "limit");
+  assert.ok(limit.comment.startsWith("Dev OS: Claude hit a usage limit while planning this."));
+
+  const planned = runDecision(
+    '{"structured_output":{"decision":"accept","summary":"S","tasks":["T19"]}}',
+    "method",
+    "success",
+  );
+  assert.ok(planned.comment.startsWith("Dev OS: **Diagnosed; the fix is planned.** S"));
+});

@@ -24,7 +24,8 @@
 | T15 | Link requests data layer | PASS a1 |
 | T16 | Link requests panel | PASS a3 |
 | T17 | Link route and safeguards | built a1 — awaiting verdict |
+| T19 | Method fix: a task without its fence waits instead of failing; supervisor, request closing and planning notes | built — awaiting verdict |
 
 ## Next action
 
-Review of T17 attempt 1 (deep), then the owner makes the repository private and merges at the schema gate.
+Review of T19 attempt 1 (deep), then the owner's gate G-Method-50. T17 attempt 1 remains awaiting review; the owner makes the repository private and merges at the schema gate.
