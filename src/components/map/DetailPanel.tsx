@@ -44,6 +44,11 @@ export function DetailPanel({
           {copy.close}
         </button>
       </div>
+      {project.linkState === "disconnected" ? (
+        <span className={styles.flag} data-disconnected="">
+          {copy.link.disconnected}
+        </span>
+      ) : null}
       {latest ? <StatusChip step={latest.step} status={latest.status} /> : null}
       <dl className={styles.facts}>
         <dt>{copy.repository}</dt>

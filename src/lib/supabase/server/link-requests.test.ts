@@ -56,6 +56,12 @@ describe("linkOutcome", () => {
       expect(linkOutcome(entry.action, { data: entry.data, error: entry.error })).toEqual({ kind: "failed" });
     }
   });
+
+  it("maps an approve result of project_linked to its own outcome", () => {
+    expect(linkOutcome("approve", { data: { result: "project_linked" }, error: null })).toEqual({
+      kind: "project_linked",
+    });
+  });
 });
 
 describe("link request functions", () => {

@@ -328,3 +328,7 @@ The delete confirmation sits in the row, below the fields, so it covers none of 
 ## 2026-10-27 — T19 Method fix: a missing fence waits (attempt 1)
 
 A task whose fence is not on main and not on its branch waits. The resolve step warns and starts nothing, so no attempt is used. devos-advance comments on the merged PR and does not dispatch. The supervisor reports that wait once, with the steps, and never re-runs it. A request stays open until every task its plan names is PASS on main. Every planning comment starts with `Dev OS: `, and planning leaves the runner's own comments out of the owner's notes. Awaiting the verdict. A PASS stops at gate G-Method-50 for the owner.
+
+## 2026-10-27 — T18 Disconnected projects and the whole flow (attempt 1)
+
+The delete toast now says what went with an approved request: the project and every run and step event. Two races remain. The confirmation is still worded from the rendered row, and a Decline toast is still chosen from the rendered state. Closing those needs an expected-state argument, and no OD covers that signature change. The list refreshes after every action, so the owner sees the true state at once.

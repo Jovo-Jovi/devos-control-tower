@@ -89,7 +89,8 @@
     "gate": "at a gate",
     "down": "link down",
     "stale": "stale",
-    "silent": "no step event yet"
+    "silent": "no step event yet",
+    "disconnected": "disconnected"
   },
   "detail": {
     "close": "Close",
@@ -155,7 +156,7 @@
     "health": "Ingestion health",
     "hour": "Step events, last hour",
     "deliveries": "Webhook deliveries, last 24 h",
-    "rejections": "Rejected step events, last 24 h"
+    "rejections": "Rejected requests, last 24 h"
   },
   "states": {
     "empty": "No project yet. Register the first one.",
@@ -235,8 +236,10 @@
     "declinedDone": "Declined. Its next request is refused.",
     "disconnectedDone": "Disconnected. Its history stays for the record.",
     "deleted": "Deleted.",
+    "deletedProject": "Deleted. Its project and every run and step event went with it.",
     "exported": "Export downloaded. No copy is kept on the server.",
     "repoTaken": "Another owner already has this repository. The request stays pending.",
+    "projectLinked": "This project is already linked by another request. The request stays pending.",
     "notPending": "This request was already decided. The list now shows its state.",
     "notFound": "This request no longer exists. The list is up to date.",
     "failed": "The change could not be saved. Nothing was changed."

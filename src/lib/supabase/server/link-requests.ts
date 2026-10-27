@@ -16,6 +16,7 @@ export type LinkOutcome =
   | { kind: "deleted"; projectDeleted: boolean }
   | { kind: "exported"; document: Json }
   | { kind: "repo_taken" }
+  | { kind: "project_linked" }
   | { kind: "not_pending" }
   | { kind: "not_found" }
   | { kind: "failed" };
@@ -104,6 +105,7 @@ export function linkOutcome(action: LinkAction, response: { data: unknown; error
       return { kind: "approved", key };
     }
     if (result === "repo_taken") return { kind: "repo_taken" };
+    if (result === "project_linked") return { kind: "project_linked" };
     if (result === "not_pending") return { kind: "not_pending" };
     if (result === "not_found") return { kind: "not_found" };
     return failed();

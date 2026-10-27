@@ -145,6 +145,14 @@ export async function loadProject(key: string): Promise<ProjectReport | "not_fou
     return "unavailable";
   }
 
+  const declined = await supabase
+    .from("link_requests")
+    .select("id")
+    .eq("project_id", projectRow.id)
+    .eq("state", "declined")
+    .maybeSingle();
+  if (declined.error) return "unavailable";
+
   const runPage = await readPages((from, to) =>
     supabase
       .from("runs")
@@ -190,6 +198,7 @@ export async function loadProject(key: string): Promise<ProjectReport | "not_fou
     runRows,
     stepEventRows,
     observationRows,
+    disconnected: declined.data !== null,
   };
   return aggregateProject(input, new Date());
 }

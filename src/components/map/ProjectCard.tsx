@@ -74,6 +74,11 @@ export function ProjectCard({
             <span className={styles.repo}>{project.repo}</span>
           </Bidi>
         </span>
+        {project.linkState === "disconnected" ? (
+          <span className={styles.flag} data-disconnected="">
+            {copy.link.disconnected}
+          </span>
+        ) : null}
         {latest ? <StatusChip step={latest.step} status={latest.status} /> : null}
       </span>
       <span className={styles.execution}>{execution}</span>

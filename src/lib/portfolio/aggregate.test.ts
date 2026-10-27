@@ -41,6 +41,7 @@ function portfolio(input: Partial<AggregateInput>, now = NOW) {
       measuredEventIds: [],
       deliveriesLast24h: 0,
       rejectionsLast24h: 0,
+      disconnectedProjectIds: [],
       ...input,
     },
     now,
@@ -243,7 +244,7 @@ describe("aggregatePortfolio", () => {
     expect(result.health.lastReceivedAt).toBe("2026-10-17T11:00:00.001Z");
   });
 
-  it("returns zeros and all eight link-state keys for empty input", () => {
+  it("returns zeros and all nine link-state keys for empty input", () => {
     const result = portfolio({ deliveriesLast24h: 4, rejectionsLast24h: 2 });
     expect(result.projects).toEqual([]);
     expect(result.recentActivity).toEqual([]);
@@ -262,6 +263,7 @@ describe("aggregatePortfolio", () => {
       down: 0,
       stale: 0,
       silent: 0,
+      disconnected: 0,
     });
     expect(result.health).toEqual({
       lastReceivedAt: null,
@@ -291,5 +293,20 @@ describe("aggregatePortfolio", () => {
     expect(result.totals.byLinkState.steady).toBe(1);
     expect(result.totals.byLinkState.stale).toBe(1);
     expect(result.totals.byLinkState.silent).toBe(1);
+  });
+
+  it("counts a fresh passing project as disconnected and leaves it out of fresh and stale or silent", () => {
+    const result = portfolio({
+      projectRows: [project("p1", "ALPHA")],
+      stepEventRows: [step({ id: 1, project_id: "p1", status: "pass", step: "checks" })],
+      disconnectedProjectIds: ["p1"],
+    });
+    expect(result.projects[0]?.freshness).toBe("fresh");
+    expect(result.projects[0]?.linkState).toBe("disconnected");
+    expect(result.totals.byLinkState.disconnected).toBe(1);
+    expect(result.totals.byLinkState.steady).toBe(0);
+    expect(result.totals.projects).toBe(1);
+    expect(result.totals.fresh).toBe(0);
+    expect(result.totals.staleOrSilent).toBe(0);
   });
 });

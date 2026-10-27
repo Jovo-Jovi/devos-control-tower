@@ -75,7 +75,7 @@ function boxesIntersect(
   return left.x < right.x + right.width && left.x + left.width > right.x && left.y < right.y + right.height && left.y + left.height > right.y;
 }
 
-async function assertMapCardsFit(page: Page) {
+async function assertMapCardsFit(page: Page, expected?: number) {
   const fit = await page.locator("[data-map-card]").evaluateAll((elements) => {
     const boxes = elements.map((element) => element.getBoundingClientRect());
     const overlaps: string[] = [];
@@ -103,8 +103,9 @@ async function assertMapCardsFit(page: Page) {
     }).length;
     return { cards: elements.length, pairs: (elements.length * (elements.length - 1)) / 2, overlaps, clipped, factsOutside };
   });
-  expect(fit.cards).toBe(8);
-  expect(fit.pairs).toBe(28);
+  if (expected === undefined) expect(fit.cards).toBeGreaterThan(0);
+  else expect(fit.cards).toBe(expected);
+  expect(fit.pairs).toBe((fit.cards * (fit.cards - 1)) / 2);
   expect(fit.overlaps).toEqual([]);
   expect(fit.clipped).toBe(0);
   expect(fit.factsOutside).toBe(0);
@@ -325,13 +326,13 @@ test("Link states and overflow", async ({ browser }) => {
   await fulfillJson(page, syntheticPortfolio(now, 8));
   await page.goto("/");
   await expect(page.locator("[data-map-card]")).toHaveCount(8);
-  for (const state of LINK_STATES) {
+  for (const state of LINK_STATES.filter((candidate) => candidate !== "disconnected")) {
     const card = page.locator(`[data-map-card][data-link-state="${state}"]`);
     await expect(card).toHaveCount(1);
     const slot = await card.getAttribute("data-slot");
     await expect(page.locator(`g[data-slot="${slot}"]`)).toHaveAttribute("data-link-state", state);
   }
-  await assertMapCardsFit(page);
+  await assertMapCardsFit(page, 8);
   await assertLabelsOnOneLine(page, "[data-map-card]", 32);
   await assertBarTracksWide(page);
   await assertBarFillsTrack(page);
@@ -340,7 +341,7 @@ test("Link states and overflow", async ({ browser }) => {
   await expect(bravo.locator("line").first()).toHaveAttribute("stroke-dashoffset", "50");
   await expect(page.locator('[data-map-card][data-project="ALPHA"] line').first()).toHaveAttribute("stroke-dashoffset", "100");
   await page.setViewportSize({ width: 800, height: 900 });
-  await assertMapCardsFit(page);
+  await assertMapCardsFit(page, 8);
   await assertLabelsOnOneLine(page, "[data-map-card]", 32);
   await assertBarTracksWide(page);
   await assertBarFillsTrack(page);
@@ -367,6 +368,52 @@ test("Link states and overflow", async ({ browser }) => {
   await expect(page.locator("[data-list-card]")).toHaveCount(10);
   await assertLabelsOnOneLine(page, "[data-list-card]", 40);
   expect(csp).toEqual([]);
+  await context.close();
+});
+
+test("Disconnected", async ({ browser }) => {
+  const now = new Date();
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  await context.addCookies(ownerCookies);
+  const page = await context.newPage();
+  await fulfillJson(page, syntheticPortfolio(now, 3, ["CHARLIE"]));
+  await page.goto("/");
+  await expect(page.locator("[data-map-card]")).toHaveCount(3);
+
+  const mapCard = page.locator('[data-map-card][data-project="CHARLIE"]');
+  await expect(mapCard).toHaveAttribute("data-link-state", "disconnected");
+  await expect(mapCard.locator("[data-disconnected]")).toHaveText("disconnected");
+
+  await page.getByRole("button", { name: "List", exact: true }).click();
+  const listCard = page.locator('[data-list-card][data-project="CHARLIE"]');
+  await expect(listCard).toBeVisible();
+  await expect(listCard).toHaveAttribute("data-link-state", "disconnected");
+  await expect(listCard.locator("[data-disconnected]")).toHaveText("disconnected");
+
+  await page.getByRole("button", { name: "Tower map", exact: true }).click();
+  await expect(mapCard).toBeVisible();
+  await assertMapCardsFit(page);
+
+  const slot = await mapCard.getAttribute("data-slot");
+  const blade = page.locator(`g[data-slot="${slot}"]`);
+  await expect(blade).toHaveAttribute("data-link-state", "disconnected");
+  await expect(blade.locator("circle[data-kind]")).toHaveCount(0);
+  await expect(blade.locator("path[filter]")).toHaveCount(0);
+  const alphaSlot = await page.locator('[data-map-card][data-project="ALPHA"]').getAttribute("data-slot");
+  await expect(page.locator(`g[data-slot="${alphaSlot}"] circle[data-kind]`)).not.toHaveCount(0);
+
+  await expect(page.getByRole("button", { name: "All 3" })).toBeVisible();
+  await page.getByRole("button", { name: "Stale or silent 0" }).click();
+  await expect(mapCard).toHaveAttribute("data-dimmed", "filter");
+  const disconnectedRow = page.locator('[aria-label="System overview"] li').filter({ hasText: "disconnected" });
+  await expect(disconnectedRow).toContainText("disconnected");
+  await expect(disconnectedRow.locator("span").nth(1)).toHaveText("1");
+  await expect(page.getByText("Rejected requests, last 24 h")).toBeVisible();
+
+  await mapCard.click();
+  await expect(page.getByRole("dialog").locator("[data-disconnected]")).toHaveText("disconnected");
+
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await context.close();
 });
 
