@@ -53,6 +53,12 @@
   font-size: var(--text-3);
 }
 
+.flag {
+  color: var(--color-ink-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-0);
+}
+
 .recent {
   color: var(--color-ink-muted);
   font-size: var(--text-0);

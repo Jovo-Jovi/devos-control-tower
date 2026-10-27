@@ -76,6 +76,12 @@
   font-family: var(--font-mono);
 }
 
+.flag {
+  color: var(--color-ink-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-0);
+}
+
 .section {
   display: flex;
   flex-direction: column;

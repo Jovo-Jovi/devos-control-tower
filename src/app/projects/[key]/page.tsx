@@ -45,6 +45,7 @@ function projectCopy(messages: ReturnType<typeof getMessages>): ProjectCopy {
     noContact: messages.states.noContact,
     unavailable: messages.states.unavailable,
     error: messages.state.error,
+    disconnected: messages.link.disconnected,
   };
 }
 
@@ -122,6 +123,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
               <a className={styles.repo} href={`https://github.com/${report.project.repo}`} rel="noreferrer">
                 <Bidi>{report.project.repo}</Bidi>
               </a>
+              {report.disconnected ? (
+                <span className={styles.flag} data-disconnected="">
+                  {copy.disconnected}
+                </span>
+              ) : null}
               <FreshnessLabel freshness={report.freshness} fresh={copy.fresh} stale={copy.stale} none={copy.noContact} />
               {report.lastContactAt !== null ? (
                 <span className={styles.fact}>

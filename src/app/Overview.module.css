@@ -96,9 +96,11 @@
 
 .stageWrap {
   position: relative;
-  inline-size: var(--map-inline-size);
-  block-size: var(--map-block-size);
+  inline-size: 100%;
+  max-inline-size: var(--map-inline-size);
+  aspect-ratio: calc(var(--map-inline-size) / var(--map-block-size));
   margin-inline: auto;
+  container-type: inline-size;
 }
 
 .stage {
@@ -107,6 +109,7 @@
   inset-inline-start: 0;
   inline-size: var(--map-inline-size);
   block-size: var(--map-block-size);
+  transform: scale(calc(100cqi / var(--map-inline-size)));
   transform-origin: 0 0;
 }
 
@@ -361,12 +364,7 @@
 
 @media (max-width: 91.25rem) {
   .stageWrap {
-    inline-size: calc(var(--map-inline-size) * var(--map-scale-1));
-    block-size: calc(var(--map-block-size) * var(--map-scale-1));
-  }
-
-  .stage {
-    transform: scale(var(--map-scale-1));
+    max-inline-size: calc(var(--map-inline-size) * var(--map-scale-1));
   }
 
   .region {
@@ -376,12 +374,7 @@
 
 @media (max-width: 77.5rem) {
   .stageWrap {
-    inline-size: calc(var(--map-inline-size) * var(--map-scale-2));
-    block-size: calc(var(--map-block-size) * var(--map-scale-2));
-  }
-
-  .stage {
-    transform: scale(var(--map-scale-2));
+    max-inline-size: calc(var(--map-inline-size) * var(--map-scale-2));
   }
 
   .region {
@@ -391,12 +384,7 @@
 
 @media (max-width: 66.25rem) {
   .stageWrap {
-    inline-size: calc(var(--map-inline-size) * var(--map-scale-3));
-    block-size: calc(var(--map-block-size) * var(--map-scale-3));
-  }
-
-  .stage {
-    transform: scale(var(--map-scale-3));
+    max-inline-size: calc(var(--map-inline-size) * var(--map-scale-3));
   }
 
   .region {

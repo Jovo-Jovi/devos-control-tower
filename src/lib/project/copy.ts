@@ -24,6 +24,7 @@ export type ProjectCopy = {
   noContact: string;
   unavailable: string;
   error: string;
+  disconnected: string;
 };
 
 export function fill(template: string, values: Record<string, string>): string {

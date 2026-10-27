@@ -151,7 +151,8 @@
 }
 
 .edge[data-link-state="stale"],
-.edge[data-link-state="silent"] {
+.edge[data-link-state="silent"],
+.edge[data-link-state="disconnected"] {
   stroke: var(--color-ink-faint);
   stroke-width: var(--blade-off);
 }
@@ -160,7 +161,8 @@
   stroke-dasharray: var(--dash-stale);
 }
 
-.edge[data-link-state="silent"] {
+.edge[data-link-state="silent"],
+.edge[data-link-state="disconnected"] {
   stroke-dasharray: var(--dash-silent);
 }
 
@@ -180,7 +182,8 @@
 }
 
 .port[data-link-state="stale"],
-.port[data-link-state="silent"] {
+.port[data-link-state="silent"],
+.port[data-link-state="disconnected"] {
   fill: var(--color-ink-faint);
 }
 

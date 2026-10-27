@@ -122,6 +122,13 @@
   font-size: var(--text-0);
 }
 
+.flag {
+  flex: none;
+  color: var(--color-ink-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-0);
+}
+
 .monogram {
   display: inline-flex;
   flex: none;
