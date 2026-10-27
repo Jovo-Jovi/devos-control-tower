@@ -39,6 +39,7 @@ jobs:
           REPO: ${{ github.repository }}
           HEAD: ${{ github.event.pull_request.head.ref }}
           METHOD: ${{ contains(github.event.pull_request.labels.*.name, 'devos:method') }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
           task="${HEAD#task/}"
           if [ "$METHOD" = "true" ] && [ "$task" != "$HEAD" ] && [ -f "docs/fences/$task.md" ]; then
@@ -60,6 +61,11 @@ jobs:
           # Name the next task in the dispatch so the run is titled "devos Tnn · attempt 1", not "devos next".
           next=$(node scripts/devos/next-task.mjs 2>/dev/null | sed -n 's/^task=//p' | head -1 || true)
           if [ -n "$next" ]; then
+            if [ ! -f "docs/fences/$next.md" ]; then
+              gh pr comment "$PR" --repo "$REPO" --body "Dev OS: $next is next, but docs/fences/$next.md is not on main, so it was not started and no attempt was used. Have the reviewer write the fence and put it on main; the supervisor starts $next on its next scan once it is there (or run devos-cycle with task=$next attempt=1)."
+              echo "::notice title=Dev OS::$next waits for its fence; nothing dispatched."
+              exit 0
+            fi
             # Never start a second cycle for a task that already has one: a run queued or in
             # progress for it (devos-setup or devos-resume may have resumed it), or an open PR on
             # its branch (it is at a gate or mid-attempt). Two cycles on one branch collide.

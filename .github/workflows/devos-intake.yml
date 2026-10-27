@@ -115,15 +115,10 @@ jobs:
           # PR-28: a method fix is diagnosed from the logs of the runs it links.
           MODE=$(node -e 'const i=require("./.devos/issue.json");console.log((i.labels||[]).some(l=>l.name==="devos:method")?"method":"intake")')
           echo "MODE=$MODE" >> "$GITHUB_ENV"
-          node -e '
-            const i = JSON.parse(require("fs").readFileSync(".devos/issue.json", "utf8"));
-            const trusted = ["OWNER", "MEMBER", "COLLABORATOR"];
-            const notes = (i.comments || [])
-              .filter((c) => trusted.includes(c.authorAssociation) && !/^Dev OS:/.test(c.body))
-              .map((c) => c.body.replace(/^\/devos intake( resume)?\s*/, "").trim())
-              .filter(Boolean);
-            const out = [`# ${i.title}`, "", i.body || "", ...(notes.length ? ["", "## The human'"'"'s answers and notes in the issue thread", "", ...notes.map((n) => `- ${n.replace(/\n/g, "\n  ")}`)] : [])];
-            require("fs").writeFileSync(".devos/request.md", out.join("\n") + "\n");'
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            import { requestMarkdown } from "./scripts/devos/lib.mjs";
+            writeFileSync(".devos/request.md", requestMarkdown(JSON.parse(readFileSync(".devos/issue.json", "utf8"))));'
           wc -l .devos/request.md
           if [ "$MODE" = "method" ]; then
             mkdir -p .devos/runlogs
@@ -207,7 +202,7 @@ jobs:
             const stats = mins!==null ? `\n\n<sub>Planning run: ${mins} min, ${r.num_turns ?? "?"} turns, ${k((u.input_tokens||0)+(u.cache_read_input_tokens||0)+(u.cache_creation_input_tokens||0))} tokens read, ${k(u.output_tokens)} written.</sub>` : "";
             fs.writeFileSync(".devos/decision", d);
             const q=(s.questions||[]).map((x,i)=>`${i+1}. ${x}`).join("\n");
-            fs.writeFileSync(".devos/intake-comment.md", (
+            fs.writeFileSync(".devos/intake-comment.md", "Dev OS: " + (
               d==="accept" && process.env.MODE==="method" ? `**Diagnosed; the fix is planned.** ${s.summary}\n\nThe diagnosis (\`docs/requests/issue-${process.env.ISSUE}.md\`) and method task ${(s.tasks||[]).join(", ")} are in the intake PR. Merging it starts the fix: Grok builds it, the reviewer checks every changed line, and the fix waits for your merge before anything changes in the automation.`
               : d==="accept" ? `**Accepted.** ${s.summary}\n\nDraft ${s.od||"OD"} and tasks ${(s.tasks||[]).join(", ")} are in the intake PR. Merging it signs the decision and starts the work.`
               : d==="needs-info" ? `**Needs your answers before planning.** ${s.summary||""}\n\n${q}\n\nAnswer in a comment, then comment \`/devos intake\` to run it again.`

@@ -147,6 +147,36 @@ export function fail(msg, code = 1) {
   process.exit(code);
 }
 
+// ---------- request notes ------------------------------------------------------------------
+// Runner comments are never the owner's notes. A note that only mentions Dev OS stays the owner's.
+
+export function isRunnerComment(body) {
+  const text = String(body ?? "").replace(/^\s+/, "");
+  if (text.startsWith("Dev OS:")) return true;
+  if (text.startsWith("Dev OS runner ") || text.startsWith("Dev OS supervisor")) return true;
+  const heading = text.match(/^#{1,6}[ \t]+(.*)$/);
+  if (heading) {
+    const inner = heading[1];
+    const runnerHead = (s) => /^Dev OS T\d\d/.test(s) || /^Dev OS supervisor/.test(s);
+    if (runnerHead(inner)) return true;
+    const skipped = inner.match(/^\S+[ \t]+([\s\S]*)$/);
+    if (skipped && runnerHead(skipped[1])) return true;
+  }
+  if (/<!-- devos-[a-z]/.test(text)) return true;
+  return false;
+}
+
+/** The text devos-intake writes to .devos/request.md from `gh issue view --json`. */
+export function requestMarkdown(issue) {
+  const trusted = ["OWNER", "MEMBER", "COLLABORATOR"];
+  const notes = (issue.comments || [])
+    .filter((c) => trusted.includes(c.authorAssociation) && !isRunnerComment(c.body))
+    .map((c) => c.body.replace(/^\/devos intake( resume)?\s*/, "").trim())
+    .filter(Boolean);
+  const out = [`# ${issue.title}`, "", issue.body || "", ...(notes.length ? ["", "## The human's answers and notes in the issue thread", "", ...notes.map((n) => `- ${n.replace(/\n/g, "\n  ")}`)] : [])];
+  return out.join("\n") + "\n";
+}
+
 // ---------- module environments (PR-17, PR-26) ----------------------------------------------
 // Each active stack module writes the names the app reads to .devos/<module>.env as shell-sourceable
 // KEY='value' lines. Values are local throwaway ones (emulators, demo keys); .devos/ is never committed.

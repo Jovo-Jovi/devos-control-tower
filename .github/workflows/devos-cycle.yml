@@ -77,6 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       done: ${{ steps.t.outputs.done }}
+      fence_missing: ${{ steps.t.outputs.fence_missing }}
       task: ${{ steps.t.outputs.task }}
       name: ${{ steps.t.outputs.name }}
       risk: ${{ steps.t.outputs.risk }}
@@ -99,13 +100,18 @@ jobs:
           node-version: 22
       - id: t
         run: node scripts/devos/next-task.mjs --task "${{ inputs.task }}" --attempt "${{ inputs.attempt }}" --revision "${{ inputs.revision }}"
+      - if: steps.t.outputs.done == 'false' && steps.t.outputs.fence_missing == 'true'
+        run: |
+          msg="${{ steps.t.outputs.task }} waits for its fence: docs/fences/${{ steps.t.outputs.task }}.md is not on main. Nothing was started and no attempt was used. Have the reviewer write the fence and put it on main; the supervisor then starts ${{ steps.t.outputs.task }}, or run devos-cycle with task=${{ steps.t.outputs.task }} attempt=1."
+          echo "::warning title=Dev OS::$msg"
+          echo "$msg" >> "$GITHUB_STEP_SUMMARY"
       - if: steps.t.outputs.done == 'true'
         run: echo "::notice title=Dev OS::Every task in docs/PHASES.md is PASS. Nothing to run."
       # PR-27: a run that cannot work (no builder or reviewer credential, no runner token for a method
       # fix) does not start. The setup issue gets the steps, and this run resumes when they are done.
       - name: Settings the cycle needs (PR-27)
         id: setup
-        if: steps.t.outputs.done == 'false'
+        if: steps.t.outputs.done == 'false' && steps.t.outputs.fence_missing != 'true'
         env:
           # PR-32: only whether each credential is set ("1" or empty), never its value. Handing every
           # secret to a step (toJSON(secrets)) made GitHub hold the cycle as possibly malicious.
@@ -134,7 +140,7 @@ jobs:
           echo "::warning title=Dev OS::${{ steps.t.outputs.task }} did not start: missing settings ($missing). See the 'Dev OS: setup needed' issue."
       - name: Heavy-run notice, or hold (PR-20)
         id: heavy
-        if: steps.t.outputs.done == 'false' && steps.setup.outputs.blocked != 'true'
+        if: steps.t.outputs.done == 'false' && steps.setup.outputs.blocked != 'true' && steps.t.outputs.fence_missing != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           DEVOS_HEAVY: ${{ vars.DEVOS_HEAVY }}
@@ -148,7 +154,7 @@ jobs:
 
   cycle:
     needs: resolve
-    if: needs.resolve.outputs.done == 'false' && needs.resolve.outputs.held != 'true' && needs.resolve.outputs.blocked != 'true'
+    if: needs.resolve.outputs.done == 'false' && needs.resolve.outputs.held != 'true' && needs.resolve.outputs.blocked != 'true' && needs.resolve.outputs.fence_missing != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     outputs:
