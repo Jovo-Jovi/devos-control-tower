@@ -48,7 +48,15 @@ function shownProjects(projects: readonly PortfolioProject[]): PortfolioProject[
   return projects.length > 8 ? projects.slice(0, 7) : projects.slice(0, 8);
 }
 
-export function Overview({ copy, registeredKey }: { copy: OverviewCopy; registeredKey: string | null }) {
+export function Overview({
+  copy,
+  registeredKey,
+  deletedKey,
+}: {
+  copy: OverviewCopy;
+  registeredKey: string | null;
+  deletedKey: string | null;
+}) {
   const reduced = useReducedMotion();
   const setPoll = useSetPollStatus();
   const [phase, setPhase] = useState<Phase>("loading");
@@ -157,10 +165,17 @@ export function Overview({ copy, registeredKey }: { copy: OverviewCopy; register
   const shown = shownProjects(projects);
   const overflow = projects.length > 8 ? projects.length - 7 : 0;
   const selectedProject = projects.find((project) => project.key === selected) ?? null;
-  const toast =
-    figures && registeredKey && projects.some((project) => project.key === registeredKey)
-      ? fill(copy.registered, { key: registeredKey })
-      : null;
+  let toast: string | null = null;
+  if (figures && registeredKey && projects.some((project) => project.key === registeredKey)) {
+    toast = fill(copy.registered, { key: registeredKey });
+  } else if (
+    figures &&
+    deletedKey &&
+    /^[A-Z][A-Z0-9_-]{1,31}$/.test(deletedKey) &&
+    !projects.some((project) => project.key === deletedKey)
+  ) {
+    toast = fill(copy.deleted, { key: deletedKey });
+  }
 
   function dimmed(project: PortfolioProject): "filter" | "panel" | undefined {
     if (!matches(filter, project.linkState)) return "filter";

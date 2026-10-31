@@ -14,6 +14,7 @@ import type { ProjectReport } from "@/lib/project/aggregate";
 import type { ProjectCopy } from "@/lib/project/copy";
 import { loadProject } from "@/lib/supabase/server/project";
 import { requireOwner } from "@/lib/supabase/server/session";
+import { DeleteProject } from "./DeleteProject";
 import styles from "./page.module.css";
 
 const PROJECT_KEY = /^[A-Z][A-Z0-9_-]{1,31}$/;
@@ -109,7 +110,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
   if (!PROJECT_KEY.test(key)) notFound();
   const report = await loadProject(key);
   if (report === "not_found") notFound();
-  const copy = projectCopy(getMessages());
+  const messages = getMessages();
+  const copy = projectCopy(messages);
 
   return (
     <AppShell login={owner.login} avatarUrl={owner.avatarUrl}>
@@ -145,7 +147,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
                 {copy.usage}
               </a>
               <a className={styles.import} href={`/projects/${report.project.key}/import`}>
-                {getMessages().project.import}
+                {messages.project.import}
               </a>
             </p>
           )}
@@ -156,7 +158,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ key: s
             <StateBlock kind="error" message={copy.error} />
           </>
         ) : (
-          <ProjectBody report={report} copy={copy} />
+          <>
+            <ProjectBody report={report} copy={copy} />
+            {report.fromLinkRequest ? null : <DeleteProject projectKey={key} copy={messages.project} />}
+          </>
         )}
       </div>
     </AppShell>

@@ -60,6 +60,7 @@ function overviewCopy(messages: ReturnType<typeof getMessages>): OverviewCopy {
     empty: messages.states.empty,
     unavailable: messages.states.unavailable,
     registered: messages.states.registered,
+    deleted: messages.states.deleted,
     freshWord: messages.states.fresh,
     noContact: messages.states.noContact,
   };
@@ -68,13 +69,14 @@ function overviewCopy(messages: ReturnType<typeof getMessages>): OverviewCopy {
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ registered?: string | string[] }>;
+  searchParams: Promise<{ registered?: string | string[]; deleted?: string | string[] }>;
 }) {
   const owner = await requireOwner();
   const linkRequests = await readLinkRequests();
   const messages = getMessages();
   const params = await searchParams;
   const registered = Array.isArray(params.registered) ? params.registered[0] : params.registered;
+  const deleted = Array.isArray(params.deleted) ? params.deleted[0] : params.deleted;
 
   return (
     <AppShell login={owner.login} avatarUrl={owner.avatarUrl}>
@@ -83,7 +85,7 @@ export default async function HomePage({
         <h1 className={styles.title}>{messages.overview.title}</h1>
         <p className={styles.lead}>{messages.overview.lead}</p>
       </div>
-      <Overview copy={overviewCopy(messages)} registeredKey={registered ?? null} />
+      <Overview copy={overviewCopy(messages)} deletedKey={deleted ?? null} registeredKey={registered ?? null} />
       <LinkRequestsPanel
         copy={messages.linkRequests}
         requests={linkRequests === "unavailable" ? null : linkRequests}
