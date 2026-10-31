@@ -11,7 +11,7 @@ PR-19). `guard:data` applies as copied from the pilot. Names are the contract's 
 | `anon` | the publishable key, from a browser or a signed-out server render | **nothing**: RLS denies every row; no table grants `anon` any write (`guard:data` rule 5); `owner_allowlist` grants it nothing at all |
 | `authenticated` (the owner's session) | the publishable key with the session JWT | read every row where the policy `using (public.is_owner())` holds — i.e. everything, once `is_owner()` is true; writes only on `projects` (`/projects/new`) and `ingest_keys` (M2) through server actions |
 | `authenticated` (anyone else) | same path, a GitHub identity not in the allow-list | **nothing**: `is_owner()` is false, every policy fails, and the app gate signs the session out with `403` |
-| service role (`SUPABASE_SECRET_KEY`) | server-only modules under `src/lib/supabase/server/` (`guard:data` rule 6) | the machine routes' inserts: `events`, `event_usage`, `runs`, `event_rejections`, `webhook_deliveries`, `observations`; the import page's inserts; every write to `link_requests`, `link_audit` and the `projects` an approval creates or a deletion removes, only through the §4 link functions (OD-12 §3), called by `/api/link` and by the owner's link-request server actions after `requireOwner()` |
+| service role (`SUPABASE_SECRET_KEY`) | server-only modules under `src/lib/supabase/server/` (`guard:data` rule 6) | the machine routes' inserts: `events`, `event_usage`, `runs`, `event_rejections`, `webhook_deliveries`, `observations`; the import page's inserts; every write to `link_requests`, `link_audit` and the `projects` an approval creates or a deletion removes, only through the §4 link functions (OD-12 §3), called by `/api/link` and by the owner's link-request server actions after `requireOwner()`; from T20 (OD-14 §3), the deletion of a project registered by hand and its `project_audit` row, only through `delete_registered_project`, called by the owner's Delete project server action after `requireOwner()` |
 
 The service-role key is read only in server-only modules and never through a `NEXT_PUBLIC_` name.
 The browser never calls Supabase directly for anything but the Auth redirect flow.
@@ -101,6 +101,15 @@ project of a linked request can only be removed through `delete_link_request`, w
 Three columns of meaning, and never a repository, an owner id, a key or a body. One row is written by every link
 function that changes or exports a request. It is kept: it holds no personal data.
 
+### 2.12 `project_audit` (`ProjectAudit`) — T20 (OD-14 §3)
+- `id bigint generated always as identity primary key`
+- `at timestamptz not null default now()`
+- `action text not null check (action in ('deleted'))`
+- `project_id uuid not null`: no foreign key, so the row outlives the project it names
+
+One row per project that `delete_registered_project` deleted. Never a key, a repository, an owner id or a body. It is
+kept: it holds no personal data. A project deleted through a link request is audited in `link_audit` instead.
+
 ## 3. Privileges and RLS, per role
 
 - Every table: `alter table … enable row level security`. `guard:data` rule 3; pgTAP asserts it.
@@ -117,6 +126,10 @@ function that changes or exports a request. It is kept: it holds no personal dat
   `service_role` keeps Supabase's default privileges, and every write is a §4 link function it executes. So the
   invariants stand: no `DELETE` policy anywhere, and the seven policies
   on the five ingest tables.
+- `project_audit` (T20, OD-14 §3) is set up the same way: one policy `project_audit_owner_select`, `for select to
+  authenticated using (public.is_owner())`; `revoke all … from anon, authenticated`, then `grant select … to
+  authenticated`. Its only writer is `delete_registered_project`. The deletion of a hand-registered project and its
+  cascade is that function's alone; `authenticated` keeps no `DELETE` on `projects`.
 
 ## 4. Functions
 
@@ -131,6 +144,7 @@ function that changes or exports a request. It is kept: it holds no personal dat
 | `public.delete_link_request(p_request uuid) returns jsonb` (T15) | no row → `not_found`; otherwise delete the request, then its project if any (cascading to `runs`, `events`, `event_usage`, `observations`), audit `deleted` → `{"result":"deleted","project_deleted":true\|false}` | as above |
 | `public.export_link_request(p_request uuid) returns jsonb` (T15) | no row → `not_found`; otherwise `{"result":"exported","request":{…every §2.10 column},"project":null \| {key, repo, owner_github_id, stale_after_minutes, created_at},"step_events":[{run, seq, phase, task, step, status, at, received_at, evidence, origin, source}, … by runs.created_at, seq]}` and audit `exported`. From T17 (OD-13 §4) the document also has `"event_usage":[{run, seq, agent, tool, model, account_alias, input, output, cache_read, cache_write, source}, … by runs.created_at, seq, id]` and `"observations":[{sha, kind, context, state, at, received_at, actor_login, payload_ref}, … by at, id]`, both `[]` without a project | as above |
 | `public.purge_link_requests() returns integer` (T15) | retention (`PROTECTION_MODEL.md` §5): deletes requests without a project in state `pending` or `declined` whose `last_requested_at` is older than 180 days, and disconnected requests (declined, with a project) whose `decided_at` is older than 365 days together with their project; audit `purged` per request; returns the number of requests removed. From T17 (OD-13 §1) each `delete … where` repeats the condition, so a row approved or asked again during the run is skipped (no audit, not counted, its project kept) | as above; run daily at 03:17 UTC by the `pg_cron` job `tower-link-retention` |
+| `public.delete_registered_project(p_key text) returns jsonb` (T20, OD-14 §3) | the owner's Delete project: select the project with `key = p_key` `for update`; none → `{"result":"not_found"}`; a `link_requests` row with this `project_id` (any state) → `{"result":"linked"}`, nothing changes; otherwise delete the project (cascading to `runs`, `events`, `event_usage`, `observations`), insert `project_audit` (`'deleted'`, its id) → `{"result":"deleted"}`. The lock comes before the link check, so an approval linking the project at the same moment either waits and then fails its foreign key, or commits first and is seen | as above |
 
 ## 5. Views
 
@@ -154,7 +168,10 @@ and every other provider are disabled in the dashboard and asserted off in T01's
   app gate.
 - `server/admin.ts`: service-role client, imported only by `src/app/api/**/route.ts`, the import
   server action and (T16, OD-12 §3) the link-request server actions, each after `requireOwner()`;
-  `guard:data` rule 6 and `guard:surfaces` keep it server-only.
+  `guard:data` rule 6 and `guard:surfaces` keep it server-only. In the tree these reach it through the
+  server-only modules `import.ts`, `ingest.ts`, `link.ts`, `link-requests.ts` and `webhook.ts` under
+  `server/`; T20 (OD-14 §3) adds `server/project-deletion.ts`, used only by the Delete project server action
+  (`src/app/projects/[key]/actions.ts`) after `requireOwner()`.
 
 ## 8. Generated types
 
@@ -173,7 +190,11 @@ T15 adds two synthetic link requests (`fixture-dev/demo-shop` pending, `fixture-
 grants, every §4 link function's answers and its `service_role`-only execute, the key suffix, the 50-pending cap, the
 cascade of a delete, the export's shape, the 180/365-day retention, and the `pg_cron` job. T17 adds
 `008_link_safeguards.sql` (OD-13 §5): a purge keeps a request approved after it was selected, `project_linked`, the cap
-of 3 pending per owner, and the export's usage and observations.
+of 3 pending per owner, and the export's usage and observations. T20 adds `009_project_deletion.sql` (OD-14 §3, §8):
+`project_audit`'s RLS, policy, grants and columns; `delete_registered_project`'s security, execute and three answers;
+the cascade and the audit row; a linked and a disconnected project left untouched; the invariants (no `DELETE` policy,
+one `security definer` function); and CF-035's purge second-loop re-check. Its fixtures are `fixture-dev/t20-*`
+repositories and `T20-` keys.
 
 ## 10. Migrations (forward-only, expand-then-contract)
 
@@ -183,4 +204,4 @@ of 3 pending per owner, and the export's usage and observations.
 T07: `verify_reported_events`. T15: `link_requests` (the two tables and `request_link`, `approve_link_request`,
 `decline_link_request`) and `link_protection` (`delete_link_request`, `export_link_request`, `purge_link_requests`,
 the `pg_cron` extension and its job). T17: `link_safeguards` (OD-13: the partial unique index and the four
-functions replaced). Each has a down file under `supabase/down/` for rollback (`M1.md` §10).
+functions replaced). T20: `project_deletion` (OD-14: `project_audit` and `delete_registered_project`). Each has a down file under `supabase/down/` for rollback (`M1.md` §10).

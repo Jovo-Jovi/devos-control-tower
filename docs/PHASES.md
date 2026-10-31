@@ -33,11 +33,14 @@ The runner reads the table below, and `guard:phases` checks it.
 | T17 | P03 | J4 | `POST /api/link`: OIDC-verified link requests on the production host; `/api/ingest` refuses disconnected projects; link contract | 3 | — | [x] | PASS a1 — docs/reviews/T17-a1.md |
 | T18 | P03 | J5 | Disconnected projects on the map, list and project page; whole-flow e2e of link, approve, ingest, decline | 3 | G-Link-Requests | [x] | PASS a1 — docs/reviews/T18-a1.md |
 | T19 | PM | M | Method fix: a task without its fence waits instead of failing; supervisor, request closing and planning notes | 3 | G-Method-50 | [x] | PASS a1 — docs/reviews/T19-a1.md |
+| T20 | P04 | J4 | Delete a registered project: `project_audit`, `delete_registered_project`, pgTAP, types; Delete project on the project page with key confirmation; e2e and captures | 3 | — | [ ] | — |
+| T21 | P04 | J5 | Link requests panel: "Linked by request" and "Declined" collapsed, one line per request, details and actions on a tap | 2 | — | [ ] | — |
+| T22 | P04 | J5 | Neon glow in both themes: blades, ports, LEDs and project cards, brighter on hover and selected, steady under reduced motion | 2 | G-Neon-Map | [ ] | — |
 
 Phase P01 = Tower v1 foundation (sign-in, ingestion, observation). Phase P02 = Tower v1 pages. Both
 belong to milestone M1 of `devos-plan`; the CK1 checkpoint between T02/PM01 and T03 is an owner gate
 recorded in `docs/DEVELOPMENT_JOURNAL.md`, not a row. Phase P03 = link requests from DEV_OS projects (OD-12,
-issue #46).
+issue #46). Phase P04 = owner controls and the neon map (OD-14, issue #57).
 
 Phase outlines (method track):
 
@@ -201,3 +204,37 @@ Phase outlines (method track):
   contract states both caps under `429`. The size is judged with PR-38, and two stages are likely: the migration,
   then the route. T18's fence adds `{ kind: "project_linked" }` to `LinkOutcome`, one catalogue key for its field
   message, a capture of that state, and the case in the whole-flow e2e.
+- **T20 — Delete a registered project (OD-14 §1–§3, §8; issue #57, `docs/requests/issue-57.md`; risk 3, four stages,
+  schema gate).** Stage 1: `supabase/migrations/20261031090000_project_deletion.sql` with its down file creates
+  `project_audit` (`DATA_MODEL.md` §2.12) and `delete_registered_project(p_key)` (`not_found` · `linked` · `deleted`,
+  service-role only); `supabase/tests/009_project_deletion.sql` proves RLS, grants, the three answers, the cascade, the
+  audit row, the invariants, and CF-035's second-loop re-check; the regenerated types. Stage 2: the server-only module
+  `src/lib/supabase/server/project-deletion.ts` with its outcome mapper and test; `loadProject` reads whether a
+  link request points to the project (one session read, which also gives `disconnected`); the 13 catalogue keys;
+  `src/app/projects/[key]/actions.ts` (`requireOwner()` first, exact key match, redirect to `/?deleted=<key>`) and its
+  test. Stage 3: the project page shows a
+  final "Delete project" section only for a project registered by hand; the client `DeleteProject` confirmation (typed
+  key, exact match, Escape and focus) posts to that action; the overview's toast. Stage 4: `e2e/project-delete.spec.ts` (delete
+  with its cascade and audit, keyboard, linked and disconnected pages without the section) and its captures in both
+  themes at 1280 and 390; CF-035 closed, `docs/reviews/T18-a1.md` (a) landed as a row; the ledgers. Fence:
+  `docs/fences/T20.md`.
+- **T21 — Collapsed link-request groups (OD-14 §5; risk 2).** `LinkRequestsPanel.tsx` and its CSS module: Pending
+  unchanged; "Linked by request" and "Declined" as disclosure buttons (title and count, `aria-expanded`,
+  `aria-controls`), collapsed at first; each request one line (repository and project key in `<bdi>`, decided date) that
+  is itself a disclosure button and opens the row's details and its OD-12 §7 actions in place, focus kept on the line;
+  nothing stored. The server actions, `groups.ts` and the data do not change. `e2e/link-requests.spec.ts` and
+  `e2e/link.spec.ts` open the group and the line before they press Decline, Export or Delete, and a new test proves the
+  collapsed start with two or more linked requests, the line, the details, the keyboard and the screen-reader state.
+  Captures in both themes at 1280 and 390: collapsed, group open, line open, declined open; reduced motion; filmstrip of
+  opening a group; layout shift 0. The reviewer who passes T20 writes `docs/fences/T21.md` against that tree.
+- **T22 — Neon glow (OD-14 §4; risk 2, gate G-Neon-Map).** `tokens.css` appends the T22 block of `DESIGN_SYSTEM.md` §1
+  byte for byte. `ProjectCard.module.css`: a glow layer (`::after`, `box-shadow: var(--neon-card)`, outside the glass,
+  `pointer-events: none`) at `--neon-card-rest`, `--neon-card-hover` on hover and focus-visible, and
+  `--neon-card-selected` when `aria-pressed="true"`, by opacity over `--dur-quick`. `BladeField`: a halo path behind
+  today's glow path for the states that glow now (width `--neon-blade-halo-width`, static blur
+  `--neon-blade-halo-blur`, opacity `--neon-blade-halo-opacity`, humming with the glow), a stronger glow path
+  (`--neon-blade-width`, `--neon-blade-blur`) and the lit ports' `--neon-port`; `Tower.module.css`: `--neon-led` on
+  `.led` and `.moduleLed`. Unlit states stay unlit. `tokens.test.ts` passes unchanged. Captures of the map, list,
+  selected and hover states in light and dark at 1280 and 390, reduced motion, a hum filmstrip, layout shift 0. The
+  reviewer who passes T21 writes `docs/fences/T22.md` against that tree. The owner signs G-Neon-Map by merging (OD-14
+  §6).

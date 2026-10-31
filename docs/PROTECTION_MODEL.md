@@ -73,6 +73,13 @@ audit `deleted` row. pgTAP (T15) and the T18 end-to-end test prove it. A develop
 erase their data is answered with Export (§7) and Delete, within the period Law 151 and its executive regulations
 set (§10).
 
+A project **registered by hand** (`/projects/new`; no link request points to it) carries the owner's own GitHub id,
+not a developer's. From T20 (OD-14) the owner deletes it with **Delete project** on its page, confirmed by typing its
+key. That calls `delete_registered_project`, which removes the project with every run, event, usage row and
+observation and writes one `project_audit` `deleted` row (time, action, a random project id, nothing personal). A
+project that came from a link request is never deleted that way: the function answers `linked` and changes nothing, so
+its deletion stays the panel's Delete above, with its `link_audit` row.
+
 ## 7. Export
 
 The owner's **Export** (T16) calls `export_link_request`. It returns the request, the project and its step events
