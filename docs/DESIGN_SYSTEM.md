@@ -3,7 +3,8 @@
 **Status:** approved **direction** (OD-08, DRAFT until the owner merges the intake PR of issue #13; OD-06 A1
 for v2). **v3.1** amendments to §1, §3, §5, §9 and §10 (the owner's art): OD-09, DRAFT until the owner merges the
 intake PR of issue #18. The **sharp globe** amendments to §3, §5.2, §5.10, §9 and §10 (a per-pixel sphere replaces
-the displacement filter): OD-10, DRAFT until the owner merges the intake PR of issue #35. Precedence 8. Supersedes v2 ("Night-shift control room"). The approved design folder
+the displacement filter): OD-10, DRAFT until the owner merges the intake PR of issue #35. The **neon glow** amendments
+to §1 (the T22 block), §3 and §5.2: OD-14, DRAFT until the owner merges the intake PR of issue #57. Precedence 8. Supersedes v2 ("Night-shift control room"). The approved design folder
 `docs/design/v3/` (README, mockup, assets, screens) ranks with this file. Where this file says "README §n", that
 section of `docs/design/v3/README.md` is binding as written; where the two differ, **this file holds**, because it
 records the intake decisions (§1 font names, §3 image location, §10 sizes). Each UI fence carries a Design
@@ -312,6 +313,47 @@ in light, covering it in dark), one spin speed (`--dur-planet-spin`, one 680 px 
 slow scale (`--dur-scene-drift`, `--scene-drift-scale`). The dark atmosphere is 25 % (`--planet-atmo-opacity`). The
 task that lands v3.1 (T11) replaces the leading block of `tokens.css` with this one; the T05 additions after it stay.
 
+**Neon glow (OD-14, T22).** T22 appends this block to the end of `tokens.css` byte for byte, after the T05 additions and
+the `max-width: 47.5rem` block. It redefines no name above. Each colour is the theme's `--color-energy` (light
+`#2f8cff` = `rgb(47 140 255)`, dark `#ff2b2b` = `rgb(255 43 43)`) at an alpha, so the glow is always the energy colour.
+
+```css
+/* T22 additions (OD-14: neon glow; DESIGN_SYSTEM.md §1, §3, §5.2) */
+:root {
+  --neon-card: 0 0 0 1px rgb(47 140 255 / 0.6), 0 0 12px rgb(47 140 255 / 0.45), 0 0 32px rgb(47 140 255 / 0.25);
+  --neon-card-rest: 0.45;
+  --neon-card-hover: 0.75;
+  --neon-card-selected: 1;
+  --neon-blade-width: 14px;
+  --neon-blade-blur: 6px;
+  --neon-blade-halo-width: 28px;
+  --neon-blade-halo-blur: 14px;
+  --neon-blade-halo-opacity: 0.4;
+  --neon-port: drop-shadow(0 0 3px rgb(47 140 255 / 0.95)) drop-shadow(0 0 8px rgb(47 140 255 / 0.55));
+  --neon-led: 0 0 4px rgb(47 140 255 / 0.95), 0 0 10px rgb(47 140 255 / 0.55);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --neon-card: 0 0 0 1px rgb(255 43 43 / 0.65), 0 0 14px rgb(255 43 43 / 0.5), 0 0 36px rgb(255 43 43 / 0.28);
+    --neon-blade-halo-opacity: 0.5;
+    --neon-port: drop-shadow(0 0 3px rgb(255 43 43 / 0.95)) drop-shadow(0 0 9px rgb(255 43 43 / 0.6));
+    --neon-led: 0 0 4px rgb(255 43 43 / 0.95), 0 0 12px rgb(255 43 43 / 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  --neon-card: 0 0 0 1px rgb(255 43 43 / 0.65), 0 0 14px rgb(255 43 43 / 0.5), 0 0 36px rgb(255 43 43 / 0.28);
+  --neon-blade-halo-opacity: 0.5;
+  --neon-port: drop-shadow(0 0 3px rgb(255 43 43 / 0.95)) drop-shadow(0 0 9px rgb(255 43 43 / 0.6));
+  --neon-led: 0 0 4px rgb(255 43 43 / 0.95), 0 0 12px rgb(255 43 43 / 0.6);
+}
+```
+
+The glows are outer only: no inset shadow and no tint on the glass, so the text, chip and border pairs above keep their
+contrast, and `src/styles/tokens.test.ts` does not change. `--neon-card-rest`, `-hover` and `-selected` are the opacity of
+the card's glow layer, never a second shadow, so a card brightens without animating `box-shadow` (§5.2).
+
 Contrast (WCAG relative luminance, computed at intake with the README §1 method: the glass composited over the
 canvas and over the darkest scene colour behind a card — light `#c4d4e7` and `#a7c7ee`, dark `#3d070a`): light ink
 12.98, muted 5.56, accent 5.28, line-strong 3.74; dark ink 16.73, muted 7.58, accent 6.75, line-strong 3.22.
@@ -350,6 +392,7 @@ and the map. Glass = `--glass` with `backdrop-filter: blur(var(--blur-glass)) sa
 | `OriginChip` | reported outlined · observed dotted · verified filled ink · imported filled grey; always the word | becoming verified = the outline fills from the start edge (`--dur-base`) |
 | `AgeText`, `FreshnessLabel`, `HealthBanner`, `StateBlock`, `Counter`, `Bar`, `Toast`, `OwnerForm`, `EvidenceLink`, `Timeline`/`EventRow`, `UsageTable`/`CoverageLine`, `ImportResult` | as v2, on glass; `StateBlock` loading = hairline skeletons with a sheen | as v2 |
 | Tower map (T05): tower, project card, blade, detail panel, filter, list, phone tower card, counts card, Tower panel, System overview, Recent activity, Ingestion health | README §4–§7 | README §4.3–§4.4 and §5 below |
+| Neon glow (OD-14, T22) | **project card** (map and list, every link state): a glow layer outside the glass (`::after`, `box-shadow: var(--neon-card)`, `pointer-events: none`), never over the text. **Blade**, only in the states that glow today (`active`, `steady`, `revise` in the energy colour; `waiting`, `gate` in `--color-waiting`, unchanged): the glow path at `--neon-blade-width` with a static blur of `--neon-blade-blur`, and behind it a halo path at `--neon-blade-halo-width`, blur `--neon-blade-halo-blur`, opacity `--neon-blade-halo-opacity`. Lit **ports** (`active`, `steady`, `revise`): `filter: var(--neon-port)`. Tower **LEDs** (`.led`, `.moduleLed`): `box-shadow: var(--neon-led)`. `down`, `stale`, `silent` and `disconnected` blades and ports gain nothing | the card's layer: opacity `--neon-card-rest` → `--neon-card-hover` (hover, `:focus-visible`) → `--neon-card-selected` (`aria-pressed="true"`) over `--dur-quick`, `--ease-out`; the halo hums with the glow path (the existing `hum` loop); LEDs keep their `led` loop. Reduced motion: no transition, no loop, every glow steady at its rest strength (a selected card at `--neon-card-selected`) |
 
 ## 4. Compositions and their choreography
 
@@ -384,7 +427,9 @@ v2's rules, with the amendments OD-08 signs (README §8):
 2. **Animated properties:** `transform`, `opacity`, `clip-path`, and (amendment **C**) `stroke-dashoffset`,
    `offset-distance` and `mask-position`. `filter` and `box-shadow` are never animated. Static blur is allowed on
    its own elements only: the blades' glow path (v3.1 removes the cloud sea and its SVG blur; OD-10 removes the
-   globes' sphere displacement).
+   globes' sphere displacement). OD-14 (T22) adds static neon glows on named elements only: the blades' halo path, the
+   lit ports (`--neon-port`), the tower LEDs (`--neon-led`) and the project card's glow layer (`--neon-card`). Each is
+   static; a glow brightens or hums only through the **opacity** of its own element or layer.
 3. **Durations from tokens only.** Nothing interactive above `--dur-slow`, except (amendment **A**) the theme
    switch: `--dur-scene` (1.8 s, `--ease-in-out`) for the scene and the planet; it answers *what changed* and blocks
    nothing. Total first-paint choreography ≤ 740 ms.

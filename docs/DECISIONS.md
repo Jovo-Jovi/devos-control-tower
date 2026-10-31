@@ -491,3 +491,82 @@ duplicates there. At the T17 schema gate, Supabase → Advisors → Security sho
 **Does not decide:** a per-repository request rate (still OD-12's "Does not decide"); a way for the owner to change
 either cap without a migration; notifying a developer that they are rate limited beyond the `429`; exporting
 `event_rejections` (not personal, `PROTECTION_MODEL.md` §2); re-linking a disconnected project to a new request.
+
+### OD-14 — Delete a registered project, neon glow, and collapsed link-request groups
+**Status:** DRAFT — signed when the human merges the intake PR
+**Amends:** `DATA_MODEL.md` §3's "No `delete` policy … on `events`, `event_usage`, `runs`, `observations`" only in that
+a new service-role function may now delete a project registered by hand with its cascade (the policy invariant itself
+stands); OD-12 §7 (how the "Linked by request" and "Declined" groups are laid out: collapsed, one line per request);
+`DESIGN_SYSTEM.md` §5.2 (static glows on named elements) and §1 (the T22 token block). OD-12 §3–§4 and §6, OD-13, OD-08
+§2 (C) "`filter` and `box-shadow` stay static", and every other OD stand.
+**Requested by:** issue #57
+**1. Which project can be deleted here.** A project **registered by hand** is a `projects` row that no `link_requests`
+row points to (`project_id`), in any state. Its project page (`/projects/[key]`) gets **Delete project**, for the owner
+only. A project that came from a link request (linked or disconnected) keeps today's path: the panel's **Delete**
+(`delete_link_request`), which also deletes the request; its project page shows no Delete project. A project registered
+by hand that `request_link` answers `linked` for (same `repo` and owner id, OD-12 §2 (6)) has no request row, so it is
+deletable here; afterwards the engine's next request goes pending.
+**2. Confirmation.** Delete project opens an inline confirmation on the page: one sentence saying what goes (the
+project with its runs, step events, usage and observations) and that it cannot be undone, a labelled text field, Cancel,
+and the confirm button, which is enabled only while the field holds exactly the project's key (case-sensitive). The
+server action compares the typed value with the key again and deletes nothing when they differ. After a deletion the
+owner lands on `/` with the toast "Project {key} deleted.", and the project is gone from the map, the list, the counts
+and `/api/projects`.
+**3. Data.** One forward migration with its down file adds:
+- table `public.project_audit` (`DATA_MODEL.md` §2.12): `id`, `at`, `action` (`'deleted'` only), `project_id` (no
+  foreign key, so the row outlives the project). No key, repository, owner id or body. RLS on, one policy
+  `project_audit_owner_select` (`for select to authenticated using (public.is_owner())`); `revoke all … from anon,
+  authenticated`, then `grant select … to authenticated`.
+- function `public.delete_registered_project(p_key text) returns jsonb` (`DATA_MODEL.md` §4): `security invoker`,
+  `set search_path = ''`, `execute` to `service_role` only. It locks the project row (`for update`), then answers
+  `{"result":"not_found"}` (no such key), `{"result":"linked"}` (a link request points to it; nothing changes) or
+  deletes the project (cascading to `runs`, `events`, `event_usage`, `observations`), writes one `project_audit`
+  `deleted` row and answers `{"result":"deleted"}`.
+- The owner reaches it only through a server action that calls `requireOwner()` first and then the service-role client
+  in a new server-only module, as the link-request actions do (OD-12 §3). There is still no `DELETE` policy anywhere,
+  no write grant to `anon` or `authenticated` on any new table, and `is_owner()` stays the only `security definer`
+  function.
+**4. Neon glow.** In both themes, in each theme's energy colour (`--color-energy`: blue in light, red in dark), the
+blades (their glow, a wider halo, the ports) and the tower's LEDs glow neon, and every project card carries a neon
+glow layer that is brighter on hover and brighter still when selected. The values are the T22 block of
+`DESIGN_SYSTEM.md` §1, written by this intake; no raw colour enters a component. Glows are outer only (no tint on the
+glass, no inset), so every §1 contrast pair and `tokens.test.ts` stay as they are. `filter` and `box-shadow` stay
+static (OD-08 §2 C): a glow brightens by the **opacity** of its own layer (`--dur-quick`), and the moving glow is the
+existing hum and LED loops. Reduced motion stops those loops, so the glow stands steady at its rest strength. Blade
+states that are unlit today (`down`, `stale`, `silent`, `disconnected`) gain no glow: light never claims a link that is
+not live (§0 rule 3).
+**5. Collapsed groups.** In the Link requests panel, **Pending** stays open and unchanged. **Linked by request** and
+**Declined** each start collapsed: a button with the group's title and count (`aria-expanded`, `aria-controls`). Opened,
+each request is one line: repository (`<bdi>`), project key (`<bdi>`), decided date. A line is itself a button
+(`aria-expanded`); opened, it shows the request's details (owner id, proposed key, engine, contract, first and last
+request, decided) and its actions, which stay those of OD-12 §7: **Decline** · **Export** · **Delete** for a linked
+request (Decline is how a project is disconnected, so it stays), **Export** · **Delete** for a declined one. Focus stays
+on the line that was opened. The open state lives in the page only: nothing is stored (no cookie, browser storage, URL
+parameter or database value).
+**6. Placement.** Three new rows, Phase P04 (owner controls and the neon map):
+- **T20**, risk 3, four stages: the migration, pgTAP and types; the server module, loader and action; the project
+  page's Delete project with the overview toast; then the e2e with captures and the ledgers. It stops at the human gate (a schema change,
+  PR-17).
+- **T21**, risk 2: the collapsed groups of §5, with their e2e and captures.
+- **T22**, risk 2, gate **G-Neon-Map**: the neon glow of §4 in both themes, with captures and the contrast unchanged.
+
+At G-Neon-Map the owner checks on the preview (or production after T20 and T21 have deployed):
+- a project registered by hand is deleted after typing its key, and disappears from the overview and the list; a
+  linked project's page shows no Delete project, only the panel's Delete;
+- in both themes, at 1280 and 390, the blades and cards glow neon and match the T22 tokens; reduced motion shows a
+  steady glow;
+- with two or more linked requests, the panel opens with "Linked by request (N)" collapsed; tapping it lists one line
+  per request, and tapping a line shows its details and actions.
+
+The owner signs by merging T22.
+**7. Nothing else moves.** No route (the deletion is a server action on the existing page), header, CSP, dependency,
+secret or variable (`docs/setup-items.json` not needed). The `devos:boundary` line does not change: the new field and
+action lie inside the `owner` zone, and nothing about a visitor is accepted or kept. The deleted data of a hand-registered
+project is the owner's own (its owner id is the owner's, `/projects/new`); the audit row holds no personal data. Backups
+keep a deleted project for up to 30 days (PR-18, `PROTECTION_MODEL.md` §9).
+**8. Carry-forwards.** T20 adds pgTAP files, so it lands CF-035's missing test (the purge's second loop re-checks its
+condition, `docs/method/CARRY_FORWARDS.md`), and it lands `docs/reviews/T18-a1.md` (a) as a new row.
+**Does not decide:** deleting a project from the overview, the list or the detail panel (the project page only); undo
+or a soft delete; deleting a linked or disconnected project other than through the panel; renaming a project's key;
+remembering which groups are open; a glow on the counts card, panels or the sidebar; an in-app glow or motion control;
+glow on the sign-in pages.
