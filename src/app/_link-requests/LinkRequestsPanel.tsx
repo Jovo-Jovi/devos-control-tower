@@ -101,25 +101,53 @@ function RequestGroup({
   onToast: (text: string) => void;
 }) {
   const headingId = useId();
+  const bodyId = useId();
+  const [open, setOpen] = useState(false);
+  const rowsBody =
+    rows.length === 0 ? (
+      <p className={styles.none}>{copy.none}</p>
+    ) : (
+      rows.map((row) => (
+        <RequestRow
+          key={row.id}
+          copy={copy}
+          notice={noticeFor(row.id)}
+          onNotice={onNotice}
+          onToast={onToast}
+          row={row}
+        />
+      ))
+    );
+
+  if (name === "pending") {
+    return (
+      <section aria-labelledby={headingId} className={styles.group} data-group={name}>
+        <h3 className={styles.groupTitle} id={headingId}>
+          <span>{label}</span> <span className={styles.count}>{formatCount(rows.length)}</span>
+        </h3>
+        {rowsBody}
+      </section>
+    );
+  }
+
   return (
     <section aria-labelledby={headingId} className={styles.group} data-group={name}>
       <h3 className={styles.groupTitle} id={headingId}>
-        <span>{label}</span> <span className={styles.count}>{formatCount(rows.length)}</span>
+        <button
+          aria-controls={bodyId}
+          aria-expanded={open ? "true" : "false"}
+          className={styles.groupToggle}
+          data-group-toggle=""
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+        >
+          <span>{label}</span> <span className={styles.count}>{formatCount(rows.length)}</span>
+          <span aria-hidden="true" className={styles.chevron} />
+        </button>
       </h3>
-      {rows.length === 0 ? (
-        <p className={styles.none}>{copy.none}</p>
-      ) : (
-        rows.map((row) => (
-          <RequestRow
-            key={row.id}
-            copy={copy}
-            notice={noticeFor(row.id)}
-            onNotice={onNotice}
-            onToast={onToast}
-            row={row}
-          />
-        ))
-      )}
+      <div className={styles.groupBody} data-group-body="" hidden={!open} id={bodyId}>
+        {open ? rowsBody : null}
+      </div>
     </section>
   );
 }
@@ -145,7 +173,11 @@ function RequestRow({
   const restoreDeleteFocus = useRef(false);
   const lock = useRef(false);
   const confirmId = useId();
+  const detailsId = useId();
+  const lineRef = useRef<HTMLButtonElement>(null);
+  const [lineOpen, setLineOpen] = useState(false);
   const locked = pressed !== null || pending;
+  const collapsible = row.state !== "pending";
 
   useEffect(() => {
     if (!confirming) {
@@ -253,6 +285,111 @@ function RequestRow({
     setConfirming(false);
   }
 
+  function toggleLine() {
+    if (lock.current || locked) return;
+    restoreDeleteFocus.current = false;
+    setConfirming(false);
+    setLineOpen((current) => !current);
+    lineRef.current?.focus();
+  }
+
+  const noticeLine = (
+    <p
+      className={styles.rowNotice}
+      {...(notice
+        ? { "data-row-message": "", role: "status" as const }
+        : { "aria-hidden": true as const })}
+    >
+      {notice ?? "\u00a0"}
+    </p>
+  );
+
+  const controls = confirming ? (
+    <div className={styles.confirm} data-delete-confirm="">
+      <p className={styles.confirmCopy} id={confirmId}>
+        {row.projectKey !== null
+          ? isolateKey(fill(copy.deleteProject, { key: row.projectKey }), row.projectKey)
+          : copy.deleteRequest}
+      </p>
+      <div className={styles.actions}>
+        <button
+          ref={cancelRef}
+          aria-describedby={confirmId}
+          className={styles.action}
+          data-action="cancel"
+          disabled={locked}
+          type="button"
+          onClick={closeConfirm}
+        >
+          <StableLabel current={copy.cancel} other={copy.working} />
+        </button>
+        <button
+          aria-describedby={confirmId}
+          className={styles.action}
+          data-action="confirm"
+          disabled={locked}
+          type="button"
+          onClick={() => run("delete")}
+        >
+          <StableLabel
+            current={pressed === "delete" ? copy.working : copy.confirmDelete}
+            other={pressed === "delete" ? copy.confirmDelete : copy.working}
+          />
+        </button>
+      </div>
+    </div>
+  ) : (
+    <div className={styles.actions}>
+      {ROW_ACTIONS[row.state].map((action) => (
+        <button
+          key={action}
+          ref={action === "delete" ? deleteRef : undefined}
+          className={styles.action}
+          data-action={action}
+          disabled={locked}
+          type="button"
+          onClick={action === "delete" ? askDelete : () => run(action)}
+        >
+          <StableLabel
+            current={pressed === action ? copy.working : copy[action]}
+            other={pressed === action ? copy[action] : copy.working}
+          />
+        </button>
+      ))}
+    </div>
+  );
+
+  if (!collapsible) {
+    return (
+      <article
+        aria-busy={locked ? true : undefined}
+        className={styles.row}
+        data-link-request={row.id}
+        data-request-state={row.state}
+      >
+        <dl className={styles.fields}>
+          <Fact label={copy.repository}>
+            <Bidi>{row.repository}</Bidi>
+          </Fact>
+          <Fact label={copy.ownerId}>{row.ownerGithubId}</Fact>
+          <Fact label={copy.proposedKey}>
+            <Bidi>{row.proposedKey}</Bidi>
+          </Fact>
+          <Fact label={copy.engine}>{row.engineVersion}</Fact>
+          <Fact label={copy.contract}>{row.contractVersion}</Fact>
+          <Fact label={copy.firstRequest}>
+            <AgeText at={row.firstRequestedAt} empty={copy.none} />
+          </Fact>
+          <Fact label={copy.lastRequest}>
+            <AgeText at={row.lastRequestedAt} empty={copy.none} />
+          </Fact>
+        </dl>
+        {noticeLine}
+        {controls}
+      </article>
+    );
+  }
+
   return (
     <article
       aria-busy={locked ? true : undefined}
@@ -260,99 +397,49 @@ function RequestRow({
       data-link-request={row.id}
       data-request-state={row.state}
     >
-      <dl className={styles.fields}>
-        <Fact label={copy.repository}>
-          <Bidi>{row.repository}</Bidi>
-        </Fact>
-        <Fact label={copy.ownerId}>{row.ownerGithubId}</Fact>
-        {row.state === "pending" ? (
-          <Fact label={copy.proposedKey}>
-            <Bidi>{row.proposedKey}</Bidi>
-          </Fact>
-        ) : row.projectKey !== null ? (
-          <Fact label={copy.project}>
-            <span className={styles.projectValue}>
-              <Bidi>{row.projectKey}</Bidi>
-              {row.state === "declined" ? <span className={styles.flag}>{copy.disconnected}</span> : null}
-            </span>
-          </Fact>
-        ) : null}
-        <Fact label={copy.engine}>{row.engineVersion}</Fact>
-        <Fact label={copy.contract}>{row.contractVersion}</Fact>
-        <Fact label={copy.firstRequest}>
-          <AgeText at={row.firstRequestedAt} empty={copy.none} />
-        </Fact>
-        <Fact label={copy.lastRequest}>
-          <AgeText at={row.lastRequestedAt} empty={copy.none} />
-        </Fact>
-        {row.state === "pending" ? null : (
-          <Fact label={copy.decided}>
-            <AgeText at={row.decidedAt} empty={copy.none} />
-          </Fact>
-        )}
-      </dl>
-      <p
-        className={styles.rowNotice}
-        {...(notice
-          ? { "data-row-message": "", role: "status" as const }
-          : { "aria-hidden": true as const })}
+      <button
+        ref={lineRef}
+        aria-controls={detailsId}
+        aria-expanded={lineOpen ? "true" : "false"}
+        className={styles.requestLine}
+        data-request-line=""
+        type="button"
+        onClick={toggleLine}
       >
-        {notice ?? "\u00a0"}
-      </p>
-      {confirming ? (
-        <div className={styles.confirm} data-delete-confirm="">
-          <p className={styles.confirmCopy} id={confirmId}>
-            {row.projectKey !== null
-              ? isolateKey(fill(copy.deleteProject, { key: row.projectKey }), row.projectKey)
-              : copy.deleteRequest}
-          </p>
-          <div className={styles.actions}>
-            <button
-              ref={cancelRef}
-              aria-describedby={confirmId}
-              className={styles.action}
-              data-action="cancel"
-              disabled={locked}
-              type="button"
-              onClick={closeConfirm}
-            >
-              <StableLabel current={copy.cancel} other={copy.working} />
-            </button>
-            <button
-              aria-describedby={confirmId}
-              className={styles.action}
-              data-action="confirm"
-              disabled={locked}
-              type="button"
-              onClick={() => run("delete")}
-            >
-              <StableLabel
-                current={pressed === "delete" ? copy.working : copy.confirmDelete}
-                other={pressed === "delete" ? copy.confirmDelete : copy.working}
-              />
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className={styles.actions}>
-          {ROW_ACTIONS[row.state].map((action) => (
-            <button
-              key={action}
-              ref={action === "delete" ? deleteRef : undefined}
-              className={styles.action}
-              data-action={action}
-              disabled={locked}
-              type="button"
-              onClick={action === "delete" ? askDelete : () => run(action)}
-            >
-              <StableLabel
-                current={pressed === action ? copy.working : copy[action]}
-                other={pressed === action ? copy[action] : copy.working}
-              />
-            </button>
-          ))}
-        </div>
-      )}
+        <Bidi>{row.repository}</Bidi>
+        {row.projectKey !== null ? (
+          <>
+            <Bidi>{row.projectKey}</Bidi>
+            {row.state === "declined" ? <span className={styles.flag}>{copy.disconnected}</span> : null}
+          </>
+        ) : null}
+        <AgeText at={row.decidedAt} empty={copy.none} />
+      </button>
+      <div className={styles.requestDetails} data-request-details="" hidden={!lineOpen} id={detailsId}>
+        {lineOpen ? (
+          <>
+            <dl className={styles.fields}>
+              <Fact label={copy.ownerId}>{row.ownerGithubId}</Fact>
+              <Fact label={copy.proposedKey}>
+                <Bidi>{row.proposedKey}</Bidi>
+              </Fact>
+              <Fact label={copy.engine}>{row.engineVersion}</Fact>
+              <Fact label={copy.contract}>{row.contractVersion}</Fact>
+              <Fact label={copy.firstRequest}>
+                <AgeText at={row.firstRequestedAt} empty={copy.none} />
+              </Fact>
+              <Fact label={copy.lastRequest}>
+                <AgeText at={row.lastRequestedAt} empty={copy.none} />
+              </Fact>
+              <Fact label={copy.decided}>
+                <AgeText at={row.decidedAt} empty={copy.none} />
+              </Fact>
+            </dl>
+            {noticeLine}
+            {controls}
+          </>
+        ) : null}
+      </div>
     </article>
   );
 }

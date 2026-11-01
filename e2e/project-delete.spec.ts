@@ -265,8 +265,18 @@ test("Delete with its key", async ({ browser }) => {
     await expect(confirm).toBeDisabled();
     await field.fill("DEL-HAN");
     await expect(confirm).toBeDisabled();
+    const disabledPaint = await confirm.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { backgroundColor: style.backgroundColor, color: style.color };
+    });
     await field.fill("DEL-HAND");
     await expect(confirm).toBeEnabled();
+    const enabledPaint = await confirm.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { backgroundColor: style.backgroundColor, color: style.color };
+    });
+    expect(disabledPaint.backgroundColor).not.toBe(enabledPaint.backgroundColor);
+    expect(disabledPaint.color).not.toBe(enabledPaint.color);
     await confirm.click();
 
     await expect(page).toHaveURL(/\/\?deleted=DEL-HAND$/, { timeout: 20_000 });
@@ -356,6 +366,10 @@ test("Linked pages keep the panel's path", async ({ browser }) => {
     await page.goto("/projects/DEL-OPEN", { waitUntil: "load" });
     await expect(page.locator("[data-delete-project]")).toBeVisible();
     await openOverview(page);
+    const linkedToggle = page.locator("[data-group=linked] [data-group-toggle]");
+    if ((await linkedToggle.getAttribute("aria-expanded")) === "false") await linkedToggle.click();
+    const linkedLine = projectRow(page, "DEL-LINKED").locator("[data-request-line]");
+    if ((await linkedLine.getAttribute("aria-expanded")) === "false") await linkedLine.click();
     await expect(projectRow(page, "DEL-LINKED").locator('[data-action="delete"]')).toBeVisible();
   } finally {
     await context.close();

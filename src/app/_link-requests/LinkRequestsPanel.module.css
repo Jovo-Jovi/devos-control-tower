@@ -65,6 +65,61 @@
   font-variant-numeric: tabular-nums;
 }
 
+.groupToggle {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: start;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-2);
+  font-weight: 600;
+  line-height: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.chevron {
+  align-self: center;
+  display: inline-block;
+  flex: none;
+  inline-size: var(--space-2);
+  block-size: var(--space-2);
+  border-block-end: 1px solid currentColor;
+  border-inline-end: 1px solid currentColor;
+  color: var(--color-ink);
+  transform: rotate(-45deg);
+  transition: transform var(--dur-quick) var(--ease-out);
+}
+
+.groupToggle[aria-expanded="true"] .chevron {
+  transform: rotate(45deg);
+}
+
+.groupBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+.groupBody[hidden],
+.requestDetails[hidden] {
+  display: none;
+}
+
+.groupBody:not([hidden]),
+.requestDetails:not([hidden]) {
+  animation: rise var(--dur-base) var(--ease-out) both;
+}
+
 .none {
   color: var(--color-ink-muted);
   font-size: var(--text-1);
@@ -78,6 +133,40 @@
   padding: var(--space-3);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-2);
+}
+
+.requestLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: start;
+  gap: var(--space-2);
+  inline-size: 100%;
+  min-inline-size: 0;
+  min-block-size: var(--space-7);
+  margin: 0;
+  padding-block: var(--space-2);
+  padding-inline: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--text-1);
+  font-variant-numeric: tabular-nums;
+  text-align: start;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.requestLine time {
+  font-size: var(--text-1);
+}
+
+.requestDetails {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-inline-size: 0;
 }
 
 .fields {
@@ -192,7 +281,9 @@
   cursor: progress;
 }
 
-.action:focus-visible {
+.action:focus-visible,
+.groupToggle:focus-visible,
+.requestLine:focus-visible {
   outline-color: var(--color-accent);
   outline-style: solid;
   outline-width: calc(var(--space-1) / 2);

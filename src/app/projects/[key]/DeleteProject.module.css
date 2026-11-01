@@ -126,8 +126,8 @@
 }
 
 .confirm:disabled {
-  background: var(--color-fail-bg);
-  color: var(--color-fail);
+  background: transparent;
+  color: var(--color-ink-muted);
   cursor: not-allowed;
 }
 
