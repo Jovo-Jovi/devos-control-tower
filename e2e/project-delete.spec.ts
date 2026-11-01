@@ -356,6 +356,10 @@ test("Linked pages keep the panel's path", async ({ browser }) => {
     await page.goto("/projects/DEL-OPEN", { waitUntil: "load" });
     await expect(page.locator("[data-delete-project]")).toBeVisible();
     await openOverview(page);
+    const linkedToggle = page.locator("[data-group=linked] [data-group-toggle]");
+    if ((await linkedToggle.getAttribute("aria-expanded")) === "false") await linkedToggle.click();
+    const linkedLine = projectRow(page, "DEL-LINKED").locator("[data-request-line]");
+    if ((await linkedLine.getAttribute("aria-expanded")) === "false") await linkedLine.click();
     await expect(projectRow(page, "DEL-LINKED").locator('[data-action="delete"]')).toBeVisible();
   } finally {
     await context.close();

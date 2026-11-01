@@ -197,6 +197,19 @@ function requestRow(page: Page, repository: string): Locator {
   });
 }
 
+async function openGroup(page: Page, name: "linked" | "declined") {
+  const toggle = page.locator(`[data-group=${name}] [data-group-toggle]`);
+  if ((await toggle.getAttribute("aria-expanded")) === "false") await toggle.click();
+}
+
+async function openDecided(page: Page, name: "linked" | "declined", repository: string) {
+  await openGroup(page, name);
+  const row = requestRow(page, repository);
+  const line = row.locator("[data-request-line]");
+  if ((await line.getAttribute("aria-expanded")) === "false") await line.click();
+  return row;
+}
+
 function fact(row: Locator, label: string): Locator {
   return row.locator(`xpath=.//dt[normalize-space()="${label}"]/following-sibling::dd[1]`);
 }
@@ -300,8 +313,9 @@ async function seekNew(page: Page, time: number) {
 }
 
 async function expectConfirmClear(row: Locator) {
+  const decided = (await row.getAttribute("data-request-state")) !== "pending";
   const dl = await row.locator("dl").boundingBox();
-  const message = await row.locator(":scope > p").boundingBox();
+  const message = await row.locator(decided ? "[data-request-details] > p" : ":scope > p").boundingBox();
   const confirm = await row.locator("[data-delete-confirm]").boundingBox();
   const box = await row.boundingBox();
   expect(dl, "definition list box").not.toBeNull();
@@ -375,6 +389,8 @@ async function reveal(page: Page, state: CaptureState) {
   await expect(panel).toHaveAttribute("data-state", "ready");
   if (state === "pending-only") {
     await expect(page.locator("[data-group=pending] h3")).toHaveText("Pending 3");
+    await openGroup(page, "linked");
+    await openGroup(page, "declined");
     await expect(page.locator("[data-group=linked]")).toContainText("None");
     await expect(page.locator("[data-group=declined]")).toContainText("None");
     return;
@@ -386,6 +402,7 @@ async function reveal(page: Page, state: CaptureState) {
     return;
   }
   if (state === "after-approve") {
+    await openGroup(page, "linked");
     const row = requestRow(page, "fixture-link/alpha");
     await expect(row).toHaveAttribute("data-request-state", "approved");
     await expect(page.locator("[data-group=linked]").locator("bdi", { hasText: "LINK-ALPHA" })).toBeVisible();
@@ -398,7 +415,7 @@ async function reveal(page: Page, state: CaptureState) {
     await expect(row).toHaveAttribute("data-request-state", "pending");
     return;
   }
-  const row = requestRow(page, "fixture-link/linked");
+  const row = await openDecided(page, "linked", "fixture-link/linked");
   await row.locator("[data-action=delete]").click();
   await expect(row.getByRole("button", { name: "Delete for good", exact: true })).toBeVisible();
   await expect(row).toContainText(COPY.deleteProject);
@@ -430,6 +447,7 @@ async function filmApprove(browser: Browser, csp: string[]) {
     await row.locator("[data-action=approve]").click();
     const toast = page.getByText("Linked as LINK-ALPHA.");
     await expect(toast).toBeVisible({ timeout: 20_000 });
+    await openGroup(page, "linked");
     await expect(row).toHaveAttribute("data-request-state", "approved");
     await expect(
       page.locator(`[data-group=linked] article[data-link-request="${requestId("fixture-link/alpha")}"]`),
@@ -516,31 +534,37 @@ test("Groups and fields", async ({ browser }) => {
       await expectActions(row, ["approve", "decline", "export", "delete"]);
     }
 
-    const linked = requestRow(page, "fixture-link/linked");
+    const linked = await openDecided(page, "linked", "fixture-link/linked");
     await expect(linked).toHaveAttribute("data-request-state", "approved");
-    await expect(linked.locator("bdi")).toHaveText(["fixture-link/linked", "LINK-LINKED"]);
+    const linkedLine = linked.locator("[data-request-line]");
+    await expect(linkedLine).toHaveAttribute("aria-expanded", "true");
+    await expect(linkedLine.locator("bdi")).toHaveText(["fixture-link/linked", "LINK-LINKED"]);
     await expectFact(linked, "Owner id", "900004");
+    await expectFact(linked, "Proposed key", "LINK-LINKED");
     await expectFact(linked, "Engine", ENGINE);
     await expectFact(linked, "Contract", CONTRACT);
     await expectTime(linked, "First request", "2026-10-24T00:00:00.000Z");
     await expectTime(linked, "Last request", "2026-10-25T00:00:00.000Z");
     await expectTime(linked, "Decided", "2026-10-25T12:00:00.000Z");
-    await expect(linked.locator("dt", { hasText: "Proposed key" })).toHaveCount(0);
-    await expect(linked.locator("dt", { hasText: "Project" })).toHaveCount(1);
+    await expect(linked.locator("dt", { hasText: "Repository" })).toHaveCount(0);
+    await expect(linked.locator("dt", { hasText: "Project" })).toHaveCount(0);
     await expect(linked.getByText("disconnected", { exact: true })).toHaveCount(0);
     await expectActions(linked, ["decline", "export", "delete"]);
 
-    const declined = requestRow(page, "fixture-link/declined");
+    const declined = await openDecided(page, "declined", "fixture-link/declined");
     await expect(declined).toHaveAttribute("data-request-state", "declined");
-    await expect(declined.locator("bdi")).toHaveText(["fixture-link/declined"]);
+    const declinedLine = declined.locator("[data-request-line]");
+    await expect(declinedLine).toHaveAttribute("aria-expanded", "true");
+    await expect(declinedLine.locator("bdi")).toHaveText(["fixture-link/declined"]);
     await expectFact(declined, "Owner id", "900005");
+    await expectFact(declined, "Proposed key", "LINK-DECLINED");
     await expectFact(declined, "Engine", ENGINE);
     await expectFact(declined, "Contract", CONTRACT);
     await expectTime(declined, "First request", "2026-10-18T00:00:00.000Z");
     await expectTime(declined, "Last request", "2026-10-19T00:00:00.000Z");
     await expectTime(declined, "Decided", "2026-10-20T00:00:00.000Z");
+    await expect(declined.locator("dt", { hasText: "Repository" })).toHaveCount(0);
     await expect(declined.locator("dt", { hasText: "Project" })).toHaveCount(0);
-    await expect(declined.locator("dt", { hasText: "Proposed key" })).toHaveCount(0);
     await expect(declined.getByText("disconnected", { exact: true })).toHaveCount(0);
     await expectActions(declined, ["export", "delete"]);
   } finally {
@@ -557,6 +581,7 @@ test("Approve", async ({ browser }) => {
     const toast = page.getByText("Linked as LINK-ALPHA.");
     await expect(toast).toBeVisible({ timeout: 20_000 });
     await expect(toast).toBeInViewport();
+    await openGroup(page, "linked");
     await expect(row).toHaveAttribute("data-request-state", "approved");
     await expect(page.locator("[data-group=linked]").locator(`article[data-link-request="${id}"]`)).toBeVisible();
     expect(query("select key || ' ' || repo || ' ' || owner_github_id from public.projects where key = 'LINK-ALPHA'")).toBe(
@@ -594,13 +619,16 @@ test("Decline", async ({ browser }) => {
     const pending = page.locator(`article[data-link-request="${pendingId}"]`);
     await pending.locator("[data-action=decline]").click();
     await expect(page.getByText(COPY.declinedDone)).toBeVisible({ timeout: 20_000 });
+    await openGroup(page, "declined");
     await expect(pending).toHaveAttribute("data-request-state", "declined");
     await expect(page.locator("[data-group=declined]").locator(`article[data-link-request="${pendingId}"]`)).toBeVisible();
     await expect(pending.getByText("disconnected", { exact: true })).toHaveCount(0);
 
+    await openDecided(page, "linked", "fixture-link/linked");
     const linked = page.locator(`article[data-link-request="${linkedId}"]`);
     await linked.locator("[data-action=decline]").click();
     await expect(page.getByText(COPY.disconnectedDone)).toBeVisible({ timeout: 20_000 });
+    await openGroup(page, "declined");
     await expect(linked).toHaveAttribute("data-request-state", "declined");
     await expect(page.locator("[data-group=declined]").locator(`article[data-link-request="${linkedId}"]`)).toBeVisible();
     await expect(linked.getByText("disconnected", { exact: true })).toBeVisible();
@@ -642,7 +670,7 @@ test("Delete", async ({ browser }) => {
   const kept = attachHistory("LINK-LINKED");
   const { context, page } = await openOwner(browser);
   try {
-    const row = page.locator(`article[data-link-request="${id}"]`);
+    const row = await openDecided(page, "linked", "fixture-link/linked");
     await row.locator("[data-action=delete]").click();
     await expect(row.locator("[data-action=cancel]")).toBeFocused();
     await expect(row).toContainText(COPY.deleteProject);

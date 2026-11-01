@@ -249,6 +249,10 @@ test("Approve and decline", async ({ browser }) => {
     await expect(row).toBeVisible();
     await row.locator("[data-action=approve]").click();
     await expect(page.getByText(COPY.linked)).toBeVisible({ timeout: 20_000 });
+    const linkedToggle = page.locator("[data-group=linked] [data-group-toggle]");
+    if ((await linkedToggle.getAttribute("aria-expanded")) === "false") await linkedToggle.click();
+    const flowLine = row.locator("[data-request-line]");
+    if ((await flowLine.getAttribute("aria-expanded")) === "false") await flowLine.click();
     await expect(row).toHaveAttribute("data-request-state", "approved");
     await row.locator("[data-action=decline]").click();
     await expect(page.getByText(COPY.disconnectedDone)).toBeVisible({ timeout: 20_000 });
@@ -308,6 +312,10 @@ test("project_linked and delete", async ({ browser }) => {
     expect(query("select count(*) from public.link_audit")).toBe(before);
 
     const linked = requestRow(page, "fixture-e2e/pl-a");
+    const linkedToggle = page.locator("[data-group=linked] [data-group-toggle]");
+    if ((await linkedToggle.getAttribute("aria-expanded")) === "false") await linkedToggle.click();
+    const linkedLine = linked.locator("[data-request-line]");
+    if ((await linkedLine.getAttribute("aria-expanded")) === "false") await linkedLine.click();
     await linked.locator("[data-action=delete]").click();
     await expect(linked.getByRole("button", { name: "Delete for good", exact: true })).toBeVisible();
     await linked.locator("[data-action=confirm]").click();
