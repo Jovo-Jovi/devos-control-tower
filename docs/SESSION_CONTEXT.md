@@ -1,6 +1,6 @@
 # TOWER — Session context
 
-**Phase:** P03 (Link requests) · **Last verdict:** T17 PASS a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-031, CF-033, CF-035
+**Phase:** P04 (Owner controls and the neon map) · **Last verdict:** T20 FAIL a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-031, CF-033, CF-036
 
 ## Done steps
 
@@ -24,9 +24,10 @@
 | T15 | Link requests data layer | PASS a1 |
 | T16 | Link requests panel | PASS a3 |
 | T17 | Link route and safeguards | PASS a1 |
-| T18 | Disconnected projects and the whole flow | built a1 — awaiting verdict |
-| T19 | Method fix: a task without its fence waits instead of failing; supervisor, request closing and planning notes | built — awaiting verdict |
+| T18 | Disconnected projects and the whole flow | PASS a1 |
+| T19 | Method fix: a task without its fence waits instead of failing; supervisor, request closing and planning notes | PASS a1 |
+| T20 | Delete a registered project | built a2 — awaiting verdict |
 
 ## Next action
 
-Review of T18 attempt 1 (deep), then the owner's production checks of OD-12 §9 and the merge that signs G-Link-Requests.
+Review of T20 attempt 2 (deep), then the owner's merge at the schema gate (OD-14 §3); T21 follows.

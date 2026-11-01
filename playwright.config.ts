@@ -31,9 +31,10 @@ export default defineConfig({
     ),
   },
   projects: [
-    { name: "pages", testIgnore: /(import|link-requests|link)\.spec\.ts$/ },
+    { name: "pages", testIgnore: /(import|link-requests|link|project-delete)\.spec\.ts$/ },
     { name: "import", testMatch: /import\.spec\.ts$/, dependencies: ["pages"] },
     { name: "link-requests", testMatch: /link-requests\.spec\.ts$/, dependencies: ["import"] },
     { name: "link", testMatch: /(^|\/)link\.spec\.ts$/, dependencies: ["link-requests"] },
+    { name: "project-delete", testMatch: /project-delete\.spec\.ts$/, dependencies: ["link"] },
   ],
 });

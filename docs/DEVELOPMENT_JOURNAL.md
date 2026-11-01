@@ -332,3 +332,7 @@ A task whose fence is not on main and not on its branch waits. The resolve step 
 ## 2026-10-27 — T18 Disconnected projects and the whole flow (attempt 1)
 
 The delete toast now says what went with an approved request: the project and every run and step event. Two races remain. The confirmation is still worded from the rendered row, and a Decline toast is still chosen from the rendered state. Closing those needs an expected-state argument, and no OD covers that signature change. The list refreshes after every action, so the owner sees the true state at once.
+
+## 2026-10-31 — T20 Delete a registered project (attempt 2)
+
+Delete project is on the page of a project that no link request points to, confirmed by typing its key, through the owner-only `delete_registered_project` function and one `project_audit` row. Attempt 1 halted at a fence precondition (the missing glossary row, now added by S4). CF-035's advisory lock stays proven by its definition text (one pgTAP session cannot hold a second transaction), while its second-loop test now exists.

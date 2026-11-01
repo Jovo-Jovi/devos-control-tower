@@ -1,7 +1,7 @@
 # TOWER — Carry-forwards
 
 Every finding becomes a row. The reviewer describes the row in a verdict; the landing task allocates
-the id from the live maximum and reports it. **Live maximum: CF-035.**
+the id from the live maximum and reports it. **Live maximum: CF-036.**
 
 Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` · `HANDOVER`.
 
@@ -41,4 +41,5 @@ Statuses: `OPEN` · `CLOSED at <task>` · `ACCEPTED at <task>` · `MAINTENANCE` 
 | CF-032 | No test calls a link-request server action without the owner's session; its refusal is proven only by reading `actions.ts` and `session.ts` (`docs/reviews/T16-a3.md` a). | the reviewer writing the T18 fence | CLOSED at T18 | T18 |
 | CF-033 | `SECURITY_MODEL.md` §3 names only the cap of 50 pending for `/api/link`, in its route row and in the rate-limiting paragraph, while OD-13 §3 adds at most 3 pending per `owner_github_id`. Suggested amendment: '`429 rate_limited` (50 pending in all, or 3 for this owner id, OD-13 §3)' (`docs/reviews/T16-a3.md` b). | human (a `SECURITY_MODEL.md` amendment through intake) | OPEN | document amendment |
 | CF-034 | On `/` in the map view at 1280 the document is 4 px wider than the viewport. The map-view captures are 1284 px wide and the list view's are 1280, and T16's panel is not the cause (`docs/reviews/T16-a3.md` c). | the reviewer writing the T18 fence | CLOSED at T18 | T18 |
-| CF-035 | `purge_link_requests`' second loop (a disconnected project after 365 days) has no pgTAP re-check test, and the advisory lock is proven by `pg_get_functiondef` text and by reading (`docs/reviews/T17-a1.md` a). | human (schedules it with the next data task) | OPEN | the next task that touches `supabase/tests/` |
+| CF-035 | `purge_link_requests`' second loop (a disconnected project after 365 days) has no pgTAP re-check test, and the advisory lock is proven by `pg_get_functiondef` text and by reading (`docs/reviews/T17-a1.md` a). | human (schedules it with the next data task) | CLOSED at T20 | the next task that touches `supabase/tests/` |
+| CF-036 | The CF-034 fix (`src/app/Overview.module.css:101,112`) divides a length by a length in `calc()` (`aspect-ratio` and `transform: scale(calc(100cqi / var(--map-inline-size)))`). A browser without CSS typed arithmetic drops both declarations, so the map loses its scale and the wrapper its height. Suggested: keep the per-breakpoint `scale(var(--map-scale-n))` and block sizes as the fallback declaration before the typed one (`docs/reviews/T18-a1.md` a). | human (checks the map in their own browser; schedules the fallback with the next UI task if it breaks) | OPEN | the next task that touches `src/app/Overview.module.css` |
