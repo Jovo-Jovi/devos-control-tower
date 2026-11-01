@@ -1,6 +1,6 @@
 # TOWER — Session context
 
-**Phase:** P04 (Owner controls and the neon map) · **Last verdict:** T20 PASS a2 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-031, CF-033, CF-036, CF-037, CF-038, CF-039, CF-041
+**Phase:** P04 (Owner controls and the neon map) · **Last verdict:** T21 PASS a1 · **Open carry-forwards:** CF-001…CF-011 except CF-005, CF-016, CF-017, CF-019, CF-020, CF-022, CF-023, CF-031, CF-033, CF-036, CF-037, CF-038, CF-039, CF-041
 
 ## Done steps
 
@@ -27,8 +27,9 @@
 | T18 | Disconnected projects and the whole flow | PASS a1 |
 | T19 | Method fix: a task without its fence waits instead of failing; supervisor, request closing and planning notes | PASS a1 |
 | T20 | Delete a registered project | PASS a2 |
-| T21 | Collapsed link-request groups | built a1 — awaiting verdict |
+| T21 | Collapsed link-request groups | PASS a1 |
+| T22 | Neon glow | built a1 — awaiting verdict |
 
 ## Next action
 
-Review of T21 attempt 1, then the owner's merge; T22 follows.
+Review of T22 attempt 1, then the owner's merge at G-Neon-Map.
