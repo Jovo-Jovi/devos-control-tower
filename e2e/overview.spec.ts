@@ -1,5 +1,5 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { mkdirSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { LINK_STATES, type Portfolio, type PortfolioProject } from "../src/lib/portfolio/aggregate";
 import { createOwner, removeOwner, sessionCookies, type SessionCookie } from "./support/owner";
 import { emptyPortfolio, query, syntheticPortfolio } from "./support/portfolio";
@@ -749,4 +749,258 @@ test("Evidence", async ({ browser }) => {
   expect(Object.keys(shifts)).toHaveLength(76);
   for (const value of Object.values(shifts)) expect(value).toBe(0);
   expect(csp).toEqual([]);
+});
+
+const GLOW_STATES = ["map", "list", "selected", "hover"] as const;
+const GLOW_THEMES = ["light", "dark"] as const;
+const GLOW_VIEWPORTS = [
+  { width: 1280, height: 900 },
+  { width: 390, height: 844 },
+] as const;
+const HUM_TIMES = [0, 160, 320, 640, 1280] as const;
+const LIT_BLADE_STATES = ["active", "steady", "revise", "waiting", "gate"] as const;
+const UNLIT_BLADE_STATES = ["down", "stale", "silent", "disconnected"] as const;
+
+function clearT22Captures() {
+  mkdirSync(".devos/screens", { recursive: true });
+  for (const name of readdirSync(".devos/screens")) {
+    if (name.startsWith("t22-")) unlinkSync(`.devos/screens/${name}`);
+  }
+}
+
+async function glowOpacity(card: Locator): Promise<number> {
+  const raw = await card.evaluate((element) => Number(getComputedStyle(element, "::after").opacity));
+  return Math.round(raw * 100) / 100;
+}
+
+async function armGlowShift(context: BrowserContext) {
+  await context.addInitScript(() => {
+    const bucket: { value: number; entries: { value: number; sources: string[] }[] } = { value: 0, entries: [] };
+    Object.assign(window, { __layoutShift: bucket });
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const shift = entry as PerformanceEntry & {
+          value?: number;
+          hadRecentInput?: boolean;
+          sources?: { node?: Node | null }[];
+        };
+        if (shift.hadRecentInput) continue;
+        if (typeof shift.value !== "number" || shift.value === 0) continue;
+        bucket.value += shift.value;
+        bucket.entries.push({
+          value: shift.value,
+          sources: (shift.sources ?? []).flatMap((source) => {
+            const node = source.node;
+            if (!node || node.nodeType !== Node.ELEMENT_NODE) return [];
+            const element = node as Element;
+            return [`${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}`];
+          }),
+        });
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+}
+
+async function readGlowShift(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as { __layoutShift: { value: number } }).__layoutShift.value);
+}
+
+async function glowShiftDetail(page: Page): Promise<string> {
+  return page.evaluate(() =>
+    JSON.stringify((window as unknown as { __layoutShift: { value: number; entries: unknown[] } }).__layoutShift),
+  );
+}
+
+async function openSeededMap(page: Page, portfolio: Portfolio) {
+  await fulfillJson(page, portfolio);
+  await page.goto("/", { waitUntil: "load" });
+  await settle(page);
+  await expect(page.locator("[data-project='ALPHA']:visible").first()).toBeVisible();
+}
+
+async function chooseTheme(page: Page, theme: "light" | "dark") {
+  await page.locator(`[data-theme-option="${theme}"]`).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+  await settle(page);
+}
+
+async function seekHum(page: Page, time: number) {
+  await page.evaluate((ms) => {
+    for (const animation of document.getAnimations()) {
+      const timing = animation.effect?.getTiming();
+      if (timing?.iterations !== Infinity) continue;
+      animation.pause();
+      animation.currentTime = ms;
+    }
+  }, time);
+}
+
+async function reachGlowState(page: Page, state: (typeof GLOW_STATES)[number]) {
+  if (state === "list") {
+    await page.getByRole("button", { name: "List", exact: true }).click();
+    await expect(page.locator("[data-list-card]:visible").first()).toBeVisible();
+    return;
+  }
+  await page.getByRole("button", { name: "Tower map", exact: true }).click();
+  if (state === "map") return;
+  if (state === "hover") {
+    await page.keyboard.press("Escape");
+    const card = page.locator("[data-map-card]:visible").first();
+    await expect(card).toHaveAttribute("aria-pressed", "false");
+    await card.hover();
+    await expect.poll(() => glowOpacity(card)).toBe(0.75);
+    return;
+  }
+  const card = page.locator("[data-map-card]:visible, [data-list-card]:visible").first();
+  await card.click();
+  await expect(card).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect.poll(() => glowOpacity(card)).toBe(1);
+}
+
+test("Captures of the neon glow", async ({ browser }) => {
+  test.setTimeout(900_000);
+  clearT22Captures();
+  const portfolio = syntheticPortfolio(new Date(), 8);
+  const shifts: Record<string, number> = { map: 0, list: 0, selected: 0, hover: 0 };
+
+  const proof = await browser.newContext({
+    colorScheme: "light",
+    viewport: { width: 1280, height: 900 },
+    reducedMotion: "no-preference",
+  });
+  await proof.addCookies(ownerCookies);
+  const proofPage = await proof.newPage();
+  try {
+    await openSeededMap(proofPage, portfolio);
+    await chooseTheme(proofPage, "light");
+    const card = proofPage.locator('[data-map-card][data-project="ALPHA"]');
+    await proofPage.mouse.move(0, 0);
+    await expect(card).toHaveAttribute("aria-pressed", "false");
+    await expect.poll(() => glowOpacity(card)).toBe(0.45);
+    await card.hover();
+    await expect.poll(() => glowOpacity(card)).toBe(0.75);
+    await card.click();
+    await expect(card).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => glowOpacity(card)).toBe(1);
+    for (const state of LIT_BLADE_STATES) {
+      await expect(proofPage.locator(`g[data-link-state="${state}"] path[class*="_halo"]`)).toHaveCount(1);
+    }
+    for (const state of UNLIT_BLADE_STATES) {
+      const blades = proofPage.locator(`g[data-link-state="${state}"]`);
+      if ((await blades.count()) === 0) continue;
+      await expect(blades.locator('path[class*="_halo"]')).toHaveCount(0);
+    }
+  } finally {
+    await proof.close();
+  }
+
+  try {
+    for (const theme of GLOW_THEMES) {
+      for (const viewport of GLOW_VIEWPORTS) {
+        const context = await browser.newContext({
+          colorScheme: theme,
+          viewport,
+          reducedMotion: "no-preference",
+        });
+        await armGlowShift(context);
+        await context.addCookies(ownerCookies);
+        const page = await context.newPage();
+        try {
+          await openSeededMap(page, portfolio);
+          await chooseTheme(page, theme);
+          for (const state of GLOW_STATES) {
+            if (state === "hover" && viewport.width !== 1280) continue;
+            await reachGlowState(page, state);
+            await settle(page);
+            if (viewport.width === 390) {
+              expect(
+                await page.evaluate(
+                  () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+                ),
+              ).toBe(true);
+            }
+            const value = await readGlowShift(page);
+            shifts[state] = Math.max(shifts[state] ?? 0, value);
+            expect(value, `${state} ${theme} ${viewport.width} ${await glowShiftDetail(page)}`).toBe(0);
+            await page.screenshot({
+              path: `.devos/screens/t22-${state}-${theme}-${viewport.width}.png`,
+              fullPage: true,
+              animations: "allow",
+            });
+          }
+        } finally {
+          await context.close();
+        }
+      }
+    }
+
+    for (const theme of GLOW_THEMES) {
+      const context = await browser.newContext({
+        colorScheme: theme,
+        viewport: { width: 1280, height: 900 },
+        reducedMotion: "reduce",
+      });
+      await armGlowShift(context);
+      await context.addCookies(ownerCookies);
+      const page = await context.newPage();
+      try {
+        await openSeededMap(page, portfolio);
+        await chooseTheme(page, theme);
+        await page.getByRole("button", { name: "Tower map", exact: true }).click();
+        await settle(page);
+        expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+        const value = await readGlowShift(page);
+        expect(value, `reduced ${theme} ${await glowShiftDetail(page)}`).toBe(0);
+        await page.screenshot({
+          path: `.devos/screens/t22-map-reduced-${theme}-1280.png`,
+          fullPage: true,
+          animations: "allow",
+        });
+      } finally {
+        await context.close();
+      }
+    }
+
+    const film = await browser.newContext({
+      colorScheme: "dark",
+      viewport: { width: 1280, height: 900 },
+      reducedMotion: "no-preference",
+    });
+    await armGlowShift(film);
+    await film.addCookies(ownerCookies);
+    const filmPage = await film.newPage();
+    try {
+      await filmPage.addInitScript(() => {
+        const hold = () => {
+          for (const animation of document.getAnimations()) {
+            if (animation.playState === "running") animation.pause();
+          }
+          requestAnimationFrame(hold);
+        };
+        requestAnimationFrame(hold);
+      });
+      await openSeededMap(filmPage, portfolio);
+      await chooseTheme(filmPage, "dark");
+      await filmPage.getByRole("button", { name: "Tower map", exact: true }).click();
+      for (const time of HUM_TIMES) {
+        await seekHum(filmPage, time);
+        await filmPage.screenshot({
+          path: `.devos/screens/t22-map-dark-1280-film-${time}.png`,
+          animations: "allow",
+        });
+      }
+      const value = await readGlowShift(filmPage);
+      expect(value, `film ${await glowShiftDetail(filmPage)}`).toBe(0);
+    } finally {
+      await film.close();
+    }
+
+    const shots = readdirSync(".devos/screens").filter((name) => name.startsWith("t22-") && name.endsWith(".png"));
+    expect(shots).toHaveLength(21);
+  } finally {
+    writeFileSync(".devos/screens/t22-layout-shift.json", `${JSON.stringify(shifts, null, 2)}\n`);
+  }
+  expect(Object.keys(shifts)).toEqual(["map", "list", "selected", "hover"]);
+  for (const value of Object.values(shifts)) expect(value).toBe(0);
 });

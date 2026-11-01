@@ -340,3 +340,7 @@ Delete project is on the page of a project that no link request points to, confi
 ## 2026-11-01 — T21 Collapsed link-request groups (attempt 1)
 
 Linked by request and Declined start collapsed: a button with the title and count, then one line per request, and a line opens that request's details and actions. Pending stays open. The open state lives in the page only. The disabled Delete for good is muted until the typed key matches. CF-037 through CF-041 are logged, and CF-040 closes here. Awaiting the verdict.
+
+## 2026-11-01 — T22 Neon glow (attempt 1)
+
+Blades, ports, tower LEDs and project cards now carry the theme's energy-colour glow in both themes. A card's glow layer brightens on hover and is brightest when selected; unlit blades stay dark. Reduced motion leaves every glow steady. Awaiting the verdict at G-Neon-Map.

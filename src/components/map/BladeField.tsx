@@ -78,6 +78,7 @@ export function BladeField({
         if (!blade) return null;
         const geometry = slotGeometry(slot.slot);
         const solid = SOLID.has(blade.linkState);
+        const glows = solid || blade.linkState === "waiting" || blade.linkState === "gate";
         const signal = signals.find((item) => item.slot === slot.slot);
         const particles = live && !offline && reduced === false ? particleCount(blade.linkState) : 0;
         return (
@@ -88,7 +89,16 @@ export function BladeField({
             data-dimmed={blade.dimmed}
             data-slot={slot.slot}
           >
-            {solid || blade.linkState === "waiting" || blade.linkState === "gate" ? (
+            {glows ? (
+              <path
+                className={styles.halo}
+                d={geometry.d}
+                fill="none"
+                strokeLinecap="round"
+                data-link-state={blade.linkState}
+              />
+            ) : null}
+            {glows ? (
               <path
                 className={
                   blade.linkState === "waiting" ? styles.pulse : solid ? styles.hum : styles.glow
@@ -96,7 +106,7 @@ export function BladeField({
                 d={geometry.d}
                 fill="none"
                 strokeLinecap="round"
-                filter="url(#blade-glow)"
+                filter={solid ? undefined : "url(#blade-glow)"}
                 data-link-state={blade.linkState}
               />
             ) : null}
