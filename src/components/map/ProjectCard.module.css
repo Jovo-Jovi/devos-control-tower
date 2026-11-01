@@ -61,6 +61,34 @@
   min-block-size: var(--card-block);
 }
 
+.mapCard::after,
+.listCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: var(--neon-card);
+  border-radius: inherit;
+  opacity: var(--neon-card-rest);
+  transition: opacity var(--dur-quick) var(--ease-out);
+}
+
+.mapCard:hover::after,
+.listCard:hover::after,
+.mapCard:focus-visible::after,
+.listCard:focus-visible::after {
+  opacity: var(--neon-card-hover);
+}
+
+.mapCard[aria-pressed="true"]::after,
+.listCard[aria-pressed="true"]::after,
+.mapCard[aria-pressed="true"]:hover::after,
+.listCard[aria-pressed="true"]:hover::after,
+.mapCard[aria-pressed="true"]:focus-visible::after,
+.listCard[aria-pressed="true"]:focus-visible::after {
+  opacity: var(--neon-card-selected);
+}
+
 .mapCard[data-dimmed="filter"],
 .listCard[data-dimmed="filter"] {
   opacity: 0.3;

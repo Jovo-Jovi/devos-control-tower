@@ -20,13 +20,15 @@
 }
 
 .field[data-offline] .hum,
-.field[data-offline] .pulse {
+.field[data-offline] .pulse,
+.field[data-offline] .halo {
   animation: none;
 }
 
 .hum,
 .pulse,
 .glow,
+.halo,
 .edge,
 .core {
   fill: none;
@@ -68,7 +70,31 @@
 .hum[data-link-state="active"],
 .hum[data-link-state="steady"],
 .hum[data-link-state="revise"] {
+  stroke-width: var(--neon-blade-width);
+  filter: blur(var(--neon-blade-blur));
   animation: hum var(--dur-ambient) var(--ease-in-out) infinite;
+}
+
+.halo {
+  stroke: var(--color-energy);
+  stroke-width: var(--neon-blade-halo-width);
+  filter: blur(var(--neon-blade-halo-blur));
+  opacity: var(--neon-blade-halo-opacity);
+}
+
+.halo[data-link-state="gate"],
+.halo[data-link-state="waiting"] {
+  stroke: var(--color-waiting);
+}
+
+.halo[data-link-state="active"],
+.halo[data-link-state="steady"],
+.halo[data-link-state="revise"] {
+  animation: hum var(--dur-ambient) var(--ease-in-out) infinite;
+}
+
+.halo[data-link-state="waiting"] {
+  animation: pulse var(--dur-ambient) var(--ease-in-out) infinite;
 }
 
 .edge[data-link-state="active"],
@@ -175,6 +201,14 @@
 .port[data-link-state="waiting"],
 .port[data-link-state="gate"] {
   fill: var(--color-waiting);
+}
+
+.port[data-link-state="active"],
+.port[data-link-state="steady"],
+.port[data-link-state="revise"],
+.port[data-link-state="waiting"],
+.port[data-link-state="gate"] {
+  filter: var(--neon-port);
 }
 
 .port[data-link-state="down"] {
