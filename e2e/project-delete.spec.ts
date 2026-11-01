@@ -265,8 +265,18 @@ test("Delete with its key", async ({ browser }) => {
     await expect(confirm).toBeDisabled();
     await field.fill("DEL-HAN");
     await expect(confirm).toBeDisabled();
+    const disabledPaint = await confirm.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { backgroundColor: style.backgroundColor, color: style.color };
+    });
     await field.fill("DEL-HAND");
     await expect(confirm).toBeEnabled();
+    const enabledPaint = await confirm.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { backgroundColor: style.backgroundColor, color: style.color };
+    });
+    expect(disabledPaint.backgroundColor).not.toBe(enabledPaint.backgroundColor);
+    expect(disabledPaint.color).not.toBe(enabledPaint.color);
     await confirm.click();
 
     await expect(page).toHaveURL(/\/\?deleted=DEL-HAND$/, { timeout: 20_000 });

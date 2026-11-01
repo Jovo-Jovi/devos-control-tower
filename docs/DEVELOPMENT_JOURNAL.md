@@ -336,3 +336,7 @@ The delete toast now says what went with an approved request: the project and ev
 ## 2026-10-31 — T20 Delete a registered project (attempt 2)
 
 Delete project is on the page of a project that no link request points to, confirmed by typing its key, through the owner-only `delete_registered_project` function and one `project_audit` row. Attempt 1 halted at a fence precondition (the missing glossary row, now added by S4). CF-035's advisory lock stays proven by its definition text (one pgTAP session cannot hold a second transaction), while its second-loop test now exists.
+
+## 2026-11-01 — T21 Collapsed link-request groups (attempt 1)
+
+Linked by request and Declined start collapsed: a button with the title and count, then one line per request, and a line opens that request's details and actions. Pending stays open. The open state lives in the page only. The disabled Delete for good is muted until the typed key matches. CF-037 through CF-041 are logged, and CF-040 closes here. Awaiting the verdict.

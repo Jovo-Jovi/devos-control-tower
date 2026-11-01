@@ -789,3 +789,207 @@ test("Captures", async ({ browser }) => {
   expect(Object.keys(shifts)).toHaveLength(7);
   for (const value of Object.values(shifts)) expect(value).toBe(0);
 });
+
+const COLLAPSED_STATES = ["collapsed", "group-open", "line-open", "declined-open"] as const;
+
+function clearT21Captures() {
+  mkdirSync(SCREENS, { recursive: true });
+  for (const name of readdirSync(SCREENS)) {
+    if (name.startsWith("t21-")) unlinkSync(`${SCREENS}/${name}`);
+  }
+}
+
+async function controlledBody(toggle: Locator) {
+  const id = await toggle.getAttribute("aria-controls");
+  expect(id, "aria-controls").toBeTruthy();
+  const body = toggle.page().locator(`[id="${id}"]`);
+  await expect(body).toHaveCount(1);
+  return body;
+}
+
+async function reachCollapsedState(page: Page, state: (typeof COLLAPSED_STATES)[number]) {
+  await openHome(page);
+  await expect(page.locator("[data-link-requests]")).toHaveAttribute("data-state", "ready");
+  if (state === "collapsed") return;
+  if (state === "declined-open") {
+    await page.locator("[data-group=declined] [data-group-toggle]").click();
+    const line = requestRow(page, "fixture-link/declined").locator("[data-request-line]");
+    await line.click();
+    await expect(line).toHaveAttribute("aria-expanded", "true");
+    return;
+  }
+  const toggle = page.locator("[data-group=linked] [data-group-toggle]");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  if (state === "line-open") {
+    const line = requestRow(page, "fixture-link/alpha").locator("[data-request-line]");
+    await line.click();
+    await expect(line).toHaveAttribute("aria-expanded", "true");
+  }
+}
+
+test("Collapsed groups", async ({ browser }) => {
+  insertAfterApprove();
+  const { context, page } = await openOwner(browser);
+  try {
+    const pending = page.locator("[data-group=pending] article");
+    await expect(pending).toHaveCount(2);
+    await expectActions(pending.nth(0), ["approve", "decline", "export", "delete"]);
+    await expectActions(pending.nth(1), ["approve", "decline", "export", "delete"]);
+
+    const linkedToggle = page.locator("[data-group=linked] [data-group-toggle]");
+    const declinedToggle = page.locator("[data-group=declined] [data-group-toggle]");
+    await expect(linkedToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(declinedToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator("[data-group=linked] h3")).toHaveText("Linked by request 2");
+    await expect(page.locator("[data-group=declined] h3")).toHaveText("Declined 1");
+    for (const toggle of [linkedToggle, declinedToggle]) {
+      const body = await controlledBody(toggle);
+      await expect(body).toBeHidden();
+      await expect(body.locator("article")).toHaveCount(0);
+    }
+    const cookieNames = (await context.cookies()).map((cookie) => cookie.name).sort();
+
+    let linkedFocused = false;
+    for (let press = 0; press < 80; press += 1) {
+      linkedFocused = await linkedToggle.evaluate((element) => element === document.activeElement);
+      if (linkedFocused) break;
+      await page.keyboard.press("Tab");
+    }
+    expect(linkedFocused).toBe(true);
+    await page.keyboard.press("Enter");
+    await expect(linkedToggle).toHaveAttribute("aria-expanded", "true");
+    const lines = page.locator("[data-group=linked] [data-group-body] [data-request-line]");
+    await expect(lines).toHaveCount(2);
+    const alphaLine = lines.nth(0);
+    const linkedLine = lines.nth(1);
+    await expect(alphaLine).toHaveAttribute("aria-expanded", "false");
+    await expect(linkedLine).toHaveAttribute("aria-expanded", "false");
+    await expect(alphaLine.locator("bdi")).toHaveText(["fixture-link/alpha", "LINK-ALPHA"]);
+    await expect(linkedLine.locator("bdi")).toHaveText(["fixture-link/linked", "LINK-LINKED"]);
+    await expect(alphaLine.locator("time")).toHaveAttribute("datetime", "2026-10-26T04:00:00.000Z");
+    await expect(linkedLine.locator("time")).toHaveAttribute("datetime", "2026-10-25T12:00:00.000Z");
+    await expect(alphaLine.locator("xpath=ancestor::article[1]").locator("[data-action]")).toHaveCount(0);
+    await expect(linkedLine.locator("xpath=ancestor::article[1]").locator("[data-action]")).toHaveCount(0);
+
+    await alphaLine.focus();
+    await page.keyboard.press("Enter");
+    await expect(alphaLine).toHaveAttribute("aria-expanded", "true");
+    await expect(alphaLine).toBeFocused();
+    const alpha = requestRow(page, "fixture-link/alpha");
+    await expect(alpha.locator("[data-request-details] dt")).toHaveText([
+      "Owner id",
+      "Proposed key",
+      "Engine",
+      "Contract",
+      "First request",
+      "Last request",
+      "Decided",
+    ]);
+    await expectActions(alpha, ["decline", "export", "delete"]);
+    await page.keyboard.press("Space");
+    await expect(alphaLine).toHaveAttribute("aria-expanded", "false");
+    await expect(alphaLine).toBeFocused();
+
+    const declined = await openDecided(page, "declined", "fixture-link/declined");
+    await expectActions(declined, ["export", "delete"]);
+
+    const storage = await page.evaluate(() => ({
+      local: localStorage.length,
+      session: sessionStorage.length,
+    }));
+    expect(storage.local).toBe(0);
+    expect(storage.session).toBe(0);
+    const address = new URL(page.url());
+    expect(address.pathname).toBe("/");
+    expect(address.search).toBe("");
+    expect((await context.cookies()).map((cookie) => cookie.name).sort()).toEqual(cookieNames);
+
+    await page.reload({ waitUntil: "load" });
+    await expect(page.locator("[data-link-requests]")).toHaveAttribute("data-state", "ready");
+    await expect(page.locator("[data-group=linked] [data-group-toggle]")).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator("[data-group=declined] [data-group-toggle]")).toHaveAttribute("aria-expanded", "false");
+  } finally {
+    await context.close();
+  }
+});
+
+test("Captures of the collapsed groups", async ({ browser }) => {
+  test.setTimeout(900_000);
+  clearT21Captures();
+  insertAfterApprove();
+  const shifts: Record<string, number> = Object.fromEntries(COLLAPSED_STATES.map((state) => [state, 0]));
+  try {
+    for (const theme of THEMES) {
+      for (const viewport of VIEWPORTS) {
+        const context = await browser.newContext({
+          colorScheme: theme,
+          viewport,
+          reducedMotion: "no-preference",
+        });
+        await armShift(context);
+        await context.addCookies(ownerCookies);
+        const page = await context.newPage();
+        try {
+          for (const state of COLLAPSED_STATES) {
+            await reachCollapsedState(page, state);
+            await settle(page);
+            if (viewport.width === 390) await expectNoScroll(page);
+            const value = await readShift(page);
+            shifts[state] = Math.max(shifts[state] ?? 0, value);
+            expect(value, `${state} ${theme} ${viewport.width} ${await shiftDetail(page)}`).toBe(0);
+            await capture(page, `${SCREENS}/t21-${state}-${theme}-${viewport.width}.png`);
+          }
+        } finally {
+          await context.close();
+        }
+      }
+    }
+
+    for (const theme of THEMES) {
+      const context = await browser.newContext({
+        colorScheme: theme,
+        viewport: { width: 1280, height: 900 },
+        reducedMotion: "reduce",
+      });
+      await context.addCookies(ownerCookies);
+      const page = await context.newPage();
+      try {
+        await reachCollapsedState(page, "group-open");
+        expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+        await capture(page, `${SCREENS}/t21-group-open-reduced-${theme}-1280.png`);
+      } finally {
+        await context.close();
+      }
+    }
+
+    const film = await browser.newContext({
+      colorScheme: "dark",
+      viewport: { width: 1280, height: 900 },
+      reducedMotion: "no-preference",
+    });
+    await film.addCookies(ownerCookies);
+    const filmPage = await film.newPage();
+    try {
+      await openHome(filmPage);
+      await expect(filmPage.locator("[data-link-requests]")).toHaveAttribute("data-state", "ready");
+      await settle(filmPage);
+      await armHoldNew(filmPage);
+      await filmPage.locator("[data-group=linked] [data-group-toggle]").click();
+      await expect(filmPage.locator("[data-group=linked] [data-group-toggle]")).toHaveAttribute("aria-expanded", "true");
+      for (const time of FILM_TIMES) {
+        await seekNew(filmPage, time);
+        await capture(filmPage, `${SCREENS}/t21-group-open-dark-1280-film-${time}.png`);
+      }
+    } finally {
+      await film.close();
+    }
+
+    const shots = readdirSync(SCREENS).filter((name) => name.startsWith("t21-") && name.endsWith(".png"));
+    expect(shots).toHaveLength(23);
+  } finally {
+    writeFileSync(`${SCREENS}/t21-layout-shift.json`, `${JSON.stringify(shifts, null, 2)}\n`);
+  }
+  expect(Object.keys(shifts)).toHaveLength(4);
+  for (const value of Object.values(shifts)) expect(value).toBe(0);
+});
