@@ -50,6 +50,7 @@ function report(input: Partial<ProjectAggregateInput>, now = NOW) {
       stepEventRows: [],
       observationRows: [],
       disconnected: false,
+      fromLinkRequest: false,
       ...input,
     },
     now,
@@ -214,5 +215,10 @@ describe("aggregateProject", () => {
   it("passes disconnected through unchanged", () => {
     expect(report({ disconnected: true }).disconnected).toBe(true);
     expect(report({ disconnected: false }).disconnected).toBe(false);
+  });
+
+  it("passes fromLinkRequest through unchanged", () => {
+    expect(report({ fromLinkRequest: true }).fromLinkRequest).toBe(true);
+    expect(report({ fromLinkRequest: false }).fromLinkRequest).toBe(false);
   });
 });

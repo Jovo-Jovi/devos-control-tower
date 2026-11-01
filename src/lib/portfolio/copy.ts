@@ -52,6 +52,7 @@ export type OverviewCopy = {
   empty: string;
   unavailable: string;
   registered: string;
+  deleted: string;
   freshWord: string;
   noContact: string;
 };

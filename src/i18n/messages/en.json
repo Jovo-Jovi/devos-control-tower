@@ -118,7 +118,19 @@
     "atRange": "Sender clock: {from} to {to}",
     "seq": "seq",
     "legend": "reported: sent by the project's runner · observed: seen on GitHub · verified: a reported result that an observed commit status confirms · imported: loaded from history. Ages count from when the Tower received each fact.",
-    "import": "Import history"
+    "import": "Import history",
+    "deleteTitle": "Delete project",
+    "deleteLead": "Deletes {key} with its runs, step events, usage and observations. This cannot be undone.",
+    "deleteOpen": "Delete project",
+    "deletePrompt": "Type {key} to confirm.",
+    "deleteKeyLabel": "Project key",
+    "deleteConfirm": "Delete for good",
+    "deleteCancel": "Cancel",
+    "deleteWorking": "Deleting…",
+    "deleteMismatch": "The key you typed does not match. Nothing was deleted.",
+    "deleteLinked": "This project came from a link request. Delete it in the Link requests panel on the overview.",
+    "deleteNotFound": "This project no longer exists.",
+    "deleteFailed": "The project could not be deleted. Nothing was changed."
   },
   "usage": {
     "title": "Usage",
@@ -163,7 +175,8 @@
     "unavailable": "The Tower could not read its own database. No number is shown until it can.",
     "registered": "Project {key} registered.",
     "fresh": "fresh",
-    "noContact": "No contact yet"
+    "noContact": "No contact yet",
+    "deleted": "Project {key} deleted."
   },
   "register": {
     "title": "Register a project",

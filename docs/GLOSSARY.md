@@ -17,6 +17,7 @@
 | `IngestKey` (M2) | A per-project write-only key, shown once, stored hashed, revocable | `ingest_keys` |
 | `LinkRequest` | One DEV_OS project's request to be linked to the Tower: the repository `owner/name` and its owner's numeric GitHub id from the OIDC token, the proposed key, the engine and contract versions, its state (pending · approved · declined), first and last request, decision time (OD-12) | `link_requests` |
 | `LinkAudit` | The reason-only trace of one change to a link request: time, action (requested · approved · declined · deleted · exported · purged) and the request's id; never a repository or a person's id (OD-12) | `link_audit` |
+| `ProjectAudit` | The reason-only trace of one project deleted by hand: time, action (deleted) and the project's id; never a key, a repository, an owner id or a body (OD-14 §3) | `project_audit` |
 
 ## 2. Terms
 
@@ -41,6 +42,7 @@
   runner); `docs/reviews/Tnn-aN.md` by the reviewer; the runner is `devos-cycle` on GitHub or
   `scripts/devos/loop.mjs` locally.
 - **Linked / disconnected**: a project created by approving a link request is **linked**; declined later, it is **disconnected** — its row and history stay for the record, and `/api/ingest` refuses its events (OD-12 §4–§5).
+- **Registered by hand**: a project that no link request points to, in any state (OD-14 §1). Only such a project shows **Delete project** on its page, and `delete_registered_project` deletes it with its runs, step events, usage and observations; a linked or disconnected project keeps the Link requests panel's Delete.
 
 ## 3. Forbidden bare nouns
 

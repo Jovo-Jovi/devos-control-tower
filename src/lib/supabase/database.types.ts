@@ -151,6 +151,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"project_audit": {
+                  Row: {
+                    "action": string,"at": string,"id": number,"project_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"at"?: string,"id"?: never,"project_id": string
+                  }
+                  Update: {
+                    "action"?: string,"at"?: string,"id"?: never,"project_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"projects": {
                   Row: {
                     "created_at": string,"id": string,"key": string,"owner_github_id": string,"repo": string,"stale_after_minutes": number
@@ -221,6 +235,9 @@ isOneToOne: false
                            },
 "delete_link_request":
 { Args: { "p_request": string }; Returns: Json
+                           },
+"delete_registered_project":
+{ Args: { "p_key": string }; Returns: Json
                            },
 "export_link_request":
 { Args: { "p_request": string }; Returns: Json
