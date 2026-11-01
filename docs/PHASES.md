@@ -33,7 +33,7 @@ The runner reads the table below, and `guard:phases` checks it.
 | T17 | P03 | J4 | `POST /api/link`: OIDC-verified link requests on the production host; `/api/ingest` refuses disconnected projects; link contract | 3 | — | [x] | PASS a1 — docs/reviews/T17-a1.md |
 | T18 | P03 | J5 | Disconnected projects on the map, list and project page; whole-flow e2e of link, approve, ingest, decline | 3 | G-Link-Requests | [x] | PASS a1 — docs/reviews/T18-a1.md |
 | T19 | PM | M | Method fix: a task without its fence waits instead of failing; supervisor, request closing and planning notes | 3 | G-Method-50 | [x] | PASS a1 — docs/reviews/T19-a1.md |
-| T20 | P04 | J4 | Delete a registered project: `project_audit`, `delete_registered_project`, pgTAP, types; Delete project on the project page with key confirmation; e2e and captures | 3 | — | [ ] | FAIL a2 — docs/reviews/T20-a2.md |
+| T20 | P04 | J4 | Delete a registered project: `project_audit`, `delete_registered_project`, pgTAP, types; Delete project on the project page with key confirmation; e2e and captures | 3 | — | [x] | PASS a2 — docs/reviews/T20-a2.md |
 | T21 | P04 | J5 | Link requests panel: "Linked by request" and "Declined" collapsed, one line per request, details and actions on a tap | 2 | — | [ ] | — |
 | T22 | P04 | J5 | Neon glow in both themes: blades, ports, LEDs and project cards, brighter on hover and selected, steady under reduced motion | 2 | G-Neon-Map | [ ] | — |
 
