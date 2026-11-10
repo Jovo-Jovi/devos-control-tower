@@ -1,4 +1,4 @@
-# Vercel production deploys (OD-08 §2). Previews are made per task attempt inside devos-cycle.
+# Vercel production deploys. Previews are made per task attempt inside devos-cycle.
 # Production deploys run:
 #   - on a push to main that a person makes (your gate merges, your own pushes). The runner's own
 #     auto-merges use the default GITHUB_TOKEN, which GitHub does not let trigger workflows, so
@@ -12,6 +12,8 @@
 # Storage and Firebase modules (PR-26): with DEVOS_R2=true a storage preflight runs first (secrets R2_*);
 # with DEVOS_FIREBASE=true the Firestore rules and the seed are applied before the app (secrets
 # FIREBASE_PROJECT_ID, FIREBASE_DEPLOY_SERVICE_ACCOUNT). The app's own values live in Vercel.
+# PR-95 (N5): the Vercel and Firebase CLIs come from the lockfiles in devos/tools, installed with no install script in a
+# step that holds no secret; each secret is only in the step that uses it.
 name: devos-deploy
 
 on:
@@ -34,9 +36,9 @@ permissions:
   pull-requests: read
 
 jobs:
-  # Production moves at the gates the human signs. With DEVOS_PAT set, the runner's own auto-merges
-  # (label devos:auto-merged) are pushes that start this workflow too; they are skipped here, so
-  # adding the token for method fixes (PR-28) does not change when production deploys.
+  # Production moves at the gates the human signs. The runner merges with the workflow's own token, which starts no
+  # workflow (PR-90); a push whose pull request carries devos:auto-merged, or was merged by a bot account, is skipped
+  # here as well, so no token the runner holds can make production deploy.
   which:
     if: vars.DEVOS_VERCEL == 'true' && vars.DEVOS_PAUSED != 'true'
     runs-on: ubuntu-latest
@@ -47,11 +49,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          SHA: ${{ github.sha }}
         run: |
           skip=false
-          if [ "${{ github.event_name }}" = "push" ]; then
-            labels=$(gh api "repos/$REPO/commits/${{ github.sha }}/pulls" --jq '[.[].labels[].name] | join(",")' 2>/dev/null || echo "")
+          if [ "$EVENT_NAME" = "push" ]; then
+            labels=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '[.[].labels[].name] | join(",")' 2>/dev/null || echo "")
             case ",$labels," in *",devos:auto-merged,"*) skip=true; echo "::notice title=Dev OS::Runner auto-merge: production waits for the next gate you sign." ;; esac
+            # PR-90: a pull request merged by a bot account (the cycle's own token) never deploys either; a person's does.
+            for n in $(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[].number' 2>/dev/null || true); do
+              merger=$(gh api "repos/$REPO/pulls/$n" --jq '.merged_by.type // ""' 2>/dev/null || echo "")
+              if [ "$merger" = "Bot" ]; then skip=true; echo "::notice title=Dev OS::PR #$n was merged by a bot: production waits for the next gate you sign."; fi
+            done
           fi
           echo "skip=$skip" >> "$GITHUB_OUTPUT"
 
@@ -61,18 +70,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      # PR-95: no secret at the job's level. The Vercel token is in the Deploy step only.
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
-      - run: npm install -g pnpm@10
+      - name: pnpm, at the version devos.config.json pins (PR-93)
+        run: |
+          spec=$(node scripts/devos/pins.mjs pnpm)
+          npm install -g "$spec"
       # PR-27: every setting the deploy needs, checked by name before anything moves. If one is missing
       # the deploy stops here with the full list; the setup issue has the steps, and once they are done
       # devos-setup re-runs this deploy by itself.
@@ -105,6 +115,25 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           node scripts/guards/run-all.mjs
+      # PR-95 (N5): the deploy's CLIs, each with its whole tree locked in devos/tools/<tool>/package-lock.json and checked
+      # by integrity; no install script runs, and this step holds no secret. Each must be the version devos.config.json
+      # pins (tool_versions), or nothing moves.
+      - name: The deploy's CLIs, from their lockfiles (no secret, no install script)
+        env:
+          TARGET: ${{ inputs.target || 'production' }}
+          DEVOS_FIREBASE: ${{ vars.DEVOS_FIREBASE }}
+        run: |
+          locked() {
+            npm ci --prefix "devos/tools/$1" --ignore-scripts --no-audit --no-fund > "$RUNNER_TEMP/tools-$1.log" 2>&1 \
+              || { tail -n 20 "$RUNNER_TEMP/tools-$1.log"; echo "::error title=Dev OS::devos/tools/$1 did not install; nothing was deployed"; exit 1; }
+            have="$2@$(node -p "require('./devos/tools/$1/node_modules/$2/package.json').version")"
+            [ "$have" = "$3" ] || { echo "::error title=Dev OS::devos/tools/$1 locks $have but devos.config.json pins $3; run devos upgrade. Nothing was deployed."; exit 1; }
+            echo "$have, from devos/tools/$1/package-lock.json"
+          }
+          locked vercel vercel "$(node scripts/devos/pins.mjs vercel)"
+          if [ -f firebase.json ] && [ "$DEVOS_FIREBASE" = "true" ] && [ "$TARGET" = "production" ]; then
+            locked firebase firebase-tools "$(node scripts/devos/pins.mjs firebase)"
+          fi
       # Storage module (PR-26): before anything moves, prove the production bucket with the production
       # keys: write a probe object, read it back from the public URL, delete it. Nothing is kept.
       - name: Storage preflight — R2 keys, bucket and public URL
@@ -134,7 +163,7 @@ jobs:
       # A failure here stops the job: the old app keeps running against the old schema.
       - name: Supabase CLI
         if: hashFiles('supabase/config.toml') != '' && vars.DEVOS_SUPABASE == 'true' && (inputs.target || 'production') == 'production'
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with:
           # Pinned (PR-33): "latest" asks GitHub's API, which rate-limits shared runners.
           version: ${{ vars.DEVOS_SUPABASE_CLI_VERSION || '2.120.0' }}
@@ -165,7 +194,7 @@ jobs:
           echo "::notice title=Dev OS::Backup taken and migrations applied to $SUPABASE_PROJECT_REF before the app deploy."
       - name: Keep the backup (encrypted data, plain schema; 30 days)
         if: hashFiles('supabase/config.toml') != '' && vars.DEVOS_SUPABASE == 'true' && (inputs.target || 'production') == 'production'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: db-backup-${{ github.sha }}
           path: |
@@ -189,8 +218,9 @@ jobs:
           sa="$RUNNER_TEMP/firebase-deploy.json"
           printf '%s' "$FIREBASE_DEPLOY_SERVICE_ACCOUNT" > "$sa"
           trap 'shred -u "$sa" 2>/dev/null || rm -f "$sa"' EXIT
-          npm install -g firebase-tools > "$RUNNER_TEMP/firebase-tools.log" 2>&1 || { tail -n 20 "$RUNNER_TEMP/firebase-tools.log"; exit 1; }
-          GOOGLE_APPLICATION_CREDENTIALS="$sa" firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT_ID" --non-interactive \
+          # PR-95: the CLI installed above from devos/tools/firebase, never an install in this step.
+          firebase="$PWD/devos/tools/firebase/node_modules/.bin/firebase"
+          GOOGLE_APPLICATION_CREDENTIALS="$sa" "$firebase" deploy --only firestore:rules --project "$FIREBASE_PROJECT_ID" --non-interactive \
             || { echo "::error title=Dev OS::the Firestore rules did not deploy (is the Firestore database created, and does the deploy key have the Firebase Admin role?)"; exit 1; }
           node scripts/devos/firebase.mjs validate
           FIREBASE_SERVICE_ACCOUNT="$FIREBASE_DEPLOY_SERVICE_ACCOUNT" node scripts/devos/firebase.mjs seed --production \
@@ -200,31 +230,56 @@ jobs:
         id: d
         env:
           TARGET: ${{ inputs.target || 'production' }}
+          # PR-95: the Vercel credentials, in this step only.
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           if [ "$TARGET" = "production" ]; then ENV=production; FLAG=--prod; else ENV=preview; FLAG=; fi
-          npx --yes vercel@latest pull --yes --environment="$ENV" --token="$VERCEL_TOKEN"
+          # PR-95: the Vercel CLI installed above from devos/tools/vercel (PR-93's pinned version, its tree locked).
+          vercel="$PWD/devos/tools/vercel/node_modules/.bin/vercel"
+          "$vercel" pull --yes --environment="$ENV" --token="$VERCEL_TOKEN"
           # PR-24: next/font downloads the Google Fonts during the build, and that download sometimes fails
           # (Turbopack "next/font/google queries have exactly one entry"). Retry that failure, and only that.
           set -o pipefail
           built=0
           for i in 1 2 3; do
-            if npx --yes vercel@latest build $FLAG --token="$VERCEL_TOKEN" 2>&1 | tee "$RUNNER_TEMP/build.log"; then built=1; break; fi
+            if "$vercel" build $FLAG --token="$VERCEL_TOKEN" 2>&1 | tee "$RUNNER_TEMP/build.log"; then built=1; break; fi
             grep -qiE "$(node -e 'console.log(require("./devos.config.json").retry_build_on)')" "$RUNNER_TEMP/build.log" || break
             echo "::warning title=Dev OS::the build could not download the Google Fonts (try $i of 3); retrying in 30 seconds"
             sleep 30
           done
           [ "$built" = 1 ] || { echo "::error title=Dev OS::the build failed; the database step above already ran, the site was not deployed"; exit 1; }
           # Uploads from this directory with .git moved aside, and fails unless Vercel returns a URL (PR-16).
-          url=$(bash scripts/devos/vercel-deploy.sh main $FLAG)
+          url=$(DEVOS_VERCEL_BIN="$vercel" bash scripts/devos/vercel-deploy.sh main $FLAG)
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "::notice title=Dev OS::Deployed $(git rev-parse --short HEAD) to $TARGET: $url"
       - name: Smoke test the deployment
         env:
-          # Tower ADR-004: no bypass secret. Generated deployment URLs sit behind Vercel
-          # Authentication (Standard), so production is probed on its own domain: vars.TOWER_URL when
-          # set, else the production hostname (public, not a secret; devos/setup.json tower-url).
-          URL: ${{ (inputs.target || 'production') == 'production' && (vars.TOWER_URL || 'https://devos-control-tower.vercel.app') || steps.d.outputs.url }}
+          TARGET: ${{ inputs.target || 'production' }}
+          DEVOS_PRODUCTION_URL: ${{ vars.DEVOS_PRODUCTION_URL }}
+          DEPLOYMENT_URL: ${{ steps.d.outputs.url }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           # Probe the deployment itself, never a local server: an empty URL is a failure (PR-16).
-          case "$URL" in https://*) ;; *) echo "::error title=Dev OS::No deployment URL to smoke test"; exit 1 ;; esac
-          node scripts/devos/probe.mjs --base "$URL" --strict /
+          node --input-type=module <<'EOF'
+          import { readFileSync } from "node:fs";
+          import { spawnSync } from "node:child_process";
+          import { smokeTarget } from "./scripts/devos/probe.mjs";
+          const cfg = JSON.parse(readFileSync("devos.config.json", "utf8"));
+          const url = smokeTarget({
+            probe: cfg.deploy.probe,
+            target: process.env.TARGET,
+            productionUrl: process.env.DEVOS_PRODUCTION_URL || "",
+            fallback: cfg.deploy.production_url_fallback || "",
+            deploymentUrl: process.env.DEPLOYMENT_URL || "",
+          });
+          if (!url.startsWith("https://")) {
+            console.error("::error title=Dev OS::No deployment URL to smoke test");
+            process.exit(1);
+          }
+          const env = { ...process.env };
+          if (cfg.deploy.bypass !== true) delete env.VERCEL_AUTOMATION_BYPASS_SECRET;
+          const run = spawnSync(process.execPath, ["scripts/devos/probe.mjs", "--base", url, "--strict", ...cfg.deploy.probe_paths], { env, stdio: "inherit" });
+          process.exit(run.status ?? 1);
+          EOF

@@ -6,9 +6,11 @@
 // Emits: verdict, action (merge | human_gate | retry | halt), next_attempt, summary_file
 //
 // Actions:
-//   merge       PASS, checks green, not a human gate, next fence present (OD-03 §3)
-//   human_gate  PASS on a risk-3 task, a gate task, a schema change (PR-17), or with no next fence (OD-03 §4)
-//   retry       FAIL and attempt < max_attempts (OD-03 §5)
+//   merge       PASS, checks green, not a human gate, next fence present
+//   human_gate  PASS on a risk-3 task, a method fix, a schema change (PR-17), a change to a path of
+//               reviewer.human_gate_paths (a project in production, PR-72), or with no next fence. A product
+//               task's Gate is signed once, by the person's merge of its unit (PR-91)
+//   retry       FAIL and attempt < max_attempts
 //   halt        FAIL at max attempts, or the reviewer produced no usable verdict
 //   quota_wait  the reviewer hit a usage/rate limit: nothing recorded, same attempt, review-only
 //               resume by devos-resume (PR-12)
@@ -16,9 +18,8 @@
 //               variable, an account or dashboard setting). Grok cannot fix it, so no retry is spent:
 //               the human gets the steps, and the same attempt is re-reviewed once it is in place (PR-27)
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { execFileSync } from "node:child_process";
-import { P, config, parsePhases, isHumanGate, taskAfter, updatePhasesRow, changedPaths, emit, fail } from "./lib.mjs";
-import { looksLikeLimit, readText, resumeMarker, earliestNotBefore, agentStats } from "./limits.mjs";
+import { P, config, parsePhases, waitsOnTaskPr, taskAfter, updatePhasesRow, changedPaths, diffPaths, matchesAny, importsGated, emit, fail } from "./lib.mjs";
+import { looksLikeLimit, readText, resumeMarker, earliestNotBefore, agentStats, parseJsonLoose, finishedRun } from "./limits.mjs";
 import { rulesFiles } from "./firebase.mjs";
 
 const arg = (n, d = "") => { const i = process.argv.indexOf(`--${n}`); return i >= 0 ? process.argv[i + 1] : d; };
@@ -26,6 +27,9 @@ const task = arg("task");
 const attempt = Number(arg("attempt", "1"));
 const reviewerJson = arg("reviewer-json", ".devos/reviewer.json");
 if (!/^T\d{2}$/.test(task)) fail("usage: verdict.mjs --task Tnn --attempt N");
+// PR-54: the reviewer step records which tool reviewed and how its run exited (.devos/reviewer-run.env).
+const run = Object.fromEntries(readText(".devos/reviewer-run.env").split(/\r?\n/).map((line) => /^([a-z_]+)="?([^"]*)"?$/.exec(line)).filter(Boolean).map((m) => [m[1], m[2]]));
+const reviewerTool = run.tool || "the reviewer agent";
 
 const cfg = config();
 const { rows } = parsePhases();
@@ -49,7 +53,7 @@ function finish(verdict, action, extra = {}) {
     notes.length ? "**Runner notes**\n" + notes.map((n) => `- ${n}`).join("\n") : "",
     "",
     `Review: \`${reviewFile}\` · Fence written: \`${extra.fence ?? "none"}\``,
-    agentStats(reviewerJson) ? `\n<sub>Review run: ${agentStats(reviewerJson)}.</sub>` : "",
+    agentStats(reviewerJson, run.tool || "claude") ? `\n<sub>Review run: ${agentStats(reviewerJson, run.tool || "claude")}.</sub>` : "",
     extra.human ? `\n**Human attention:** ${extra.human}` : "",
     action === "quota_wait" ? `\n${resumeMarker(task, attempt, true, extra.notBefore)}` : "",
   ].join("\n");
@@ -58,14 +62,33 @@ function finish(verdict, action, extra = {}) {
   process.exit(0);
 }
 
+/** What a gate lists when git cannot diff the branch against its base: the gate then holds. */
+const UNREAD = "(could not diff against the base branch)";
+
 /** Migration files, and (PR-26) Firestore rules files, this branch adds or changes against the base. */
 function schemaChanges() {
   try {
     const rules = cfg.modules?.firebase ? rulesFiles() : [];
-    const out = execFileSync("git", ["diff", "--name-only", `origin/${cfg.base_branch ?? "main"}...HEAD`, "--", "supabase/migrations", ...rules], { cwd: P(), encoding: "utf8" });
-    return out.split(/\r?\n/).filter(Boolean);
+    return diffPaths(`origin/${cfg.base_branch ?? "main"}`, ["supabase/migrations", ...rules]);
   } catch {
-    return existsSync(P("supabase/migrations")) ? ["(could not diff against the base branch)"] : [];
+    return existsSync(P("supabase/migrations")) ? [UNREAD] : [];
+  }
+}
+
+/**
+ * PR-72: the paths of reviewer.human_gate_paths this branch adds, changes, deletes or moves against the base: for a
+ * project in production, its deploy, schema, sign-in and payment files. When the diff cannot be read, the gate holds.
+ */
+function gatePaths() {
+  const globs = cfg.reviewer?.human_gate_paths ?? [];
+  const imports = cfg.reviewer?.human_gate_imports ?? [];
+  if (globs.length === 0 && imports.length === 0) return [];
+  try {
+    const changed = diffPaths(`origin/${cfg.base_branch ?? "main"}`);
+    const matched = [...changed.filter((p) => matchesAny(p, globs)), ...importsGated(changed, imports)];
+    return [...new Set(matched)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  } catch {
+    return [UNREAD];
   }
 }
 
@@ -88,10 +111,14 @@ function verdictFromFile() {
   };
 }
 
-// 1. The reviewer's structured output.
+// 1. The reviewer's structured output. Claude Code writes one JSON object, Cursor a stream of events whose last
+// is the result, Codex and Gemini a normalised object: the last JSON object is the run's result (PR-54).
 let structured = null;
+let finalResult = null;
 try {
-  const raw = JSON.parse(readFileSync(P(reviewerJson), "utf8"));
+  const raw = parseJsonLoose(readFileSync(P(reviewerJson), "utf8"));
+  if (!raw || typeof raw !== "object") throw new Error("no JSON result in the reviewer's output");
+  finalResult = raw;
   if (raw.is_error) notes.push(`reviewer run reported an error: ${String(raw.result ?? raw.subtype ?? "").slice(0, 300)}`);
   const denials = raw.permission_denials ?? [];
   if (denials.length) notes.push(`reviewer had ${denials.length} tool call(s) refused by permissions, e.g. ${JSON.stringify(denials[0]).slice(0, 200)}`);
@@ -105,22 +132,26 @@ try {
 // PR-21: the review file is the verdict of record; the structured answer is its summary. A reviewer
 // that wrote a complete review file but stopped before its final answer (most often the turn limit)
 // keeps its verdict: it is read from the file. A usage limit still parks the run (PR-12), because a
-// review cut short by a limit may be unfinished.
-const limitHit = looksLikeLimit(readText(reviewerJson), readText(".devos/reviewer.err"));
+// review cut short by a limit may be unfinished. A run that exited 0 with a finished result, or gave its
+// structured answer, never hit a limit (PR-54), whatever words its transcript holds.
+const finished = Boolean(structured) || (run.code === "0" && finishedRun(finalResult));
+const limitHit = !finished && looksLikeLimit(readText(reviewerJson), readText(".devos/reviewer.err"));
 if ((!structured || !["PASS", "FAIL"].includes(structured.verdict)) && !limitHit) {
   const fromFile = verdictFromFile();
   if (fromFile) {
     structured = fromFile;
-    notes.push("the reviewer stopped before its structured answer (turn limit or a crash); the verdict was read from its complete review file (PR-21)");
+    notes.push(run.tool && run.tool !== "claude"
+      ? `the verdict was read from the complete review file (PR-21): ${run.tool} gives no structured answer`
+      : "the reviewer stopped before its structured answer (turn limit or a crash); the verdict was read from its complete review file (PR-21)");
   }
 }
 if (!structured || !["PASS", "FAIL"].includes(structured.verdict)) {
   if (limitHit) {
-    notes.push("the reviewer stopped on a Claude usage or rate limit");
-    const nb = earliestNotBefore("claude", `${readText(reviewerJson)}\n${readText(".devos/reviewer.err")}`, config().resume?.default_wait_minutes ?? 60);
+    notes.push(`the reviewer (${reviewerTool}) stopped on a usage or rate limit`);
+    const nb = earliestNotBefore(run.tool || "claude", `${readText(reviewerJson).slice(-4000)}\n${readText(".devos/reviewer.err")}`, config().resume?.default_wait_minutes ?? 60);
     finish("WAIT", "quota_wait", {
       notBefore: nb,
-      human: `Claude is out of plan usage. Nothing was recorded and the attempt was not used up. The runner re-runs this review (review_only) after ${nb} (UTC); remove the devos:quota-wait label to cancel that.`,
+      human: `The reviewer agent (${reviewerTool}) is out of usage on every account it has. Nothing was recorded and the attempt was not used up. The runner re-runs this review (review_only) after ${nb} (UTC); remove the devos:quota-wait label to cancel that.`,
     });
   }
   notes.push("the reviewer produced no structured verdict; a human must look at the run log");
@@ -163,18 +194,25 @@ const fenceChanged = changedPaths().filter((p) => p.startsWith("docs/fences/"));
 if (verdict === "PASS") {
   if (next && !existsSync(P(`docs/fences/${next.task}.md`))) {
     notes.push(`PASS but docs/fences/${next.task}.md was not written; the cycle cannot continue on its own`);
-    finish("PASS", "human_gate", { summary: structured.summary, fence: null, human: `${next.task} has no fence yet, so merging this PR will not start it: ${next.task} waits until docs/fences/${next.task}.md is on main (a reviewer session writes it); then the supervisor starts it, or run devos-cycle with task=${next.task} attempt=1.` });
+    finish("PASS", "human_gate", { summary: structured.summary, fence: null, human: `Write or request the fence for ${next.task}, then re-run the cycle.` });
   }
   // PR-17: a schema change always stops for the human, whatever the task's risk or gate. Merging it
   // is what lets the next production deploy apply the migration.
   const schema = schemaChanges();
-  if (schema.length) notes.push(`schema change: ${schema.join(", ")}`);
-  const gate = isHumanGate(row) || schema.length > 0;
-  const why = isHumanGate(row) ? (row.risk >= 3 ? "Risk-3 task" : `Gate ${row.gate}`) : "Schema change (PR-17)";
+  // File names the builder chose go into the comment in code spans: they never render or notify anyone.
+  const code = (list) => list.map((p) => (p === UNREAD ? p : `\`${p.replaceAll("`", "'")}\``)).join(", ");
+  if (schema.length) notes.push(`schema change: ${code(schema)}`);
+  const guarded = gatePaths();
+  if (guarded.length) notes.push(`production paths changed (PR-72): ${code(guarded)}`);
+  // PR-91 (Q2 a): a product task's Gate is signed once, by your merge of its unit; risk 3 still waits on its own PR.
+  const own = waitsOnTaskPr(row);
+  const gate = own || schema.length > 0 || guarded.length > 0;
+  const why = own ? (row.risk >= 3 ? "Risk-3 task" : `Gate ${row.gate}`) : schema.length ? "Schema change (PR-17)" : "Production paths (PR-72)";
+  const named = guarded.length ? ` and every change to ${code(guarded.slice(0, 6))}${guarded.length > 6 ? ", …" : ""}` : "";
   finish("PASS", gate ? "human_gate" : "merge", {
     summary: structured.summary,
     fence: structured.fence_written,
-    human: gate ? `${why}: review the PR${schema.length ? " and every migration or rules change in it" : ""} and merge it to sign off. Merging restarts the cycle.` : structured.human_attention,
+    human: gate ? `${why}: review the PR${schema.length ? " and every migration or rules change in it" : named} and merge it to sign off. Merging restarts the cycle.` : structured.human_attention,
   });
 }
 
@@ -193,6 +231,8 @@ if (attempt < cfg.max_attempts) {
   if (!fenceChanged.includes(`docs/fences/${task}.md`)) notes.push(`no reissued fence for ${task}; the builder retries the same fence with the verdict as guidance`);
   finish("FAIL", "retry", { summary: structured.summary, fence: fenceChanged.join(", ") || null, human: structured.human_attention });
 }
+// PR-87: the owner's two ways on from a stopped task.
+notes.push(`${task} stopped at its last attempt: comment \`/devos revise <what to change>\` on this PR for another attempt, or \`/devos accept [note]\` to accept it as it is (PR-87)`);
 finish("FAIL", "halt", {
   summary: structured.summary,
   human: structured.human_attention ?? `Attempt ${attempt} of ${cfg.max_attempts} failed. Decide: fix the fence or the code by hand, then run the workflow with task=${task} attempt=1 on a fresh branch, or close the PR.`,

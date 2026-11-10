@@ -72,3 +72,26 @@ yarn-error.log*
 
 # typescript
 next-env.d.ts
+
+# DEV_OS (added by devos adopt)
+.envrc
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+serviceAccountKey*.json
+*credentials*.json
+*.tfvars
+*.tfstate
+*.tfstate.*
+.npmrc
+.netrc
+.pgpass
+!.env.sample
+!.env.template
+!.env.dist

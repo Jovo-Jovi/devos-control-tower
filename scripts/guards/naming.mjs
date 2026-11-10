@@ -1,8 +1,18 @@
 // guard:naming — no forbidden bare noun as a type, route segment or content field (GLOSSARY §3).
-import { read, exists, hasSrc, srcFiles, walk, result } from "./lib.mjs";
+import { existsSync, readFileSync } from "node:fs";
+import { read, exists, hasSrc, srcFiles, walk, appDirs, result } from "./lib.mjs";
+import { P } from "../devos/lib.mjs";
 
-// Route segments that are user-facing URL copy, permitted by GLOSSARY §3.
-const ALLOW_ROUTES = new Set([]); // the pilot's "notices" exception does not apply to the Tower
+function allowRoutes() {
+  const file = existsSync(P("devos.config.json")) ? "devos.config.json" : "devos/engine.defaults.json";
+  let cur = JSON.parse(readFileSync(P(file), "utf8"));
+  for (const key of ["guards", "naming", "allow_routes"]) {
+    if (cur === null || typeof cur !== "object" || !Object.hasOwn(cur, key)) throw new Error("config: guards.naming.allow_routes missing");
+    cur = cur[key];
+  }
+  if (!Array.isArray(cur)) throw new Error("config: guards.naming.allow_routes missing");
+  return new Set(cur.map((name) => String(name).toLowerCase()));
+}
 
 export function forbiddenNouns() {
   const g = read("docs/GLOSSARY.md");
@@ -20,6 +30,7 @@ function contentKeys(value, path, out) {
 }
 
 export default function naming() {
+  const ALLOW_ROUTES = allowRoutes();
   const forbidden = forbiddenNouns();
   const findings = [];
 
@@ -29,7 +40,7 @@ export default function naming() {
     for (const [k, where] of keys) if (forbidden.has(k.toLowerCase())) findings.push(`${where} — bare field name "${k}"`);
   }
 
-  if (!hasSrc()) return result(findings.length ? "FAIL" : "N/A", findings, "src/ does not exist yet");
+  if (!hasSrc()) return result(findings.length ? "FAIL" : "N/A", findings, "no source folder yet (guards.source_roots)");
 
   for (const f of srcFiles([".ts", ".tsx"])) {
     read(f).split(/\r?\n/).forEach((line, i) => {
@@ -41,14 +52,17 @@ export default function naming() {
     });
   }
 
-  const dirs = new Set();
-  for (const f of walk("src/app")) {
-    const parts = f.split("/").slice(2, -1);
-    parts.forEach((_, i) => dirs.add(parts.slice(0, i + 1).join("/")));
-  }
-  for (const d of dirs) {
-    const seg = d.split("/").pop().replace(/^[[(]+|[\])]+$/g, "").replace(/^\.\.\./, "");
-    if (forbidden.has(seg.toLowerCase()) && !ALLOW_ROUTES.has(seg.toLowerCase())) findings.push(`src/app/${d} — bare route segment "${seg}"`);
+  for (const appDir of appDirs()) {
+    const prefix = appDir.split("/").length;
+    const dirs = new Set();
+    for (const f of walk(appDir)) {
+      const parts = f.split("/").slice(prefix, -1);
+      parts.forEach((_, i) => dirs.add(parts.slice(0, i + 1).join("/")));
+    }
+    for (const d of dirs) {
+      const seg = d.split("/").pop().replace(/^[[(]+|[\])]+$/g, "").replace(/^\.\.\./, "");
+      if (forbidden.has(seg.toLowerCase()) && !ALLOW_ROUTES.has(seg.toLowerCase())) findings.push(`${appDir}/${d} — bare route segment "${seg}"`);
+    }
   }
 
   return result(findings.length ? "FAIL" : "PASS", findings);

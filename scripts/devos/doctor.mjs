@@ -15,11 +15,19 @@
 //        VERCEL_PROJECT_ID, VERCEL_AUTOMATION_BYPASS_SECRET, GITHUB_SERVER_URL, GITHUB_RUN_ID.
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { P, emit, fail } from "./lib.mjs";
 
+const direct = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 const mode = process.argv[2];
 const arg = (n) => { const i = process.argv.indexOf(`--${n}`); return i >= 0 ? (process.argv[i + 1] ?? "") : ""; };
-const REPO = process.env.GITHUB_REPOSITORY || fail("GITHUB_REPOSITORY is not set");
+const REPO = process.env.GITHUB_REPOSITORY || (direct ? fail("GITHUB_REPOSITORY is not set") : "");
+
+export function previewBehindLogin(bypass) {
+  if (bypass) return { level: "warn", state: "behind the Vercel login" };
+  return { level: "info", state: "behind the Vercel login (expected)" };
+}
 const SERVER = process.env.GITHUB_SERVER_URL || "https://github.com";
 const OUT = P(".devos/doctor");
 const MARK = "<!-- devos-doctor -->";
@@ -150,8 +158,11 @@ async function collect() {
     }
   }
 
-  // 3. Vercel preview of this branch (task PRs only).
-  if (task && process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID) await diagnoseVercel(f, add);
+  // 3. Vercel preview of this branch (task PRs, and a unit's acceptance PR: Vercel's own preview, from Git, PR-91), and
+  // on an acceptance PR what could deploy or reach a secret outside your merge.
+  const unit = /^devos\/unit-T\d{2,3}$/.test(branch);
+  if ((task || unit) && process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID) await diagnoseVercel(f, add);
+  if (unit && process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID) await diagnoseDeploy(f, add);
 
   // 4. Branch against main.
   if (f.mergeable_state === "dirty") {
@@ -249,6 +260,50 @@ async function diagnoseCi(f, ci, add) {
     todo: [{ who: "you", text: `If it is the task's code, comment:\n\n\`\`\`\n/devos revise ${note}\n\`\`\`\nThe reviewer reissues the fence and the builder fixes it. If it looks like a flake, press **Re-run failed jobs** on the [run](${ci.html_url}).` }] });
 }
 
+function deployBypass() {
+  const file = existsSync(P("devos.config.json")) ? "devos.config.json" : "devos/engine.defaults.json";
+  if (!existsSync(P(file))) return false;
+  const value = JSON.parse(readFileSync(P(file), "utf8"));
+  return value.deploy?.bypass === true;
+}
+
+/**
+ * PR-91: what could put production, or a production value, outside your merge: Vercel deploying main from Git (before
+ * devos-deploy's backup and migrations), and a variable that Production and Preview share (a branch preview reads it).
+ * Names only, never a value.
+ */
+export function deploymentFindings(project, envs, vercelJson) {
+  const items = [];
+  const link = project?.link;
+  const enabled = vercelJson?.git?.deploymentEnabled;
+  const mainOff = enabled === false || (enabled && typeof enabled === "object" && enabled.main === false);
+  if (link && (link.productionBranch ?? "main") === "main" && !mainOff && !project?.commandForIgnoringBuildStep) {
+    items.push({ key: "deploy-git", label: "Production from Git", level: "warn", state: "Vercel deploys main from Git",
+      todo: [{ who: "you", text: "Turn it off, so production deploys only from `devos-deploy` after your merge: `\"git\": { \"deploymentEnabled\": { \"main\": false } }` in `vercel.json`, or an Ignored Build Step in the project's Git settings." }] });
+  }
+  const shared = [...new Set((Array.isArray(envs) ? envs : []).filter((e) => {
+    const t = Array.isArray(e?.target) ? e.target : [e?.target];
+    return t.includes("production") && t.includes("preview");
+  }).map((e) => String(e.key).replace(/[^A-Za-z0-9_]/g, "")))].sort();
+  if (shared.length) {
+    items.push({ key: "deploy-env", label: "Preview variables", level: "warn", state: `${shared.length} shared with Production`,
+      todo: [{ who: "you", text: `A preview built from a branch reads these Production values: ${shared.map((k) => `\`${k}\``).join(", ")}. In Vercel → Settings → Environment Variables, give Preview its own values (or none).` }] });
+  }
+  return items;
+}
+
+async function diagnoseDeploy(f, add) {
+  const id = process.env.VERCEL_PROJECT_ID;
+  const project = await vercel(`/v9/projects/${encodeURIComponent(id)}`);
+  const env = await vercel(`/v10/projects/${encodeURIComponent(id)}/env`);
+  if (!project || project.error || !env || env.error) { f.evidence.push(`Vercel API (deployment checks): ${project?.error ?? env?.error ?? "no token"}`); return; }
+  let vercelJson = null;
+  try { vercelJson = existsSync(P("vercel.json")) ? JSON.parse(readFileSync(P("vercel.json"), "utf8")) : null; } catch { vercelJson = null; }
+  const items = deploymentFindings(project, env.envs, vercelJson);
+  if (!items.length) add({ key: "deploy", label: "Deployment settings", level: "ok", state: "production only from your merge; no shared Preview variable", todo: [] });
+  for (const item of items) add(item);
+}
+
 async function diagnoseVercel(f, add) {
   const list = await vercel(`/v6/deployments?projectId=${process.env.VERCEL_PROJECT_ID}&limit=40`);
   if (!list || list.error) { f.evidence.push(`Vercel API: ${list?.error ?? "no token"}`); return; }
@@ -259,12 +314,12 @@ async function diagnoseVercel(f, add) {
   const inspector = d.inspectorUrl;
   if (d.state === "BLOCKED") {
     add({ key: "vercel", label: "Vercel preview", level: "warn", state: "Blocked by Vercel", link: inspector,
-      todo: [{ who: "auto", text: "Vercel blocked it because the commit author (`devos-runner`) is not the owner of your Hobby team. Since PR-15 the runner deploys previews without git metadata, so new attempts are not blocked. The preview is evidence only; it does not block the merge." }] });
+      todo: [{ who: "you", text: "Vercel blocked it because the commit author (`devos-runner`) is not the owner of your Hobby team. Since PR-90 the cycle makes no preview of its own (it holds no Vercel token): a preview comes only from Vercel's Git integration, which a Hobby team blocks for the runner's commits. The review and the screenshots use the local build; the preview does not block the merge." }] });
     return;
   }
   if (d.state === "ERROR" || d.state === "CANCELED") {
     add({ key: "vercel", label: "Vercel preview", level: "warn", state: d.state.toLowerCase(), link: inspector,
-      todo: [{ who: "you", text: `Open the [deployment](${inspector}) for the build log. It does not block the merge; the next attempt deploys again.` }] });
+      todo: [{ who: "you", text: `Open the [deployment](${inspector}) for the build log. It does not block the merge; Vercel builds the branch again on its next push.` }] });
     return;
   }
   if (d.state !== "READY") { add({ key: "vercel", label: "Vercel preview", level: "info", state: d.state.toLowerCase(), link: url, todo: [] }); return; }
@@ -274,10 +329,12 @@ async function diagnoseVercel(f, add) {
   try { const r = await fetch(`${url}/`, { redirect: "manual", headers, signal: AbortSignal.timeout(20000) }); status = r.status; loc = r.headers.get("location") ?? ""; } catch (e) { loc = e.message; }
   const behindLogin = status === 401 || (status >= 300 && status < 400 && /vercel\.com\/(sso|login)/.test(loc));
   if (behindLogin) {
-    // Tower ADR-004: no Protection Bypass for Automation by design. A preview behind the Vercel login is
-    // expected; the runner takes its screenshots from the local build (PR-15).
-    add({ key: "vercel", label: "Vercel preview", level: "info", state: "behind the Vercel login (expected, ADR-004)", link: url,
-      todo: [{ who: "you", text: "Open the preview yourself while signed in to Vercel. No bypass secret is added (Tower ADR-004); screenshots come from the local build." }] });
+    const bypass = deployBypass();
+    const item = previewBehindLogin(bypass);
+    const text = bypass
+      ? "The preview is behind the Vercel login. Set the secret VERCEL_AUTOMATION_BYPASS_SECRET."
+      : "Open the preview yourself while signed in to Vercel. No bypass secret is added; screenshots come from the local build.";
+    add({ key: "vercel", label: "Vercel preview", level: item.level, state: item.state, link: url, todo: [{ who: "you", text }] });
     return;
   }
   add({ key: "vercel", label: "Vercel preview", level: status === 200 ? "ok" : "warn", state: status === 200 ? "ready" : `answers ${status}`, link: url, todo: [] });
@@ -323,7 +380,7 @@ async function publish() {
     if (claude.evidence) lines.push(`Evidence: ${claude.evidence}`, "");
     if (claude.revise_note && claude.category === "code") lines.push("Comment this to have it fixed:", "```", `/devos revise ${claude.revise_note}`, "```", "");
     if (claude.human_action) lines.push(`Otherwise: ${claude.human_action}`, "");
-  } else if (f.ask_claude) lines.push("_No second opinion: Claude was not available for this run._", "");
+  } else if (f.ask_claude) lines.push("_No second opinion for this run: it runs only when the project's reviewer agent is Claude Code, with its key (PR-53)._", "");
   const ev = f.evidence.filter(Boolean);
   if (ev.length) lines.push("<details><summary>Evidence</summary>", "", "```", ...ev.map((e) => e.slice(0, 1500)), "```", "</details>", "");
   const run = process.env.GITHUB_RUN_ID ? ` · [doctor run](${SERVER}/${REPO}/actions/runs/${process.env.GITHUB_RUN_ID})` : "";
@@ -359,6 +416,8 @@ async function publish() {
   console.log(`devos/gate → ${state}: ${desc}`);
 }
 
-if (mode === "collect") await collect();
-else if (mode === "publish") await publish();
-else fail("usage: doctor.mjs collect --pr <n> | publish [--claude file] [--dry-run]", 2);
+if (direct) {
+  if (mode === "collect") await collect();
+  else if (mode === "publish") await publish();
+  else fail("usage: doctor.mjs collect --pr <n> | publish [--claude file] [--dry-run]", 2);
+}
