@@ -386,12 +386,12 @@
     ]
   },
   "deploy": {
-    "probe": "deployment",
+    "probe": "production",
     "probe_paths": [
       "/"
     ],
     "bypass": false,
-    "production_url_fallback": ""
+    "production_url_fallback": "https://devos-control-tower.vercel.app"
   },
   "agents": {
     "reviewer": {
