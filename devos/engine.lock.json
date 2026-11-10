@@ -1,6 +1,6 @@
 {
   "$comment": "Written by devos install and devos upgrade. Never edit by hand.",
-  "engine_version": "1.13.2",
+  "engine_version": "1.13.3",
   "files": [
     {
       "path": ".claude/agents/design-inspector.md",
@@ -128,7 +128,7 @@
     },
     {
       "path": ".github/workflows/devos-deploy.yml",
-      "sha256": "52434f564cb1b9abce7537b2237bf20efa2c22d58d678fc20f21a384af2717d2"
+      "sha256": "249fe27f01f02749c879fb6d0b563d8cf4ea19700e98766ba785ad49e1216d20"
     },
     {
       "path": ".github/workflows/devos-doctor.yml",
@@ -1116,7 +1116,7 @@
     },
     {
       "path": "docs/method/AUTOMATION.md",
-      "sha256": "a629151dc0eaf05105eadac56d4c0b130de0223c2d051e8936205012d8f4bd91"
+      "sha256": "da8c7a31365392bc467346c3517217d9db948c8bf159a296b45ddd117c917515"
     },
     {
       "path": "docs/method/DESIGN_METHOD.md",
