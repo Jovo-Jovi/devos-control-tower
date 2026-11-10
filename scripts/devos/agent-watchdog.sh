@@ -17,8 +17,17 @@
 # With `--output-format stream-json` the CLI prints one line per message and tool call: the last
 # action is kept in <stdout-dir>/builder-last-action (shown in the progress comment and named when
 # the run is stopped), and at the end the stream is saved as <stdout>.stream.jsonl and <stdout> is
-# rewritten to the final result object, the same shape `--output-format json` prints.
-# The agent never sees DEVOS_PROGRESS_TOKEN: it is removed from the child's environment.
+# rewritten to the final result object, the same shape `--output-format json` prints. Both streams are read:
+# Cursor's (`tool_call` started and completed) and Claude Code's (`tool_use` in an assistant message, its
+# `tool_result` in the next user message; `--verbose`), so a Claude Code builder's progress shows too (E62).
+# The agent never sees DEVOS_PROGRESS_TOKEN: it is removed from the child's environment. PR-90: nor any stored key
+# (the CURSOR_KEY_N, CLAUDE_OAUTH_N, CLAUDE_APIKEY_N, CODEX_KEY_N and GEMINI_KEY_N slots, the media key, a GitHub
+# token): it sees only the one credential accounts.sh exported for the account in use.
+# Usage (PR-52): with DEVOS_USAGE_STAGE set, every run ends with one line in the usage record
+# (scripts/devos/usage.mjs record), its tool and model read from the command line.
+# PR-71: DEVOS_STDIN names a file the command reads on standard input (its prompt; /dev/null by default). A signal to
+# the watchdog itself ends the command's whole session first, so a restart never runs beside a run still going; and
+# when the command ends, what it left running in its session ends with it.
 set -u
 budget=$1; stall=$2; out=$3; err=$4; shift 4
 tick=${DEVOS_WATCHDOG_TICK:-20}; unit=${DEVOS_WATCHDOG_UNIT:-60}   # tests shrink these
@@ -26,9 +35,30 @@ idle_stop=${DEVOS_IDLE_STOP:-30}; report_every=${DEVOS_REPORT_EVERY:-300}; cpu_a
 last_file="$(dirname "$out")/builder-last-action"
 report=${DEVOS_WATCHDOG_REPORT:-}
 [ "${1:-}" = "--" ] && shift
+usage_command=${1:-}; usage_model=auto; prev=""
+for a in "$@"; do [ "$prev" = "--model" ] && usage_model=$a; prev=$a; done
 
-env -u DEVOS_PROGRESS_TOKEN -u GH_TOKEN -u GITHUB_TOKEN setsid "$@" > "$out" 2> "$err" &
+# A stream kept from an earlier run (another tool) never stands for this one.
+rm -f "$out.stream.jsonl"
+# PR-71: the run before this one may have left its agent running, if its watchdog was ended by SIGKILL, which no trap
+# catches. Whatever is left in that run's session ends before this one starts; a session no process holds is nothing.
+pidfile="$out.agent-pid"
+old=$(cat "$pidfile" 2>/dev/null || true)
+own=$(ps -o sid= -p $$ 2>/dev/null | tr -d ' ')
+# Never 0 (pkill's "this session") and never the watchdog's own session.
+case "$old" in ''|0|*[!0-9]*) ;; *) [ "$old" = "$own" ] || pkill -KILL -s "$old" 2>/dev/null ;; esac
+# PR-90: the slots accounts.sh reads, and every other credential name the cycle has ever held, never reach the agent.
+strip=()
+for name in DEVOS_PROGRESS_TOKEN GH_TOKEN GITHUB_TOKEN DEVOS_PAT DEVOS_MEDIA_XAI_KEY VERCEL_TOKEN VERCEL_AUTOMATION_BYPASS_SECRET \
+  CURSOR_KEY_1 CURSOR_KEY_2 CLAUDE_OAUTH_1 CLAUDE_OAUTH_2 CLAUDE_APIKEY_1 CLAUDE_APIKEY_2 CODEX_KEY_1 CODEX_KEY_2 GEMINI_KEY_1 GEMINI_KEY_2; do
+  strip+=(-u "$name")
+done
+env "${strip[@]}" setsid "$@" < "${DEVOS_STDIN:-/dev/null}" > "$out" 2> "$err" &
 pid=$!
+printf '%s\n' "$pid" > "$pidfile"
+trap 'stop; exit 143' TERM
+trap 'stop; exit 130' INT
+trap 'stop; exit 129' HUP
 start=$(date +%s); last_change=$start; last_sig=""; last_report=$start; last_cpu=0
 
 stop() { kill -TERM -- "-$pid" 2>/dev/null; sleep 5; kill -KILL -- "-$pid" 2>/dev/null; wait "$pid" 2>/dev/null; }
@@ -47,7 +77,14 @@ action() {
     for (const l of t.split("\n").slice(-2000)) { let e; try { e=JSON.parse(l); } catch { continue; }
       if (e.type==="tool_call"&&e.subtype==="started") { open.set(e.call_id,say(e)); last="running "+say(e); }
       else if (e.type==="tool_call"&&e.subtype==="completed") { open.delete(e.call_id); last="finished "+say(e); }
-      else if (e.type==="assistant") { last="wrote a message"; } }
+      else if (e.type==="assistant") {
+        const parts=Array.isArray(e.message&&e.message.content)?e.message.content:[]; let used=false;
+        for (const c of parts) if (c&&c.type==="tool_use") { const i=c.input||{};
+          const o=typeof i==="string"?i:(i.command||i.file_path||i.path||i.pattern||i.query||i.url||i.description||JSON.stringify(i));
+          const s=((c.name||"tool")+": "+String(o)).replace(/[\r\n`]+/g," ").slice(0,160); open.set(c.id,s); last="running "+s; used=true; }
+        if (!used) last="wrote a message"; }
+      else if (e.type==="user"&&Array.isArray(e.message&&e.message.content)) {
+        for (const c of e.message.content) if (c&&c.type==="tool_result"&&open.has(c.tool_use_id)) { last="finished "+open.get(c.tool_use_id); open.delete(c.tool_use_id); } } }
     const p=[...open.values()].pop(); process.stdout.write(p?"running "+p:last);
   ' "$out" 2>/dev/null
 }
@@ -67,6 +104,10 @@ finish() {  # code final-text
   action > "$last_file" 2>/dev/null || true
   say $(( (now - start) / unit )) "$(files)" $(( (now - last_change) / unit )) "$2"
   unstream
+  if [ -n "${DEVOS_USAGE_STAGE:-}" ] && [ -f scripts/devos/usage.mjs ]; then
+    node scripts/devos/usage.mjs record --stage "$DEVOS_USAGE_STAGE" --command "$usage_command" --model "$usage_model" \
+      --out "$out" --code "$1" --seconds "$(( now - start ))" || true
+  fi
   exit "$1"
 }
 
@@ -101,4 +142,5 @@ while kill -0 "$pid" 2>/dev/null; do
   fi
 done
 wait "$pid"; code=$?
+kill -TERM -- "-$pid" 2>/dev/null
 finish "$code" "✅ **builder finished** (exit $code) — next: checks and review"

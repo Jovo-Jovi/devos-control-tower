@@ -1,8 +1,8 @@
 # Dev OS — the backend module (Supabase)
 
 Method document, not product scope. It adds a real data layer to the automated cycle without
-weakening any gate, and it is what a new project copies when it needs a backend
-(`/devos-new-project`, step 5). Precedents PR-17, PR-18 and PR-19 make it binding here.
+weakening any gate, and it is what a new project adopts when it stores data (the fit research of the
+blueprint, `devos/prompts/blueprint.md`). Precedents PR-17, PR-18 and PR-19 make it binding here.
 
 ## 1. When it applies
 
@@ -29,7 +29,7 @@ A profile or zone changes only by a signed OD (PR-19). The `devos:boundary` line
 |---|---|---|---|
 | Builder and reviewer runs, `ci` | A throwaway local Supabase in Docker on the runner, rebuilt from the migrations and the synthetic seed every run | the runner (`scripts/devos/supabase.mjs`) | the CLI's local demo keys, written to `.devos/supabase.env` (never committed) |
 | A developer's machine | `supabase start` | the human | local demo keys |
-| Preview deployments | none by default: the review uses the local build against the CI database. Optional: a separate preview project, then set `DEVOS_PREVIEW_DB=true` and its keys in Vercel's Preview environment | — | Vercel Preview env |
+| Preview deployments | none from DEV_OS (PR-90): the review uses the local build against the CI database. Optional: Vercel's own Git integration on task branches (`main` off), with a separate preview project's keys in Vercel's Preview environment, never production's | — | Vercel Preview env |
 | Production | the hosted project | **only** `devos-deploy`, after the human's merge | Vercel Production env; GitHub secrets for the deploy |
 
 No agent ever links to, pushes to or queries a hosted project. Previews never point at production.
@@ -89,7 +89,6 @@ remove in a later task, so the old app keeps working between steps 3 and 4.
 | GitHub secret | `SUPABASE_DB_PASSWORD` | the production database password |
 | GitHub secret | `DEVOS_BACKUP_PASSPHRASE` | the backup encryption passphrase (also kept offline by the human) |
 | GitHub variable | `DEVOS_SUPABASE=true` | turns on the database step in `devos-deploy` |
-| GitHub variable | `DEVOS_PREVIEW_DB=true` | optional: previews have their own database |
 | Vercel, Production | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public values |
 | Vercel, Production (sensitive) | `SUPABASE_SECRET_KEY` | server-only key |
 
@@ -118,7 +117,7 @@ method patch after review; they never override a fence.
 They follow the same contract as the database module: **a module is declared, never assumed; every
 run proves it against a throwaway local copy; no agent touches a hosted service; production moves
 only in `devos-deploy` after the human's merge, before the app.** Pick the modules a product needs;
-a real product rarely needs two data stores (the pilot runs both only to test the method).
+a real product rarely needs two data stores (the method's first project ran both only to test the method).
 
 | | Database (Supabase) | Object storage (R2) | Content store (Firestore) |
 |---|---|---|---|

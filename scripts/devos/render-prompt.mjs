@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 // Render a prompt from devos/prompts/*.md.
 // Usage: node scripts/devos/render-prompt.mjs builder|reviewer|revise Tnn attempt [--out file]
-//        node scripts/devos/render-prompt.mjs intake - - [--out file]          (OD-08 §3)
+//        node scripts/devos/render-prompt.mjs intake - - [--out file]
 // Environment it reads when set: DEVOS_BUILDER_MODEL, DEVOS_BUILDER_EFFORT, DEVOS_BUILDER_FAST,
-// DEVOS_PREVIEW_URL, DEVOS_ISSUE, DEVOS_INTAKE_RESUME, DEVOS_REVIEW_MODE, DEVOS_REVIEW_REASONS, DEVOS_REVIEW_CRITICAL.
+// DEVOS_BUILDER_TOOL, DEVOS_PREVIEW_URL, DEVOS_ISSUE, DEVOS_INTAKE_RESUME, DEVOS_REVIEW_MODE, DEVOS_REVIEW_REASONS, DEVOS_REVIEW_CRITICAL,
+// DEVOS_REVISE_UNIT (PR-92: a revision asked for on that unit's acceptance pull request).
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
-import { P, parsePhases, isHumanGate, taskAfter, config, fail } from "./lib.mjs";
+import { P, parsePhases, waitsOnTaskPr, isMethodRow, taskAfter, config, fail } from "./lib.mjs";
+import { poolText } from "./agents.mjs";
 import { motionCounts } from "./screens.mjs";
+import { skillsBlock } from "./skills.mjs";
 
 function screensLine(screens) {
   const manifestPath = P(".devos/screens/motion.json");
@@ -33,11 +36,15 @@ function commonVars(cfg, rows) {
     RESUME_LINE: env.DEVOS_INTAKE_RESUME === "true"
       ? "\n**This run continues an earlier one that stopped (usage limit or no decision).** Its partial files are already in the tree on this branch (`git diff --stat origin/main...HEAD`). Read them, verify them against the repository, and complete them. Do not start over, renumber, or duplicate what is there: task ids already added on this branch stand, and the next free id below applies only to tasks you still add.\n"
       : "",
+    // PR-54: the builder's tool by its name (the runner passes the pool pick's tool).
+    BUILDER_TOOL: { cursor: "Cursor", claude: "Claude Code", codex: "Codex", gemini: "Gemini" }[env.DEVOS_BUILDER_TOOL] || env.DEVOS_BUILDER_TOOL || "the builder agent",
     BUILDER_MODEL: env.DEVOS_BUILDER_MODEL || cfg.builder.model,
     BUILDER_EFFORT: env.DEVOS_BUILDER_EFFORT || cfg.builder.default_effort || "high",
     BUILDER_FAST: env.DEVOS_BUILDER_FAST || "no",
+    PROJECT_KEY: cfg.project ?? "",
+    BUILDER_POOL: poolText(),
     PREVIEW_LINE: env.DEVOS_PREVIEW_URL
-      ? `- Preview deployment of this branch: ${env.DEVOS_PREVIEW_URL} (check it with \`node scripts/devos/probe.mjs --base ${env.DEVOS_PREVIEW_URL} /\`; previews sit behind the Vercel login by design, Tower ADR-004).\n`
+      ? `- Preview deployment of this branch: ${env.DEVOS_PREVIEW_URL} (check it with \`node scripts/devos/probe.mjs --base ${env.DEVOS_PREVIEW_URL} /\`; previews sit behind the Vercel login unless the project sets a protection bypass).\n`
       : "",
     SCREENS_LINE: screensLine(screens),
   };
@@ -65,17 +72,24 @@ export function renderPrompt(role, task, attempt) {
     BRANCH: `${cfg.branch_prefix}${task}`,
     NEXT_TASK: next ? next.task : "",
     NEXT_TASK_OR_NONE: next ? next.task : "none (last task)",
-    HUMAN_GATE: isHumanGate(row) ? "yes — the PR waits for the human's merge" : "no — the runner merges a PASS",
+    // PR-92: /devos revise on a unit's acceptance PR revises the unit's last task, on the unit's branch.
+    REVISION_WHERE: /^devos\/unit-T\d{2,3}$/.test(process.env.DEVOS_REVISE_UNIT ?? "")
+      ? `on the acceptance pull request of the unit \`${process.env.DEVOS_REVISE_UNIT}\`, whose last task it is: every task of the unit passed, and the human asks for this change before accepting it. Their change may touch any work of the unit (within its signed scope): put all of it in this task's fence`
+      : "on its open pull request",
+    // PR-91: a product PASS merges into its unit's branch; main takes only the human's merge of the unit.
+    HUMAN_GATE: waitsOnTaskPr(row) ? "yes — the PR waits for the human's merge" : isMethodRow(row) ? "no — the runner merges a PASS" : "no — the runner merges a PASS into the unit's branch; the unit reaches main only by the human's merge of its acceptance PR",
     REISSUE_BLOCK: hasPrev
       ? `\nThis is a REISSUE. Read the previous verdict \`${prevReview}\` and the fence's "Attempt ${attempt} focus" section first. The earlier attempt's work is already in the tree on this branch: verify it against the Done-when list and change only what fails. Never redo or duplicate it.\n`
       : "",
+    // PR-55: the skill files this role reads for the task's layers and the project's stack.
+    SKILLS_BLOCK: role === "builder" || role === "reviewer" ? skillsBlock(task, role, cfg) : "",
     PREV_REVIEW_LINE: hasPrev ? `- \`${prevReview}\`: your previous verdict on this task.\n` : "",
     RISK3_LINE: row.risk >= 3
       ? "This is **risk 3**: you are the heavyweight review (Dev OS §11). Read every changed line of the critical paths, not a sample."
       : "",
     REVIEW_MODE_BLOCK: (process.env.DEVOS_REVIEW_MODE || "deep") === "light"
       ? `**This is a LIGHT review** (${process.env.DEVOS_REVIEW_REASONS || "risk 1–2, nothing critical touched"}). Work from the pack and the report; spot-check the diff where the fence is specific. Aim for about 20 tool calls.`
-      : `**This is a DEEP review** (${process.env.DEVOS_REVIEW_REASONS || "risk 3, a gate, or a critical path"}). Still evidence first, but read every changed line of the critical paths${process.env.DEVOS_REVIEW_CRITICAL ? ` (${process.env.DEVOS_REVIEW_CRITICAL.split(",").map((p) => "`" + p + "`").join(", ")})` : ""}, and use a targeted probe where the pack cannot settle a security or data question.`,
+      : `**This is a DEEP review** (${process.env.DEVOS_REVIEW_REASONS || "risk 3, a gate, or a critical path"}). Still evidence first, but read every changed line of the critical paths${process.env.DEVOS_REVIEW_CRITICAL ? ` (${process.env.DEVOS_REVIEW_CRITICAL.split(",").map((p) => "`" + p + "`").join(", ")})` : ""}. Where the pack cannot settle a security or data question, name what is missing under Owner attention: the review has no shell (PR-90).`,
   };
 
   return fill(role, vars);

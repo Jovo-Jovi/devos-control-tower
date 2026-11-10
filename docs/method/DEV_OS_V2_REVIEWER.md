@@ -3,10 +3,10 @@
 **A doc-driven, gate-verified journey for building a bilingual business web application with
 an AI reviewer and an AI builder, from the first client meeting to a live launch and handover.**
 
-Distilled from the finished NEL project (Nile Egypt Labs: bilingual Arabic/English lab site,
-Operator dashboard and partner area on Next.js and Supabase, taken from an empty repository to
-a live domain in about five weeks). It supersedes Dev OS v1 (the BETK edition): v1's mechanics stand,
-and v2 adds the journey order, the gates and the rules that NEL paid for.
+Distilled from a finished client project, called **the reference project** here (a bilingual
+Arabic/English lab site, Operator dashboard and partner area on Next.js and Supabase, taken from an
+empty repository to a live domain in about five weeks). It supersedes Dev OS v1: v1's mechanics
+stand, and v2 adds the journey order, the gates and the rules that the reference project paid for.
 
 **Thesis.** The human owns *decisions*. Documents own *truth*. The reviewer owns *verdicts*.
 The builder owns *execution*. Nothing ships without a written, verified gate — and nothing
@@ -32,7 +32,7 @@ starts before the thing it depends on has arrived.
 13. The cutover playbook
 14. Bootstrapping checklist
 15. Templates
-16. What NEL taught — the incidents behind every rule
+16. What the reference project taught — the incidents behind every rule
 17. Adopting the Dev OS in a new project — the fit research
 18. Builder setup — Cursor rules and MCP
 
@@ -44,11 +44,11 @@ Use it for a client web application built by one person with AI surfaces, where 
 business with an existing website, domain, email and possibly other systems, and where content,
 approvals and sign-offs come from the client's side.
 
-### Profile A — Public bilingual business site with a content dashboard (NEL)
+### Profile A — Public bilingual business site with a content dashboard (the reference project)
 
 Public pages in two languages (RTL first), an Operator dashboard so staff publish their own
 content, optionally a partner or member area, no personal data collected from the public.
-**Non-waivable gates:** Boundary (no personal data), plus any domain gate (NEL: Clinical).
+**Non-waivable gates:** Boundary (no personal data), plus any domain gate (the reference project: Clinical).
 
 ### Profile B — Internal records system that holds personal data (e.g. an HR system)
 
@@ -76,7 +76,7 @@ before any code. A project never changes profile silently; a change is a signed 
    row with evidence, verified by fetching the repository — never a pasted report taken on trust.
 5. **Dependencies before the work that needs them.** Design is approved before pages are built;
    client content arrives before features that display it; the old host is inventoried before
-   the DNS moves. NEL's reorders and late rework all came from breaking this pillar.
+   the DNS moves. The reference project's reorders and late rework all came from breaking this pillar.
 
 ---
 
@@ -143,7 +143,7 @@ anything else. **Outputs:**
   and — new in v2 — *what else runs on the domain today*.
 - **Existing-estate inventory**, read-only: the current site's pages, the domain's DNS records,
   the email provider, the hosting panel, and every other system under the same domain or host
-  (NEL found an HR system at `/hrm` only on launch day).
+  (the reference project found an HR system at `/hrm` only on launch day).
 - **Extraction** of the old site as evidence only — never a parity target.
 - **Content track plan:** who supplies which text, photos and sign-offs, by which date.
 **Rules:** the answered form never enters the repository (it holds personal contact details);
@@ -168,7 +168,7 @@ the client IP is seen, the CSP scope, the flag strategy, the media model, accoun
 
 ### J3 — Design (moved earlier in v2)
 
-NEL built first and ran its design review at the end (P09); two late decisions restyled the
+The reference project built first and ran its design review at the end (P09); two late decisions restyled the
 dashboard and every page's background. In v2 the design is approved **before** any page is built.
 **Outputs:** brand direction; `DESIGN_SYSTEM.md` with tokens, components and states; a
 composition for **every page type** — public pages, dashboard list and edit screens, sign-in and
@@ -193,18 +193,18 @@ own gate, never slipped into a public-site task.
 
 ### J7 — Content entry and domain sign-off
 
-The client's staff enter content through the dashboard. Domain content (NEL: clinical) is signed
+The client's staff enter content through the dashboard. Domain content (the reference project: clinical) is signed
 in writing by the client's qualified staff, and the signed artefact lives in the repository with
 its digest. Features that display that content stay behind a flag until the signature exists.
 
 ### J8 — Features that need content
 
 Search indexes, catalogues and anything that reads client content are built **after** J7.
-NEL had to move search behind content entry mid-project (OD-12); v2 schedules it there.
+The reference project had to move search behind content entry mid-project (OD-12); v2 schedules it there.
 
 ### J9 — Freeze, documentation and hardening
 
-Development ends by a signed decision (NEL: OD-37). Then: documentation brought to the delivered
+Development ends by a signed decision (the reference project: OD-37). Then: documentation brought to the delivered
 state; quotation revision (delivered · withdrawn · excluded); hardening that is **security only**
 and changes no feature, workflow, access rule or appearance; read-only measurements; the
 carry-forward triage (§5.4).
@@ -243,6 +243,10 @@ Ledgers and method files: `SESSION_CONTEXT.md` (state), `DEVELOPMENT_JOURNAL.md`
 `method/CARRY_FORWARDS.md` (findings), `QUOTATION_AMENDMENTS.md`, `commercial/` (no prices in the
 repository unless the human decides otherwise), `HANDOVER.md`, `ADMIN_GUIDE.md`.
 
+The root `README.md` is the product's own page for the people who use or try it (PR-77): what it does, its
+features, screenshots, getting started, what it is built with and its status. The blueprint writes it, every task
+that builds a feature or changes a screen keeps it current, and no task deletes it.
+
 **Where two documents conflict, the earlier one wins and the conflict becomes an amendment.**
 
 ---
@@ -269,7 +273,7 @@ A binding procedural ruling, born from an incident, cited as PR-nn. A ruling exi
 is quoted in a fence or listed in `PRECEDENTS.md`; nothing said in chat is authority.
 
 ### 5.4 Triage — at every gate, not only at the end
-NEL reached launch with 111 open carry-forwards and triaged them in one pass. v2 triages at each
+The reference project reached launch with 111 open carry-forwards and triaged them in one pass. v2 triages at each
 gate with five dispositions: **CLOSE** (resolved or superseded) · **FIX-DOC** · **ACCEPT** (as
 delivered, with a reason) · **MAINTENANCE** (accepted for launch, listed for the agreement) ·
 **HANDOVER** (stays open until a named launch step). The human signs each triage. A script
@@ -291,7 +295,7 @@ git bundle (`git bundle create project.bundle --all`) or grants read access.
 
 ### 6.2 Rehearse before issuing
 Before a fence is issued, the reviewer applies its changes on a clean clone: builds, runs the
-guards, curls the routes, computes every expected hash and count. NEL's biggest source of delay
+guards, curls the routes, computes every expected hash and count. The reference project's biggest source of delay
 was fence defects (impossible checks, wrong anchors, stale counts); rehearsal removed them.
 
 ### 6.3 The fence (task prompt)
@@ -299,6 +303,10 @@ was fence defects (impossible checks, wrong anchors, stale counts); rehearsal re
 ```
 ## T0n — <task name>
 - Phase · Risk · Model · Effort · Review gate
+- Builder: <pool id> · Effort: <low|medium|high|xhigh> · Fast: <yes|no>
+- Layers: <layer> · <layer>
+- Paths: `<glob>` · `<glob>`   (every file and folder the task may change)
+- Dependencies: `<package>` · `<package>`, or none   (every package the task may add)
 - Context to read first: <docs and sections>
 - Prompt (canonical): preconditions → numbered STEPs → STOP block
 - Done when: commands that must pass and states that must hold
@@ -308,6 +316,25 @@ was fence defects (impossible checks, wrong anchors, stale counts); rehearsal re
 
 Rules for every fence:
 - **Self-contained.** Everything it refers to is inside it, or attached with a verifiable hash.
+- **Checked by machine.** `scripts/devos/fence-check.mjs` passes before the fence is issued, and
+  `guard:scope` holds the task to its Paths (PR-58).
+- **A fixed effort is kept (PR-78).** When `devos.config.json` gives a pool builder a fixed `effort` (and,
+  for Cursor, `fast`), every fence for it says exactly that `Effort:` and `Fast:`; `fence-check.mjs`
+  refuses another. Otherwise the reviewer picks the effort for each task.
+- **Dependencies are named (PR-85).** `- Dependencies:` names every package the task may add to a
+  manifest, or says `none`. `guard:deps` fails a package the line does not name and, when the
+  dependencies change, a high or critical advisory of the stack's audit; a copyleft licence is a
+  warning the reviewer judges. A manifest the task creates (the scaffold) holds the stack's packages.
+- **The README is kept (PR-77).** A fence that builds a feature or changes what a user sees ends with
+  a step that updates `README.md` (`## Features`, and for a screen `## Screenshots` from
+  `docs/screenshots/`), and names it in its Paths. No fence deletes or empties `README.md`, and no
+  Done-when checks that it is absent.
+- **Media is planned (PR-79).** With generated media chosen, `docs/design/media.json` plans every image,
+  video and voice item (`DESIGN_METHOD.md` §8). It also lists each image the developer owns, with or without
+  generated media: the source `own`, its `from` in `docs/design/own/`, shown as it is (PR-82). A fence whose
+  screen shows one names it in its header,
+  `- Media: \`<id>\` · …` (PR-81): the cycle makes those items before the builder, within `DEVOS_MEDIA_BUDGET`.
+  The screen uses each item's `file` path and draws its fallback until the file exists.
 - **Preconditions first.** The previous task merged (`git merge-base --is-ancestor`), a clean
   tree, the live counts it builds on.
 - **Byte-exact payloads** are staged outside the working tree and verified by
@@ -355,7 +382,7 @@ gates, which no decision can waive.
 
 ---
 
-## 7. The rule layer (distilled from NEL's 40 precedents)
+## 7. The rule layer (distilled from the reference project's 40 precedents)
 
 **Evidence**
 - Counts are computed and the command is stated; an estimate is never a count.
@@ -383,7 +410,7 @@ gates, which no decision can waive.
 - A connected MCP server is not permission; read-only calls included.
 - Live database reads that the CLI cannot make read-only are run by the human in the SQL editor
   from the fence's exact SELECT text, counts only.
-- Record the environment's shell quirks once (NEL: PowerShell has no `&&`, discards
+- Record the environment's shell quirks once (the reference project: PowerShell has no `&&`, discards
   formatted-table output, mangles escaped patterns, converts LF to CRLF).
 
 **Design and content**
@@ -407,7 +434,7 @@ Stand them up at J4 and add one the day a new rule is born.
 | `guard:boundary` | Built HTML contains a form field, tracker or data path the boundary forbids |
 | `verify_seed` | The seed's computed counts differ from the signed figures |
 | Dependency audit | A high-severity advisory in production dependencies |
-| Spec runner | A declared spec fails, or cannot run (NEL's CI never ran its specs — wire it at J4) |
+| Spec runner | A declared spec fails, or cannot run (the reference project's CI never ran its specs — wire it at J4) |
 | `inventory.py` | Not a failure: prints every figure the documents state, reproducibly |
 
 CI runs them on every push and pull request, sequentially, and fails loudly when a secret is
@@ -455,11 +482,18 @@ systems on the domain are reached by link or redirect, never proxied.
 Each personal field has a stated purpose; access is role-limited in the database; every read of
 sensitive data and every change is audited; secrets and backups are encrypted; retention and
 deletion are scheduled and tested; exports work; no personal record exists outside production;
-the client's legal obligations (Egypt: Law 151 of 2020) are written into the handover.
+the client's legal obligations (for example, Egypt's Law 151 of 2020) are written into the handover.
 
-### 10.4 Gate exit
+### 10.4 Production readiness (PR-88)
+The launch task's fence has a `- Launch:` line naming the main pages. The runner checks them: headers, the full
+audit, accessibility and speed, as the required check `readiness`. The reviewer goes through
+`docs/method/READINESS.md` per layer, with the OWASP ASVS at level 1, or level 2 with personal data or payments, and
+Trail of Bits' sharp edges. A failed item blocks the launch unless the owner waives it in writing in
+`docs/DECISIONS.md`.
+
+### 10.5 Gate exit
 A dedicated heavyweight task attacks the build against live systems and the production artefact,
-not assumptions (NEL learned that a sign-off file reached the production bundle and opened the
+not assumptions (the reference project learned that a sign-off file reached the production bundle and opened the
 gate there). One hard failure blocks; FIX; re-run in full.
 
 ---
@@ -544,7 +578,7 @@ FAIL, not a warning. Skills and rule files make the builder faster but never out
 ### 15.1 Reviewer Project instructions — full template
 
 Paste the block below into a new Claude Project's instructions, then replace every `<…>`
-placeholder. It is the NEL reviewer instructions, generalised. Keep the prompt and verdict
+placeholder. It is the reference project's reviewer instructions, generalised. Keep the prompt and verdict
 formats exactly as written: they are the parts that worked. Delete the Profile block that does
 not apply.
 
@@ -789,7 +823,7 @@ OD, except for the non-waivable gates, which no OD can waive.
 ````
 
 **Filled examples.**
-- **NEL (profile A):**
+- **The reference project (profile A):**
   - `<DOMAIN_GATE_NAME>` = Clinical, and `<DOMAIN_CONTENT>` = LabTest names, panel membership and medical descriptions.
   - Forbidden nouns: `test · result · patient · branch · unit · programme · package · profile · panel · checkup · device · offer · service · user · admin · content · item`.
   - Models: builder Grok on every task; heavyweight review Claude Opus 5.5 or Claude Fable 5.1 before merge on risk-3 paths.
@@ -800,7 +834,7 @@ OD, except for the non-waivable gates, which no OD can waive.
   - Repository private from day one.
 
 **Keep with the template:** seed `docs/method/PRECEDENTS.md` on day one with the environment's
-quirks and the NEL rules of §7 that apply, so the instructions stay short and the precedents
+quirks and the rules of §7 that apply, so the instructions stay short and the precedents
 carry the detail.
 
 ### 15.2 OD skeleton
@@ -823,7 +857,7 @@ carry the detail.
 
 ---
 
-## 16. What NEL taught
+## 16. What the reference project taught
 
 | # | What happened | Rule it produced |
 |---|---|---|
@@ -847,7 +881,7 @@ carry the detail.
 When this handbook is added to a new project (to a Claude Project's knowledge, or to a new
 repository), the reviewer's **first session is research, not scope**. The handbook was distilled
 from one project; the fit research decides what of it the new project needs, what it can drop,
-and what it needs that NEL never had.
+and what it needs that the reference project never had.
 
 **Procedure**
 
@@ -867,14 +901,14 @@ and what it needs that NEL never had.
    (§15.1) from it, and J0 continues with the owner form and the estate inventory.
 
 **What the research must catch — examples**
-- A module NEL never had (payments, email notifications, file uploads, reports, a mobile app):
+- A module the reference project never had (payments, email notifications, file uploads, reports, a mobile app):
   it needs a new document section, often a new gate, and an ADR before J2.
 - Personal data anywhere in the product: profile B, the protection gate, a private repository
   from day one, and audit by design.
 - A legacy system to replace (for example the laboratory's HR system on the old Plesk host with
   its SQL Server database): a migration module with a one-time, reviewed, logged pipeline, and
   no real records in development.
-- Something that makes a NEL rule unnecessary: drop it and record why in §9 of the fit file.
+- Something that makes a rule of §7 unnecessary: drop it and record why in §9 of the fit file.
   Nothing is dropped silently.
 
 **Output:** `DEVOS_FIT.md`, approved. It lands in `docs/method/` with the first method
@@ -892,7 +926,7 @@ The kit (`kit/` beside this handbook) is copied into every new repository at J4.
 | `.cursor/rules/10-security-data.mdc` | Always on: no secrets or real personal data anywhere; RLS; the service-role key quarantined; server-side validation |
 | `.cursor/rules/20-bilingual-rtl.mdc` | For `src/**`: URL-only language, logical properties, tokens, catalogue parity, isolation |
 | `.cursor/rules/30-vocabulary.mdc` | Always on: the forbidden nouns — fill from `GLOSSARY.md` |
-| `.cursor/rules/40-environment.mdc` | Always on: the shell's quirks — the NEL Windows/PowerShell profile as the starting point |
+| `.cursor/rules/40-environment.mdc` | Always on: the shell's quirks — the reference project's Windows/PowerShell profile as the starting point |
 | `.cursor/rules/50-report-halt.mdc` | Always on: HALT vs REDACT, the report format, fence defects |
 | `.cursor/rules/60-mcp-tools.mdc` | Always on: only named tool calls; read-only; no personal data; no account changes |
 | `.cursor/mcp.example.json` | Supabase (read-only, one project) and Vercel MCP servers |
@@ -911,12 +945,12 @@ a fence adds only what is specific to its task.
    `read_only=true` for that task and restoring it straight after. Schema changes still go
    through migration files, not MCP writes.
 4. Live counts the CLI cannot read with a read-only role are run by the human in the SQL Editor
-   from the fence's SELECT text (PR-40 in NEL).
+   from the fence's SELECT text (PR-40 in the reference project).
 5. At handover, every developer MCP connection and personal access token is revoked, at the
-   final transfer step the human authorises (NEL: CF-203).
+   final transfer step the human authorises (the reference project: CF-203).
 
 ---
 
-*Dev OS v2 — distilled from the NEL repository (40 ODs, 40 precedents, 226 carry-forwards),
-finished 28 September 2026. Supersedes the BETK edition for Profile A and B
+*Dev OS v2 — distilled from the reference project's repository (40 ODs, 40 precedents, 226 carry-forwards),
+finished 28 September 2026. Supersedes Dev OS v1 for Profile A and B
 projects.*

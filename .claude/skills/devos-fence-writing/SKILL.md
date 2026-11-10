@@ -29,8 +29,8 @@ A builder run has 72 minutes; aim for about 60 minutes of work per stage.
   Done-when ids it proves at the end of that stage.
 - One concern per stage, in this order: data and server first, then UI states, then motion, then
   e2e, captures, ledgers and the report.
-- Every stage leaves the tree green: `pnpm typecheck`, `pnpm lint` and the tests it touches pass
-  after it. No stage depends on a later one.
+- Every stage leaves the tree green: the stack's typecheck, lint and the tests it touches pass
+  after it (`devos.config.json` `stack.commands`). No stage depends on a later one.
 - The runner runs one stage per builder run and tells the builder which stage it is on. Each stage
   appends `## Attempt A · Stage k of N` to the report; the last stage runs **every** Done-when
   command and writes the full report. The review comes once, after the last stage.
@@ -38,14 +38,33 @@ A builder run has 72 minutes; aim for about 60 minutes of work per stage.
   important part and say in `human_attention` how the rest should become a separate task (a change
   request the owner files). You cannot add ledger rows.
 
-## 3. Check it before it is final
+## 3. Name what it may change
+
+The header carries `- Paths: \`<glob>\` · …`: every file and folder the task may change, each in
+backticks (a module's folder from `devos.config.json` `structure.modules`, a test folder, a manifest).
+`guard:scope` fails the run on a change outside them; the report, `docs/SESSION_CONTEXT.md`,
+`docs/DEVELOPMENT_JOURNAL.md` and a lockfile beside a listed manifest are always allowed (PR-58).
+More than 12 entries is more than one run: split into stages or tasks.
+
+It also carries `- Dependencies: \`<package>\` · …`: every package the task may add to a manifest, each in
+backticks, or `- Dependencies: none`. `guard:deps` fails a package a manifest gains that the line does not name,
+and a high or critical advisory of the stack's audit (PR-85).
+
+The launch task's fence (`scope` `full`, the last task before launch) also carries `- Launch: / · /<page> · …`.
+That line names the main pages, 10 at most, each a path; write `- Launch: none` for a product without pages. The
+runner then checks those pages for headers, accessibility and speed, and runs the full audit. The reviewer goes
+through `docs/method/READINESS.md` with the ASVS at the project's level (PR-88).
+
+## 4. Check it before it is final
 
 1. Write the fence.
-2. Run the `fence-auditor` agent on it; fix every BLOCKER and DEFECT it reports and run it again
+2. Run `node scripts/devos/fence-check.mjs docs/fences/Tnn.md` and fix every finding until it prints
+   OK: the title, the builder line, the layers, the paths, Done when, Do NOT and the stages (PR-58).
+3. Run the `fence-auditor` agent on it; fix every BLOCKER and DEFECT it reports and run it again
    until none is left.
-3. Only then give its path in `Next prompt:`.
+4. Only then give its path in `Next prompt:`.
 
-## 4. Reviewing with help
+## 5. Reviewing with help
 
 - UI task: run the `design-inspector` agent on the captures before you judge the design ledger.
 - Deep review (risk 3, a gate, a critical path): run the `security-auditor` agent on the branch.

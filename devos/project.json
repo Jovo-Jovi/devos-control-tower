@@ -1,0 +1,75 @@
+{
+  "$comment": "This file is yours; devos.config.json is generated from devos/engine.defaults.json and this file; edit here, then run node scripts/devos/config.mjs --write.",
+  "project": "TOWER",
+  "scenario": "new",
+  "screens": {
+    "pages_extra": [
+      "/sign-in"
+    ]
+  },
+  "reviewer": {
+    "deep_paths_extra": [
+      "src/lib/contract/**",
+      "src/app/api/**",
+      "supabase/migrations/**",
+      "src/app/auth/**",
+      "src/proxy.ts",
+      "src/app/api/github/webhook/**"
+    ],
+    "human_gate_paths_extra": [
+      "supabase/migrations/**",
+      "src/app/auth/**",
+      "src/proxy.ts",
+      "src/app/api/github/webhook/**"
+    ],
+    "human_gate_imports_extra": [
+      "next-auth",
+      "next-auth/**",
+      "@auth/**",
+      "@clerk/**",
+      "better-auth",
+      "better-auth/**",
+      "lucia",
+      "lucia/**",
+      "passport",
+      "passport-*",
+      "iron-session",
+      "firebase/auth",
+      "firebase-admin/auth",
+      "@supabase/auth-helpers-*",
+      "stripe",
+      "@stripe/**",
+      "@paddle/**",
+      "@lemonsqueezy/**",
+      "@paypal/**",
+      "react-native-purchases"
+    ]
+  },
+  "modules": {
+    "r2": {
+      "env_note": "Locally they point at the emulator with throwaway keys (.devos/r2.env). In production: Vercel Production env (the two keys marked sensitive) and the same five as GitHub secrets for the deploy's storage preflight. R2_ENDPOINT is https://<account-id>.r2.cloudflarestorage.com; R2_PUBLIC_BASE_URL is the bucket's public URL (r2.dev for a pilot, a custom domain for a real product)."
+    }
+  },
+  "agents": {
+    "reviewer": {
+      "id": "claude-deep",
+      "tool": "claude",
+      "model": "claude-opus-5-5"
+    },
+    "reviewer_light": {
+      "id": "claude-light",
+      "tool": "claude",
+      "model": "claude-sonnet-5-5"
+    },
+    "pool": [
+      {
+        "id": "cursor-auto",
+        "tool": "cursor",
+        "model": "auto",
+        "default": true,
+        "note": "default builder"
+      }
+    ],
+    "policy": "reviewer-picks"
+  }
+}

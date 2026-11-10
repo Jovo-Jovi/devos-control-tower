@@ -1,0 +1,20 @@
+{
+  "schema": "devos-baseline/1",
+  "$comment": "Written once, when DEV_OS was added to this project. It only shrinks: node scripts/guards/run-all.mjs --shrink-baseline. Never edit it by hand.",
+  "written": "2026-11-10",
+  "guards": {
+    "design": {
+      "src/app/projects/[key]/import/page.tsx — third-party host: <a className={styles.repo} href={`https://github.com/${target.repo}`} rel=\"noreferrer\">": 1,
+      "src/app/projects/[key]/page.tsx — third-party host: <a className={styles.repo} href={`https://github.com/${report.project.repo}`} rel=\"noreferrer\">": 1,
+      "src/app/projects/[key]/usage/page.tsx — third-party host: <a className={styles.repo} href={`https://github.com/${report.project.repo}`} rel=\"noreferrer\">": 1,
+      "src/components/EvidenceLink.tsx — third-party host: ? `https://github.com/${repo}/blob/${commit}/${path}`": 1,
+      "src/components/EvidenceLink.tsx — third-party host: : `https://github.com/${repo}/commit/${commit}`;": 1,
+      "src/components/map/DetailPanel.tsx — third-party host: <a href={`https://github.com/${project.repo}`} rel=\"noreferrer\">": 1,
+      "src/components/map/DetailPanel.tsx — third-party host: <a className={styles.repository} href={`https://github.com/${project.repo}`} rel=\"noreferrer\">": 1,
+      "src/lib/contract/oidc.ts — third-party host: export const issuer = \"https://token.actions.githubusercontent.com\";": 1,
+      "src/lib/supabase/server/session.test.ts — third-party host: avatar_url: \"https://avatars.githubusercontent.com/u/1\",": 1,
+      "src/lib/supabase/server/session.test.ts — third-party host: avatarUrl: \"https://avatars.githubusercontent.com/u/1\",": 1,
+      "src/proxy.ts — third-party host: \"img-src 'self' data: https://avatars.githubusercontent.com\",": 1
+    }
+  }
+}

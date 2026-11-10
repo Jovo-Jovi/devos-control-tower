@@ -16,6 +16,12 @@ const flag = (n) => argv.includes(`--${n}`);
 const WIN = process.platform === "win32";
 const cfg = config();
 const BASE = cfg.base_branch;
+// PR-53: this loop runs Cursor as the builder and Claude Code as the reviewer. It never runs an agent the project did not choose.
+const chosen = cfg.agents;
+if (chosen && (chosen.reviewer?.tool !== "claude" || !(chosen.pool ?? []).some((a) => a.tool === "cursor" && a.default))) {
+  console.error("loop.mjs runs Cursor as the builder and Claude Code as the reviewer; this project chose other agents. Use the devos-cycle workflow on GitHub.");
+  process.exit(1);
+}
 
 function sh(cmd, args, { capture, allowFail, env } = {}) {
   console.log(`\n$ ${cmd} ${args.map((a) => (a.length > 80 ? a.slice(0, 77) + "..." : a)).join(" ")}`);
@@ -34,6 +40,9 @@ function sh(cmd, args, { capture, allowFail, env } = {}) {
 const node = (script, ...args) => sh(process.execPath, [P(script), ...args], { allowFail: true });
 
 function cycleOnce(task, attempt) {
+  // PR-58: guard:fences and guard:scope read the task; scope compares with the local base branch.
+  process.env.TASK = task;
+  process.env.DEVOS_SCOPE_BASE = BASE;
   const { rows } = parsePhases();
   const row = rows.find((r) => r.task === task);
   const br = `${cfg.branch_prefix}${task}`;
@@ -109,7 +118,9 @@ for (let done = 0; done < maxTasks; ) {
     task = n.task; attempt = 1;
   }
   console.log(`\n=========== ${task} · attempt ${attempt} ===========`);
-  const { action, br } = cycleOnce(task, attempt);
+  let { action, br } = cycleOnce(task, attempt);
+  // PR-91: the cycle signs a product Gate with the unit's acceptance; the local loop has no units, so a Gate stops here.
+  if (action === "merge" && isHumanGate(parsePhases().rows.find((r) => r.task === task) ?? {})) action = "human_gate";
 
   if (action === "merge") {
     sh("git", ["checkout", BASE]);
